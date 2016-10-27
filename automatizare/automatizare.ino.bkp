@@ -1,0 +1,359 @@
+/* automatizare */
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
+#include <LsuScheduler.h>
+
+// one second, 1000 milliseconds
+const int SECOND = 1000;
+
+// Feather HUZZAH pin 14
+const byte ONE_WIRE_PIN_14 = 14;
+// Feather HUZZAH pin 12
+const byte RELAY_0_PIN_12 = 12;
+
+// Temperature senzor resolution: 9, 10, 11, or 12 bits
+const byte RES = 12;
+
+// Conversion times:
+// -  9 bit =  94 ms
+// - 10 bit = 188 ms
+// - 11 bit = 375 ms
+// - 12 bit = 750 ms
+// Calculate conversion time and add 10 ms
+const int CONVERSION_TIME = 10 + 750 / (1 << (12 - RES));
+
+const byte SSID_SIZE = 2;
+const char* SSID_t[SSID_SIZE]   = {"cls-router", "cls-ap"};
+const char* PASSWD_t[SSID_SIZE] = {"r4cD7TPG", "r4cD7TPG"};
+
+byte ssid_ix = 0;
+
+/* Senzor count */
+const byte SENZOR_COUNT = 1;
+const byte SENZOR_ADDRESS_LENGTH = 8;
+// Temperature senzor unique I2C addresses.
+const uint8_t SENZOR_ADDRESS [SENZOR_COUNT][SENZOR_ADDRESS_LENGTH] = 
+{
+  {0x28, 0xFF, 0x21, 0x14, 0xA6, 0x15, 0x3, 0x9D}
+};
+
+/* The interval temperature is read */
+const byte READ_INTERVAL = 10;
+
+int temperature[SENZOR_COUNT];
+
+int floatToRound05Int(float);
+
+void updateTemperature(void);
+
+void pritSerial(long int);
+
+void connectWifi();
+
+void listen4HttpClient();
+
+// Setup a oneWire instance to communicate with any OneWire devices
+// (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_PIN_14);
+
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature dallasTemperature(&oneWire);
+
+// Task scheduler (for class definition go to the end)
+LsuScheduler scheduler;
+
+WiFiServer server(80);
+
+// the setup routine runs once when starts
+void setup()
+{
+  Serial.begin(115200);
+//  pinMode(RELAY_0_PIN_12, OUTPUT);
+  for(byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    temperature[i] = 0;
+  }
+
+  // Start up the library
+  dallasTemperature.begin();
+  dallasTemperature.setResolution(RES);
+  dallasTemperature.setWaitForConversion(false);
+
+  scheduler.add(updateTemperature, 20);
+}
+
+// the loop routine runs over and over again forever
+void loop()
+{
+  connectWifi();
+  listen4HttpClient();
+  scheduler.execute(millis());
+}
+
+void pritSerial(long int millisecond)
+{
+  Serial.print(millisecond / SECOND);
+  Serial.print(" - ");
+  for(byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    if(i)
+      Serial.print(", ");
+    Serial.print((1.0 * temperature[i]) / 100);
+  }
+  Serial.println(" [grd.C]");
+}
+
+void connectWifi()
+{
+  if (WiFi.status() == WL_CONNECTED )
+    return;
+  Serial.print("Connecting to ");
+  Serial.print(SSID_t[(ssid_ix % SSID_SIZE)]);
+  ssid_ix = ssid_ix % SSID_SIZE;
+  WiFi.begin(SSID_t[ssid_ix], PASSWD_t[ssid_ix]);
+
+  unsigned long mllis = millis();
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(10);
+    if(millis() - mllis >= 10000)
+    {
+      Serial.println(" - 10 s timed out. Trying next SSID.");
+      ssid_ix += 1;
+      return connectWifi();
+    }
+  }
+  server.begin();
+  Serial.print(" - done ("); Serial.print((millis() - mllis)); Serial.print(" ms). IP address: ");Serial.println(WiFi.localIP()); 
+}
+
+void listen4HttpClient()
+{
+  // listen for incoming clients
+  WiFiClient client = server.available();
+  if (client) {
+    Serial.println("new HTTP request");
+    // an http request ends with a blank line
+    boolean currentLineIsBlank = true;
+    while (client.connected()) {
+      if (client.available()) {
+        char c = client.read();
+        // if you've gotten to the end of the line (received a newline
+        // character) and the line is blank, the http request has ended,
+        // so you can send a reply
+        if (c == '\n' && currentLineIsBlank) {
+          // send a standard http response header
+          client.println("HTTP/1.1 200 OK");
+          client.println("Content-Type: text/html");
+          client.println("Connection: close");  // the connection will be closed after completion of the response
+          client.println("Refresh: 10");  // refresh the page automatically every 10 sec
+          client.println();
+          client.println("<!DOCTYPE HTML>");
+          client.println("<html>");
+          // output the value of each analog input pin
+          for(byte i = 0; i < SENZOR_COUNT; ++i)
+          {
+            client.print("Living: ");
+            client.print(((1.0 * temperature[i]) / 100));
+            client.print(" grd. C<br />");
+          }
+          client.println("</html>");
+          break;
+        }
+        if (c == '\n') {
+          // you're starting a new line
+          currentLineIsBlank = true;
+        } else if (c != '\r') {
+          // you've gotten a character on the current line
+          currentLineIsBlank = false;
+        }
+      }
+    }
+    // give the web browser time to receive the data
+//    delay(1);
+
+    // close the connection:
+    client.stop();
+//    Serial.println("client disonnected");
+  }
+}
+
+void startConversion()
+{
+  // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
+  dallasTemperature.requestTemperatures();
+}
+
+void updateTemperature(void)
+{
+  long int m = millis();
+  m = m - (m % SECOND); // floor to second
+  int temp;
+  // DallasTemperature.h::getTempC - returns temperature in degrees C for given address
+  // read the temperature and store it as integer rounded to 0.05 grd C
+  for(byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    temp = floatToRound05Int(dallasTemperature.getTempC(SENZOR_ADDRESS[i]));
+    if(!temperature[i] || (temp - temperature[i]) < 500)
+      temperature[i] = temp;
+  }
+  // print it
+  pritSerial(m);
+  // send it to the server
+  // TODO
+
+  // schedule next
+  int next_read = m + (READ_INTERVAL * SECOND); // seconds
+  // schedule conversion at 'next_read' time, minus the time to wait for it
+  scheduler.add(startConversion, next_read - CONVERSION_TIME);
+  // schedule read at 'next_read' time
+  scheduler.add(updateTemperature, next_read);
+}
+
+int floatToRound05Int(float temp)
+{
+  int t = (int)(temp * 100);
+  byte mod = t % 10;
+  switch(mod) {
+    case 1:
+    case 2:
+      t += (0 - mod);
+      break;
+    case 3:
+    case 4:
+    case 6:
+    case 7:
+      t += (5 - mod);
+      break;
+    case 8:
+    case 9:
+      t += (10 -mod);
+      break;
+    default:
+      break;
+  }
+  return t;
+}
+
+
+/*
+// libraries/LsuScheduler/LsuScheduler.h
+#ifndef LsuScheduler_h
+#define LsuScheduler_h
+
+#include "Arduino.h"
+
+class LsuScheduler
+{
+  private:
+    struct node
+    {
+      long int when;
+      void (*funt)(void);
+      struct node * next;
+    };
+    node * head;
+    void destroy(node *);
+    void destroy_r(node *, node *);
+  public:
+    LsuScheduler();
+    virtual ~LsuScheduler();
+    void execute(long int);
+    void add(void (*)(), long int );
+};
+
+#endif // LsuScheduler_h
+// end LsuScheduler.h
+*/
+
+/*
+// libraries/LsuScheduler/LsuScheduler.cpp
+#include "Arduino.h"
+#include "LsuScheduler.h"
+
+void LsuScheduler::destroy(node *c)
+{
+  if (c)
+    destroy_r(c, c->next);
+}
+
+void LsuScheduler::destroy_r(node *c, node *n)
+{
+  if (c)
+    delete c;
+  if (n)
+    destroy_r(n, n->next);
+}
+
+LsuScheduler::LsuScheduler()
+{
+  head = new node();
+  head->when = 0;
+  head->funt = 0;
+  head->next = 0;
+}
+
+LsuScheduler::~LsuScheduler()
+{ 
+  destroy(head);
+}
+
+void LsuScheduler::execute(long int current_time)
+{
+  node * c = head;
+  while (c->next)
+  {
+    node * n = c->next;
+    if (n->when <= current_time)
+    {
+      // execute
+      if (n->funt)
+        n->funt();
+      // remove
+      c->next = n->next;
+      delete n;
+      n = 0;
+    }
+    // advance
+    c = c->next;
+  }
+}
+
+void LsuScheduler::execute(long int current_time)
+{
+  node * c = head;
+  while (c->next)
+  {
+    node * n = c->next;
+    if (n->when <= current_time)
+    {
+      // execute
+      if (n->funt)
+        n->funt();
+      // remove 
+      c->next = n->next;
+      delete n;
+      n = 0;
+    }
+    // advance
+    c = c->next;
+  }
+}
+
+void LsuScheduler::add(void (*funt)(), long int when)
+{
+  node * n = new node();
+  n->when = when;
+  n->funt = funt;
+  n->next = 0;
+  // start at head
+  node * last = head;
+  // search the last one
+  while (last->next)
+    last = last->next;
+  // link after last
+  last->next = n;
+}
+// end LsuScheduler.cpp
+ */
+

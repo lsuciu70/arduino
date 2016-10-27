@@ -3,55 +3,67 @@
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 #include <Time.h>         // https://github.com/PaulStoffregen/Time
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
+#include <LsuScheduler.h>
+
+
+// one second, 1000 milliseconds
+const int SECOND = 1000;
+
+// Task scheduler
+LsuScheduler scheduler;
 
 // Eastern European Time (Timisoara)
-const TimeChangeRule EEST = {"EEST", Last, Sun, Mar, 3, 180}; // Eastern European Summer Time
-const TimeChangeRule EET  = {"EET",  Last, Sun, Oct, 4, 120}; // Eastern European Standard Time
+// - Summer Time starts in last Sunday of March at 3 AM and is UTC + 3 hours (180 minutes)
+const TimeChangeRule EEST = {"EEST", Last, Sun, Mar, 3, 180};
+// - Standard (winter) Time starts in last Sunday of Octomber at 4 AM and is UTC + 2 hours (120 minutes)
+const TimeChangeRule EET  = {"EET",  Last, Sun, Oct, 4, 120};
+// The Timezone object
 Timezone EasternEuropeanTime(EEST, EET);
-
 TimeChangeRule *tcr;
 
+// WiFi operation
 const byte SSID_SIZE = 2;
-const char* SSID_t[]   = {"cls-router", "cls-ap"};
-const char* PASSWD_t[] = {"r4cD7TPG", "r4cD7TPG"};
+const char* SSID_t[SSID_SIZE]   = {"cls-router", "cls-ap"};
+const char* PASSWD_t[SSID_SIZE] = {"r4cD7TPG", "r4cD7TPG"};
 
 byte ssid_ix = 0;
 
+// UDP operation
+//static WiFiUDP udp;
+const char timeServer[] = "ro.pool.ntp.org";  // the NTP server
+const long ntpFirstFourBytes = 0xEC0600E3; // the NTP request header
 // Constants waiting for NTP server response; check every POLL_INTERVAL (ms) up to POLL_TIMES times
 const byte POLL_INTERVAL = 10; // poll every this many ms
-const byte POLL_TIMES = 100;  // poll up to this many times
-const byte PKT_LEN = 48; // NTP packet length
-const byte USELES_BYTES = 40; // Useless bytes to be discarded; set useless to 32 for speed; set to 40 for accuracy.
+const byte POLL_TIMES = 100; // poll up to this many times
+// NTP packet length
+const byte PKT_LEN = 48;
+// Useless bytes to be discarded; set useless to 32 for speed; set to 40 for accuracy.
+const byte USELES_BYTES = 40;
+// Next NTP request interval
+const int NEXT_NTP_REQUEST = 30 * SECOND;
+// read counts
+byte pollCount;
 
-time_t getTime();
+// funtions prorotypes
+void connectWifi();
+
+void updateTime(time_t);
+
+void sendNtpRequest();
+
+void readNtpResponse();
 
 void timeDisplay();
 
-WiFiUDP udp;
-
-void setup()
-{
-  // put your setup code here, to run once:
+void setup() {
+  // Starts Serial communication
   Serial.begin(115200);
   delay(100);
-  // Set the external time provider
-  setSyncProvider(getTime);
-  // Set synch interval in seconds
-  setSyncInterval(30);
 }
 
 void loop() {
-  if (timeStatus() == timeNotSet)
-  {
-    Serial.println("Time not synced");
-  }
-  else
-  {
-    if (timeStatus() == timeNeedsSync)
-      Serial.println("Time need sync");
-    timeDisplay();
-  }
-  delay(5000);
+  // put your main code here, to run repeatedly:
+  scheduler.add(sendNtpRequest, SECOND);
 }
 
 void connectWifi()
@@ -76,41 +88,42 @@ void connectWifi()
   Serial.print(" done ("); Serial.print((millis() - mllis)); Serial.println(" ms)."); 
 }
 
-time_t getTime()
+void sendNtpRequest()
 {
+  pollCount = 0;
   if (WiFi.status() != WL_CONNECTED)
     connectWifi();
   if (WiFi.status() != WL_CONNECTED)
   {
     Serial.print("ERROR: WiFi connection failed.");
-    return 0;
+    // reschedule after one second
+    scheduler.add(sendNtpRequest, SECOND);
+    return;
   }
 
-  unsigned long mllis = millis();
-  static int udpInitialized = udp.begin(12670); // Initializes the WiFi UDP library and network settings. Starts WiFiUDP socket, listening at local port 123
+  static WiFiUDP udp;
+  // Initializes the WiFi UDP library and starts WiFiUDP socket; listening at local 12670
+  static int udpInitialized = udp.begin(12670);
   if (0 == udpInitialized) // returns 0 if there are no sockets available to use
   {
     Serial.println("ERROR: there are no sockets available to use.");
-    return 0;
+    // reschedule after one second
+    scheduler.add(sendNtpRequest, SECOND);
+    return;
   }
-  static char timeServer[] = "ro.pool.ntp.org";  // the NTP server
-  // static char timeServer[] = "time.nist.gov";  // the NTP server
-  static long ntpFirstFourBytes = 0xEC0600E3; // the NTP request header
-
-  udp.flush(); // Clear received data from possible stray received packets
-
+  // Clear received data from possible stray received packets
+  udp.flush();
   // Send an NTP request to timeserver on NTP port: 123
   if (! (udp.beginPacket(timeServer, 123)
          && udp.write((byte *)&ntpFirstFourBytes, PKT_LEN) == PKT_LEN
          && udp.endPacket()))
   {
+    // sending request failedone second
     Serial.println("ERROR: sending request failed");
-    return 0; // sending request failed
+    // reschedule after one second
+    scheduler.add(sendNtpRequest, SECOND);
+    return;
   }
-  unsigned long took = millis() - mllis;
-  Serial.print("sent ("); Serial.print(took); Serial.println(" ms)."); 
-  mllis = millis();
-
   int pktLen;               // received packet length
   // Wait for NTP server response; check every POLL_INTERVAL ms up to POLL_TIMES times
   byte j = 0;
@@ -124,12 +137,10 @@ time_t getTime()
     Serial.print("ERROR: no correct packet received; pktLen = ");
     Serial.print(pktLen);
     Serial.println(", expected 48");
-    return 0; // no correct packet received
+    // reschedule after one second
+    scheduler.add(sendNtpRequest, SECOND);
+    return;
   }
-
-  took = millis() - mllis;
-  Serial.print("response ("); Serial.print(took); Serial.print(" ms), "); Serial.print(j); Serial.print(" rounds x "); Serial.print(POLL_INTERVAL);  Serial.println(" ms.");
-  mllis = millis();
 
   // Read and discard the first useless bytes
   for (byte i = 0; i < USELES_BYTES; ++i)
@@ -160,12 +171,64 @@ time_t getTime()
   t_time = EasternEuropeanTime.toLocal(t_time, &tcr);
   Serial.print(t_time); Serial.print(" (Unix:"); Serial.print(tcr -> abbrev); Serial.println(")");
 
-  took = millis() - mllis;
-  Serial.print("done ("); Serial.print(took); Serial.println(" ms).");
-  return t_time;
+ // updateTime(t_time);
+
+  scheduler.add(sendNtpRequest, NEXT_NTP_REQUEST);
 }
 
-String timeString()
+void readNtpResponse()
+{
+  static WiFiUDP udp;
+  // increase pollCount
+  ++pollCount;
+  // received packet length
+  int pktLen;
+  // Wait for NTP server response; check every POLL_INTERVAL ms up to POLL_TIMES times
+  if ((pktLen = udp.parsePacket()) != PKT_LEN)
+  {
+    // not a valid response, check poll times
+    if(pollCount <= POLL_TIMES)
+      // schedule a new read after poll interval
+      scheduler.add(readNtpResponse, POLL_INTERVAL);
+      return;
+  }
+  
+  // Valid response, process it
+  // Read and discard the first useless bytes
+  for (byte i = 0; i < USELES_BYTES; ++i)
+    udp.read();
+
+  // Read the integer part of sending time
+  time_t t_time = udp.read();  // NTP time
+  for (byte i = 1; i < 4; i++)
+    t_time = t_time << 8 | udp.read();
+
+  // Round to the nearest second if we want accuracy
+  // The fractionary part is the next byte divided by 256: if it is
+  // greater than 500ms we round to the next second; we also account
+  // for an assumed network delay of 50ms, and (0.5-0.05)*256=115;
+  // additionally, we account for how much we delayed reading the packet
+  // since its arrival, which we assume on average to be POLL_INTERVAL/2.
+  t_time += (udp.read() > 115 - POLL_INTERVAL / 8);
+
+  // Discard the rest of the packet
+  udp.flush();
+
+  // convert NTP time to GMT time
+  t_time -= 2208988800ul;
+  // convert Unix to locale (EET | EEST)
+  t_time = EasternEuropeanTime.toLocal(t_time, &tcr);
+
+//  updateTime(t_time);
+}
+
+void updateTime(time_t t_time)
+{
+  setTime(t_time);
+  timeDisplay();
+}
+
+void timeDisplay()
 {
   int day_t = day(), month_t = month(), year_t = year();
   int hour_t = hour(), minute_t = minute(), second_t = second();
@@ -185,11 +248,6 @@ String timeString()
   timeStr += ":";
   if (second_t < 10) timeStr += "0";
   timeStr += second_t;
-  return timeStr;
-}
-
-void timeDisplay()
-{
-  Serial.println(timeString());
+  Serial.println(timeStr);
 }
 
