@@ -1212,8 +1212,9 @@ void checkProgramming()
     // reset force_running
     force_running[i] = false;
   }
-  
-  if(count_running > 0 && count_running <= MIN_RUNNING)
+
+  // should run at least one, but less then minimum 
+  if(count_running > 0 && count_running < MIN_RUNNING)
   {
     // sort by delta temperature
     for (int i = 0; i < SENZOR_COUNT; ++i)
@@ -1425,13 +1426,10 @@ time_t getTime()
   if(!start_second)
     start_second = t_time - seconds();
 
-  writeLogger(String("[") + T_LOC + "] NTP primit ora exacta (" + (millis() - mllis) + " ms).");
-
+  defere_log(String("[") + T_LOC + "] NTP primit ora exacta (" + (millis() - mllis) + " ms).");
+  scheduler.add(recal_log, 20);
   if(no_time)
-  {
     no_time = false;
-    scheduler.add(recal_log, 10);
-  }
   return t_time;
 }
 
@@ -1466,12 +1464,6 @@ void recal_log()
 
 }
 
-void sendIp()
-{
-  String post_data = String("t_loc=") + T_LOC + "&t_ip=" + WiFi.localIP().toString();
-  sendPostData("/ip_save.php", post_data, false);
-}
-
 void writeLogger(const String &what)
 {
   if(no_time)
@@ -1488,6 +1480,12 @@ void writeLogger(const String &what)
   post_data = String("t_log=") + post_data;
   sendPostData("/log_save.php", post_data, false);
   delete o_log;
+}
+
+void sendIp()
+{
+  String post_data = String("t_loc=") + T_LOC + "&t_ip=" + WiFi.localIP().toString();
+  sendPostData("/ip_save.php", post_data, false);
 }
 
 /*
