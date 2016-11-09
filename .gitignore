@@ -1,15 +1,5 @@
-libraries/Bridge
-libraries/DallasTemperature
-libraries/ESP8266wifi
-libraries/Firmata
-libraries/MemoryFree
-libraries/OneWire
-libraries/readme.txt
-libraries/Scheduler
-libraries/SpacebrewYun
-libraries/Temboo
-libraries/Time
-libraries/Timezone
+libraries
+!libraries/LsuScheduler
 
 lsuNtpClient
 millis
