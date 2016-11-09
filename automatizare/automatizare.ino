@@ -189,7 +189,7 @@ byte stop_minute_p1[] =
 };
 int target_temperature_p1[] =
 {
-  2000, 2000, 1500, 2000,
+  2000, 2000, 2000, 2000,
 };
 
 // p2: P2_START_HOUR_1_INCREASE_05 - start at given hour and increase temperature with 0.5 deg.C
@@ -322,6 +322,7 @@ void setup()
 {
   Serial.begin(115200);
 
+  WiFi.mode(WIFI_STA);
   String mac = WiFi.macAddress();
   if(mac.equalsIgnoreCase(MAC_PARTER))
     offset = 0;
@@ -365,7 +366,6 @@ void setup()
 // the loop routine runs over and over again forever
 void loop()
 {
-//  connectWifi();
   if(!got_programming && (millis() % (5 * SECOND)) == 0)
     requestProgramming();
   listen4HttpClient();
@@ -846,7 +846,7 @@ int savePostData(const String &data, int programm)
     }
      else
       valid = true;
- }
+  }
   if(name.equals(NEXT_PROGRAMM_P3))
   {
     if(valid)
