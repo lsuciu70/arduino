@@ -126,13 +126,17 @@ const byte relay[] =
 };
 
 // programming section
+// temperature increase amount for P2, P3, and P4 in centi degrees Celsius
+const byte DELTA_TEMP = 30;
+const String DELTA_TEMP_STR = String("") + ((DELTA_TEMP - (DELTA_TEMP % 100)) / 100) + "." + (DELTA_TEMP % 100);
+
 enum
 {
   P0_STOPPED = 0,              // stopped
   P1_RUN_HOURS_MAKE_TEMP,      // run between hour and keep target temperature
-  P2_START_HOUR_1_INCREASE_05, // start at given hour and increase temperature with 0.5 deg.C
-  P3_START_HOUR_2_INCREASE_05, // start at given hour and increase temperature with 0.5 deg.C
-  P4_START_NOW_INCREASE_05,    // start now and increase temperature with 0.5 deg.C
+  P2_START_HOUR_1_INCREASE_05, // start at given hour and increase temperature with DELTA_TEMP/100 deg.C
+  P3_START_HOUR_2_INCREASE_05, // start at given hour and increase temperature with DELTA_TEMP/100 deg.C
+  P4_START_NOW_INCREASE_05,    // start now and increase temperature with DELTA_TEMP/100 deg.C
   P_AFTER_LAST,
   P_NONE,
 };
@@ -193,12 +197,14 @@ byte stop_minute_p1[] =
 };
 int target_temperature_p1[] =
 {
-  2000, 2000, 2000, 2000,
+  2100, 2100, 1800, 2200,
+  2300, 2300, 2300, 2200
 };
 
-// p2: P2_START_HOUR_1_INCREASE_05 - start at given hour and increase temperature with 0.5 deg.C
+// p2: P2_START_HOUR_1_INCREASE_05 - start at given hour and increase temperature with DELTA_TEMP/100 deg.C
 // p2: start_hour_p2, start_minute_p2
-// starts at 4:30 and increases the temperature with 0.5 deg.C
+// starts at 4:30 and increases the temperature with DELTA_TEMP/100 deg.C
+
 byte start_hour_p2[] =
 {
   4, 4, 4, 4,
@@ -220,9 +226,9 @@ byte next_programm_p2[] =
   P3_START_HOUR_2_INCREASE_05, P3_START_HOUR_2_INCREASE_05, P3_START_HOUR_2_INCREASE_05, P3_START_HOUR_2_INCREASE_05,
 };
 
-// p3: P3_START_HOUR_1_INCREASE_05 - start at given hour and increase temperature with 0.5 deg.C
+// p3: P3_START_HOUR_1_INCREASE_05 - start at given hour and increase temperature with DELTA_TEMP/100 deg.C
 // p3: start_hour_p3, start_minute_p3
-// starts at 14:00 and increases the temperature with 0.5 deg.C
+// starts at 14:00 and increases the temperature with DELTA_TEMP/100 deg.C
 byte start_hour_p3[] =
 {
   14, 14, 14, 14,
@@ -245,10 +251,10 @@ byte next_programm_p3[] =
   P2_START_HOUR_1_INCREASE_05, P2_START_HOUR_1_INCREASE_05, P2_START_HOUR_1_INCREASE_05, P2_START_HOUR_1_INCREASE_05,
 };
 
-// p4: P4_START_NOW_INCREASE_05 - start now and increase temperature with 0.5 deg,C
-// starts now and increases the temperature with 0.5 deg.C
+// p4: P4_START_NOW_INCREASE_05 - start now and increase temperature with DELTA_TEMP/100 deg,C
+// starts now and increases the temperature with DELTA_TEMP/100 deg.C
 // target temperature for p1 and p2, calculated at start time by
-// adding 0.5 to current temperature
+// adding DELTA_TEMP/100 to current temperature
 int target_temperature_p4[] =
 {
   0, 0, 0, 0,
@@ -370,7 +376,10 @@ void setup()
   dallasTemperature2nd_pin2.setWaitForConversion(false);
 
   requestProgramming();
-  scheduler.add(updateTemperature, 20);
+  int first_read = 5 * CONVERSION_TIME;
+  scheduler.add(startConversion1stHalf, first_read - 4 * CONVERSION_TIME);
+  scheduler.add(startConversion2ndHalf, first_read - 2 * CONVERSION_TIME);
+  scheduler.add(updateTemperature, first_read);
 }
 
 // the loop routine runs over and over again forever
@@ -414,37 +423,37 @@ String printProgramming(byte programm, byte index, bool is_mobile)
       program_str = "P1";
       if(is_mobile)
         break;
-      program_str += " - merge intre "; program_str += start_hour_p1[index]; program_str += ":"; if(start_minute_p1[index] < 10) program_str += "0"; program_str += start_minute_p1[index];
-      program_str += " si "; program_str += stop_hour_p1[index]; program_str += ":"; if(stop_minute_p1[index] < 10) program_str += "0"; program_str += stop_minute_p1[index];
+      program_str += " - merge intre "; program_str += start_hour_p1[index]; program_str += ":"; if(start_minute_p1[index] < 10) {program_str += "0";} program_str += start_minute_p1[index];
+      program_str += " si "; program_str += stop_hour_p1[index]; program_str += ":"; if(stop_minute_p1[index] < 10) {program_str += "0";} program_str += stop_minute_p1[index];
       if(start_hour_p1[index] > stop_hour_p1[index]) program_str += " (ziua urmatoare)";
-      program_str += " si face "; program_str += (1.0 * target_temperature_p1[index] / 100); program_str += " &deg;C";
+      program_str += " si face "; program_str += (1.0 * target_temperature_p1[index + offset] / 100); program_str += " &deg;C";
       break;
     case P2_START_HOUR_1_INCREASE_05:
       program_str += "P2";
       if(is_mobile)
         break;
-      program_str += " - porneste "; if(has_p2_run_today[index]) program_str += "maine "; program_str += "la "; program_str += start_hour_p2[index]; program_str += ":"; if(start_minute_p2[index] < 10) program_str += "0"; program_str += start_minute_p2[index];
+      program_str += " - porneste "; if(has_p2_run_today[index]) {program_str += "maine ";} program_str += "la "; program_str += start_hour_p2[index]; program_str += ":"; if(start_minute_p2[index] < 10) {program_str += "0";} program_str += start_minute_p2[index];
       if(target_temperature_p2[index])
       {
-        program_str += " si face "; program_str += (1.0 * target_temperature_p2[index] / 100); program_str += " &deg;C (+ 0.5 &deg;C)";
+        program_str += String(" si face ") + (1.0 * target_temperature_p2[index] / 100) + " &deg;C (+ " + DELTA_TEMP_STR + " &deg;C)";
       }
       else
       {
-        program_str += " si face temperatura de la pornire + 0.5 &deg;C";
+        program_str += String(" si face temperatura de la pornire + ") + DELTA_TEMP_STR + " &deg;C";
       }
       break;
     case P3_START_HOUR_2_INCREASE_05:
       program_str += "P3";
       if(is_mobile)
         break;
-      program_str += " - porneste "; if(has_p3_run_today[index]) program_str += "maine "; program_str += "la "; program_str += start_hour_p3[index]; program_str += ":"; if(start_minute_p3[index] < 10) program_str += "0"; program_str += start_minute_p3[index];
+      program_str += " - porneste "; if(has_p3_run_today[index]) {program_str += "maine ";} program_str += "la "; program_str += start_hour_p3[index]; program_str += ":"; if(start_minute_p3[index] < 10) {program_str += "0";} program_str += start_minute_p3[index];
       if(target_temperature_p3[index])
       {
-        program_str += " si face "; program_str += (1.0 * target_temperature_p3[index] / 100); program_str += " &deg;C (+ 0.5 &deg;C)";
+        program_str += String(" si face ") + (1.0 * target_temperature_p3[index] / 100) + " &deg;C (+ " + DELTA_TEMP_STR + " &deg;C)";
       }
       else
       {
-        program_str += " si face temperatura de la pornire + 0.5 &deg;C";
+        program_str += String(" si face temperatura de la pornire + ") + DELTA_TEMP_STR + " &deg;C";
       }
       break;
     case P4_START_NOW_INCREASE_05:
@@ -456,7 +465,7 @@ String printProgramming(byte programm, byte index, bool is_mobile)
         program_str += (1.0 * target_temperature_p4[index] / 100);
       else
         program_str += (1.0 * temperature[index] / 100); 
-      program_str += " &deg;C (+ 0.5 &deg;C)";
+      program_str += String(" &deg;C (+ ") + DELTA_TEMP_STR + " &deg;C)";
       break;
     default:
       program_str += "EROARE";
@@ -497,7 +506,7 @@ void connectWifi()
     if (millis() - mllis >= 10000)
     {
       Serial.println(" - 10 s timed out. Trying next SSID.");
-      writeLogger(String("[") + T_LOC + "] WiFi: connecting to " + SSID_t[(ssid_ix % SSID_SIZE)] + " timed out (10 s); will try next SSID");
+      writeLogger(String("[") + T_LOC + "] WiFi: connectare la " + SSID_t[(ssid_ix % SSID_SIZE)] + " nereusita dupa 10 s; incearca urmatorul SSID");
       ssid_ix += 1;
       return connectWifi();
     }
@@ -512,7 +521,7 @@ void connectWifi()
   Serial.println();
   server.begin();
   sendIp();
-  writeLogger(String("[") + T_LOC + "] WiFi: connected to " + SSID_t[(ssid_ix % SSID_SIZE)] + " (" + (1.0 * (millis() - mllis) / SECOND) + " s), IP address: " + WiFi.localIP().toString());
+  writeLogger(String("[") + T_LOC + "] WiFi: conectat la " + SSID_t[(ssid_ix % SSID_SIZE)] + " (" + (1.0 * (millis() - mllis) / SECOND) + " s), adresa: " + WiFi.localIP().toString());
 }
 
 void sendHttpIndex(WiFiClient &client, bool is_mobile)
@@ -617,7 +626,7 @@ void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
     "   <input type='text' style='text-align:center;' name='" + STOP_HOUR_P1 + "_" + index + "' maxlength='2' size='1' value='" + stop_hour_p1[index] + "'>:\n" +
     "   <input type='text' style='text-align:center;' name='" + STOP_MINUTE_P1 + "_" + index + "' maxlength='2' size='1' value='" + ((stop_minute_p1[index] < 10) ? "0" : "") + stop_minute_p1[index] + "'>\n" +
     "   &deg;C\n"
-    "   <input type='text' style='text-align:center;' name='" + TARGET_TEMPERATURE_P1 + "_" + index + "' maxlength='5' size='1' value='" + (1.0 * target_temperature_p1[index] / 100) + "'>\n" +
+    "   <input type='text' style='text-align:center;' name='" + TARGET_TEMPERATURE_P1 + "_" + index + "' maxlength='5' size='1' value='" + (1.0 * target_temperature_p1[index + offset] / 100) + "'>\n" +
     "  </td>\n" +
     " </tr>\n\n"
     "<!-- programm: 2 -->\n" +
@@ -788,11 +797,11 @@ int savePostData(const String &data, int programm)
   if(name.equals(TARGET_TEMPERATURE_P1))
   {
     if(valid)
-      target_temperature_p1[index] = int_val;
+      target_temperature_p1[index + offset] = int_val;
     else if(programm == P1_RUN_HOURS_MAKE_TEMP)
     {
       bad_name = "temperatura";
-      old_value += (1.0 * target_temperature_p1[index] / 100);
+      old_value += (1.0 * target_temperature_p1[index + offset] / 100);
     }
     else
       valid = true;
@@ -1155,16 +1164,16 @@ void checkProgramming()
     {
       case P1_RUN_HOURS_MAKE_TEMP: // run between hour and keep target temperature
         {
-          should_run[i] = temperature[i] <= target_temperature_p1[i] && isNowBetween(start_hour_p1[i], start_minute_p1[i], stop_hour_p1[i], stop_minute_p1[i]);
+          should_run[i] = temperature[i] <= target_temperature_p1[i + offset] && isNowBetween(start_hour_p1[i], start_minute_p1[i], stop_hour_p1[i], stop_minute_p1[i]);
           break;
         }
-      case P2_START_HOUR_1_INCREASE_05: // start at given hour and increase temperature with 0.5 deg.C
+      case P2_START_HOUR_1_INCREASE_05: // start at given hour and increase temperature with DELTA_TEMP/100 deg.C
         {
           should_run[i] = force_running[i] || isNowAfter(start_hour_p2[i], start_minute_p2[i]);
           if(!should_run[i])
             has_p2_run_today[i] = false;
           if (should_run[i] && !target_temperature_p2[i])
-            target_temperature_p2[i] = temperature[i] + 50;
+            target_temperature_p2[i] = temperature[i] + DELTA_TEMP;
           should_run[i] = should_run[i] && !has_p2_run_today[i] && temperature[i] <= target_temperature_p2[i];
           if (does_run && !should_run[i])
           {
@@ -1178,13 +1187,13 @@ void checkProgramming()
           }
           break;
         }
-      case P3_START_HOUR_2_INCREASE_05: // start at given hour and increase temperature with 0.5 deg.C
+      case P3_START_HOUR_2_INCREASE_05: // start at given hour and increase temperature with DELTA_TEMP/100 deg.C
         {
           should_run[i] = isNowAfter(start_hour_p3[i], start_minute_p3[i]);
           if(!should_run[i])
             has_p3_run_today[i] = false;
           if (should_run[i] && !target_temperature_p3[i])
-            target_temperature_p3[i] = temperature[i] + 50;
+            target_temperature_p3[i] = temperature[i] + DELTA_TEMP;
           should_run[i] = should_run[i] && !has_p3_run_today[i] && temperature[i] <= target_temperature_p3[i];
           if (does_run && !should_run[i])
           {
@@ -1197,10 +1206,10 @@ void checkProgramming()
           }
           break;
         }
-      case P4_START_NOW_INCREASE_05: // start now and increase temperature with 0.5 deg.C
+      case P4_START_NOW_INCREASE_05: // start now and increase temperature with DELTA_TEMP/100 deg.C
         {
           if (!does_run)
-            target_temperature_p4[i] = temperature[i] + 50;
+            target_temperature_p4[i] = temperature[i] + DELTA_TEMP;
           should_run[i] = temperature[i] <= target_temperature_p4[i];
           if (does_run && !should_run[i])
           {
@@ -1244,7 +1253,7 @@ void checkProgramming()
       ++count_running;
     else if(programming[i] == P1_RUN_HOURS_MAKE_TEMP)
     {
-      candidates_temp[i] = temperature[i] - target_temperature_p1[i];
+      candidates_temp[i] = temperature[i] - target_temperature_p1[i + offset];
       candidates[i] = i;
     }
     // reset force_running
@@ -1297,7 +1306,7 @@ void checkProgramming()
     {
       digitalWrite(relay[i], LOW);
       if(!is_running[i])
-        writeLogger(String("[") + T_LOC + "] Force start program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false));
+        writeLogger(String("[") + T_LOC + "] Start fortat program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false));
       is_running[i] = true;
     }
     else
