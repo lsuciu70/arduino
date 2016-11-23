@@ -69,8 +69,10 @@ IPAddress master_server_ip(192, 168, 100, 100);
 const int master_server_port = 8081;
 
 // Temperature senzor section
-// Feather HUZZAH pin 14
-const byte ONE_WIRE_PIN_14 = 14;
+// Feather HUZZAH pin 0
+const byte ONE_WIRE_1ST_PIN_0 = 0;
+// Feather HUZZAH pin 2
+const byte ONE_WIRE_2ND_PIN_2 = 2;
 
 // Temperature senzor resolution: 9, 10, 11, or 12 bits
 const byte RESOLUTION = 12;
@@ -102,10 +104,12 @@ const byte TEMP_READ_INTERVAL = 10;
 
 // Setup a oneWire instance to communicate with any OneWire devices
 // (not just Maxim/Dallas temperature ICs)
-OneWire oneWire(ONE_WIRE_PIN_14);
+OneWire oneWire1st_pin0(ONE_WIRE_1ST_PIN_0);
+OneWire oneWire2nd_pin2(ONE_WIRE_2ND_PIN_2);
 
 // Pass our oneWire reference to Dallas Temperature.
-DallasTemperature dallasTemperature(&oneWire);
+DallasTemperature dallasTemperature1st_pin0(&oneWire1st_pin0);
+DallasTemperature dallasTemperature2nd_pin2(&oneWire2nd_pin2);
 
 int temperature[SENZOR_COUNT];
 const String room_name[] =
@@ -118,7 +122,7 @@ const String room_name[] =
 // Feather HUZZAH relay's pins
 const byte relay[] =
 {
-  12, 13, 15, 16,
+  12, 13, 14, 15,
 };
 
 // programming section
@@ -261,7 +265,9 @@ LsuScheduler scheduler;
 // funtions prototype section
 int floatToRound05Int(float);
 
-void startConversion();
+void startConversion1stHalf();
+
+void startConversion2ndHalf();
 
 void updateTemperature();
 
@@ -322,6 +328,13 @@ void setup()
 {
   Serial.begin(115200);
 
+  for (byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    temperature[i] = 0;
+    pinMode(relay[i], OUTPUT);
+    digitalWrite(relay[i], HIGH);
+  }
+
   WiFi.mode(WIFI_STA);
   String mac = WiFi.macAddress();
   if(mac.equalsIgnoreCase(MAC_PARTER))
@@ -336,13 +349,6 @@ void setup()
   }
   T_LOC = (offset) ? T_LOC_ETAJ : T_LOC_PARTER;
 
-  for (byte i = 0; i < SENZOR_COUNT; ++i)
-  {
-    temperature[i] = 0;
-    pinMode(relay[i], OUTPUT);
-    digitalWrite(relay[i], LOW);
-  }
-
   // Set the external time provider
   setSyncProvider(getTime);
   // Set synch interval to 2 seconds till sync
@@ -355,9 +361,13 @@ void setup()
   setSyncInterval(6 * 3600);
 
   // Start up the temperature library
-  dallasTemperature.begin();
-  dallasTemperature.setResolution(RESOLUTION);
-  dallasTemperature.setWaitForConversion(false);
+  dallasTemperature1st_pin0.begin();
+  dallasTemperature1st_pin0.setResolution(RESOLUTION);
+  dallasTemperature1st_pin0.setWaitForConversion(false);
+
+  dallasTemperature2nd_pin2.begin();
+  dallasTemperature2nd_pin2.setResolution(RESOLUTION);
+  dallasTemperature2nd_pin2.setWaitForConversion(false);
 
   requestProgramming();
   scheduler.add(updateTemperature, 20);
@@ -1039,17 +1049,26 @@ void listen4HttpClient()
   }
 }
 
-void startConversion()
+void startConversion1stHalf()
 {
   // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
-  dallasTemperature.requestTemperatures();
+  for (byte i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
+  {
+    if(i > 0)
+      delay(CONVERSION_TIME);
+//    Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+    dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+  }
 }
 
-void resetTemperature()
+void startConversion2ndHalf()
 {
-  for (byte i = 0; i < SENZOR_COUNT; ++i)
+  for (byte i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
   {
-    temperature[i] = 0;
+    if(i > SENZOR_COUNT / 2)
+      delay(CONVERSION_TIME);
+//    Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+    dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
   }
 }
 
@@ -1058,14 +1077,28 @@ void updateTemperature()
   long int m = millis();
   m = m - (m % SECOND) + SECOND; // floor to second
   // scheduler next read
-  long int next_read = m + (TEMP_READ_INTERVAL * SECOND); // seconds
+  long int delta = ((SECOND * TEMP_READ_INTERVAL) >= (4 * CONVERSION_TIME)) ? SECOND * TEMP_READ_INTERVAL : 4 * CONVERSION_TIME;
+  long int next_read = m + delta; // seconds
   int temp = 0;
   // DallasTemperature.h::getTempC - returns temperature in degrees C for given address
   // read the temperature and store it as integer rounded to 0.05 grd C
-  for (byte i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
+  for (byte i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
   {
-    temp = floatToRound05Int(dallasTemperature.getTempC(SENZOR_ADDRESS[j]));
-    if (temp <= -4000 || temp >= 6000)
+//    Serial.println(String("read temperature i=") + i + " j=" + j);
+    temp = floatToRound05Int(dallasTemperature1st_pin0.getTempC(SENZOR_ADDRESS[j]));
+    if (temp <= -4000 || temp >= 7000)
+    {
+      Serial.println(String("ERROR: bad temperature: ") + i + " - " + temp);
+      temp = 0;
+    }
+    if(temp)
+      temperature[i] = temp;
+  }
+  for (byte i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
+  {
+//    Serial.println(String("read temperature i=") + i + " j=" + j);
+    temp = floatToRound05Int(dallasTemperature2nd_pin2.getTempC(SENZOR_ADDRESS[j]));
+    if (temp <= -4000 || temp >= 7000)
     {
       Serial.println(String("ERROR: bad temperature: ") + i + " - " + temp);
       temp = 0;
@@ -1074,7 +1107,8 @@ void updateTemperature()
       temperature[i] = temp;
   }
   // schedule conversion at'next_read' time, minus the time to wait for it
-  scheduler.add(startConversion, next_read - CONVERSION_TIME);
+  scheduler.add(startConversion1stHalf, next_read - 4 * CONVERSION_TIME);
+  scheduler.add(startConversion2ndHalf, next_read - 2 * CONVERSION_TIME);
   // print it
   pritSerial(m);
 
@@ -1108,15 +1142,15 @@ void checkProgramming()
 {
 //  Serial.println("Start checkProgramming");
   bool should_run[] = {false, false, false, false, };
-  bool does_run = false;
-  byte programm = -1;
+//  bool does_run = false;
+//  byte programm = -1;
   bool programm_changed = false;
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
     if (!temperature[i])
       continue;
-    does_run = is_running[i];
-    programm = programming[i];
+    bool does_run = is_running[i];
+    byte programm = programming[i];
     switch (programm)
     {
       case P1_RUN_HOURS_MAKE_TEMP: // run between hour and keep target temperature
@@ -1137,7 +1171,10 @@ void checkProgramming()
             force_running[i] = false;
             has_p2_run_today[i] = true;
             target_temperature_p2[i] = 0;
+            programm_changed = programming[i] != next_programm_p2[i];
             programming[i] = next_programm_p2[i];
+            if (programm_changed)
+              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programm + " la " + programming[i]);
           }
           break;
         }
@@ -1153,7 +1190,10 @@ void checkProgramming()
           {
             has_p3_run_today[i] = true;
             target_temperature_p3[i] = 0;
+            programm_changed = programming[i] != next_programm_p3[i];
             programming[i] = next_programm_p3[i];
+            if (programm_changed)
+              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programm + " la " + programming[i]);
           }
           break;
         }
@@ -1165,8 +1205,12 @@ void checkProgramming()
           if (does_run && !should_run[i])
           {
             target_temperature_p4[i] = 0;
+            programm_changed = programming[i] != next_programm_p4[i];
             programming[i] = next_programm_p4[i];
+            if (programm_changed)
+              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programm + " la " + programming[i]);
           }
+//Serial.println(String("does_run=")+does_run+", should_run="+should_run[i]+", target_temperature_p4="+target_temperature_p4[i]);
           break;
         }
       default: // stopped
@@ -1174,11 +1218,6 @@ void checkProgramming()
           should_run[i] = false;
           break;
         }
-    }
-    if (programm != programming[i])
-    {
-      writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programm + " la " + programming[i]);
-      programm_changed = true;
     }
   }
 
@@ -1189,8 +1228,7 @@ void checkProgramming()
     {
       if(i)
          post_data += "&";
-      post_data += String("") +
-        "programming_" + i + "=" + programming[i];
+      post_data += String("programming_") + i + "=" + programming[i];
     }
 //    Serial.println(String("Send programming_update: ") + post_data);
     sendPostData("/programming_update.php", post_data);
@@ -1250,29 +1288,23 @@ void checkProgramming()
   {
     if (should_run[i])
     {
-      if (!is_running[i])
-      {
-        writeLogger(String("[") + T_LOC + "] Start program " + programm + " pentru " + room_name[j] + ": " + printProgramming(i, false));
-      }
-      digitalWrite(relay[i], HIGH);
+      digitalWrite(relay[i], LOW);
+      if(!is_running[i])
+        writeLogger(String("[") + T_LOC + "] Start program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false));
       is_running[i] = true;
     }
     else if(force_running[i])
     {
-      if (!is_running[i])
-      {
-        writeLogger(String("[") + T_LOC + "] Force start program " + programm + " pentru " + room_name[j] + ": " + printProgramming(i, false));
-      }
-      digitalWrite(relay[i], HIGH);
+      digitalWrite(relay[i], LOW);
+      if(!is_running[i])
+        writeLogger(String("[") + T_LOC + "] Force start program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false));
       is_running[i] = true;
     }
     else
     {
-      if (is_running[i])
-      {
-        writeLogger(String("[") + T_LOC + "] Stop program " + programm + " pentru " + room_name[j]);
-      }
-      digitalWrite(relay[i], LOW);
+      digitalWrite(relay[i], HIGH);
+      if(is_running[i])
+        writeLogger(String("[") + T_LOC + "] Stop program " + programming[i] + " pentru " + room_name[j]);
       is_running[i] = false;
     }
   }
