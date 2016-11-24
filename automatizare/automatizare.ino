@@ -8,6 +8,8 @@
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 #include <LsuScheduler.h>
 
+bool D = true;
+
 // one second, 1000 milliseconds
 const int SECOND = 1000;
 // Sensor count
@@ -197,8 +199,7 @@ byte stop_minute_p1[] =
 };
 int target_temperature_p1[] =
 {
-  2100, 2100, 1800, 2200,
-  2300, 2300, 2300, 2200
+  2100, 2100, 1800, 2100, 2300, 2300, 2300, 2100
 };
 
 // p2: P2_START_HOUR_1_INCREASE_05 - start at given hour and increase temperature with DELTA_TEMP/100 deg.C
@@ -319,9 +320,11 @@ void recal_log();
 
 void requestProgramming();
 
-unsigned long seconds();
+unsigned long secondsRunning();
 
 void sendIp();
+
+void update_pX_run_today();
 
 bool no_time = true;
 
@@ -332,33 +335,29 @@ byte offset = 0;
 // the setup routine runs once when starts
 void setup()
 {
-  Serial.begin(115200);
+  if(D) Serial.begin(115200);
 
-  for (byte i = 0; i < SENZOR_COUNT; ++i)
+  while(1)
   {
-    temperature[i] = 0;
-    pinMode(relay[i], OUTPUT);
-    digitalWrite(relay[i], HIGH);
-  }
-
-  WiFi.mode(WIFI_STA);
-  String mac = WiFi.macAddress();
-  if(mac.equalsIgnoreCase(MAC_PARTER))
-    offset = 0;
-  else if(mac.equalsIgnoreCase(MAC_ETAJ))
-    offset = SENZOR_COUNT;
-  else
-  {
-    Serial.println("ERROR unknown board - halt");
-    while(1)
-      ;
+    WiFi.mode(WIFI_STA);
+    String mac = WiFi.macAddress();
+    if(mac.equalsIgnoreCase(MAC_PARTER))
+    {
+      offset = 0;
+      break;
+    }
+    else if(mac.equalsIgnoreCase(MAC_ETAJ))
+    {
+      offset = SENZOR_COUNT;
+      break;
+    }
   }
   T_LOC = (offset) ? T_LOC_ETAJ : T_LOC_PARTER;
 
   // Set the external time provider
   setSyncProvider(getTime);
   // Set synch interval to 2 seconds till sync
-  setSyncInterval(2);
+  setSyncInterval(200);
   while (timeStatus() != timeSet)
   {
     ;
@@ -375,23 +374,60 @@ void setup()
   dallasTemperature2nd_pin2.setResolution(RESOLUTION);
   dallasTemperature2nd_pin2.setWaitForConversion(false);
 
+
   requestProgramming();
-  int first_read = 5 * CONVERSION_TIME;
+  int first_read = millis() + 5 * CONVERSION_TIME;
   scheduler.add(startConversion1stHalf, first_read - 4 * CONVERSION_TIME);
   scheduler.add(startConversion2ndHalf, first_read - 2 * CONVERSION_TIME);
   scheduler.add(updateTemperature, first_read);
+
+  update_pX_run_today();
 }
+
+bool isRelayInitialized = false;
+
+void relayInitialize()
+{
+  if(isRelayInitialized)
+    return;
+  for (byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    temperature[i] = 0;
+    pinMode(relay[i], OUTPUT);
+    digitalWrite(relay[i], HIGH);
+  }
+  isRelayInitialized = true;
+}
+
 
 // the loop routine runs over and over again forever
 void loop()
 {
+  relayInitialize();
   if(!got_programming && (millis() % (5 * SECOND)) == 0)
     requestProgramming();
   listen4HttpClient();
   scheduler.execute(millis());
 }
 
-unsigned long seconds()
+void update_pX_run_today()
+{
+  for (byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    if(programming[i] == P2_START_HOUR_1_INCREASE_05 && (start_hour_p2[i] < hour() || start_minute_p2[i] < minute()))
+    {
+      has_p2_run_today[i] = true;
+      writeLogger(String("[") + T_LOC + "] marcat P2 a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+    }
+    if(programming[i] == P3_START_HOUR_2_INCREASE_05 && (start_hour_p3[i] < hour() || start_minute_p3[i] < minute()))
+    {
+      has_p3_run_today[i] = true;
+      writeLogger(String("[") + T_LOC + "] marcat P3 a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+    }
+  }
+}
+
+unsigned long secondsRunning()
 {
   return millis() / SECOND;
 }
@@ -479,6 +515,7 @@ String printProgramming(byte programm, byte index, bool is_mobile)
 
 void pritSerial(long int millisecond)
 {
+  if(!D) return;
   Serial.print(timeString());
   Serial.print(String(" - [") + T_LOC + "] ");
   for (byte i = 0; i < SENZOR_COUNT; ++i)
@@ -494,8 +531,8 @@ void connectWifi()
 {
   if (WiFi.status() == WL_CONNECTED )
     return;
-  Serial.print("WiFi: connecting to ");
-  Serial.println(SSID_t[(ssid_ix % SSID_SIZE)]);
+  if(D) Serial.print("WiFi: connecting to ");
+  if(D) Serial.println(SSID_t[(ssid_ix % SSID_SIZE)]);
   ssid_ix = ssid_ix % SSID_SIZE;
   WiFi.begin(SSID_t[ssid_ix], PASSWD_t[ssid_ix]);
 
@@ -505,20 +542,22 @@ void connectWifi()
     delay(10);
     if (millis() - mllis >= 10000)
     {
-      Serial.println(" - 10 s timed out. Trying next SSID.");
+      if(D) Serial.println(" - 10 s timed out. Trying next SSID.");
       writeLogger(String("[") + T_LOC + "] WiFi: connectare la " + SSID_t[(ssid_ix % SSID_SIZE)] + " nereusita dupa 10 s; incearca urmatorul SSID");
       ssid_ix += 1;
       return connectWifi();
     }
     if ((++count) % 10 == 0)
-      Serial.print(". ");
+    {
+      if(D) Serial.print(". ");
+    }
     if (count == 100)
     {
-      Serial.println();
+      if(D) Serial.println();
       count = 0;
     }
   }
-  Serial.println();
+  if(D) Serial.println();
   server.begin();
   sendIp();
   writeLogger(String("[") + T_LOC + "] WiFi: conectat la " + SSID_t[(ssid_ix % SSID_SIZE)] + " (" + (1.0 * (millis() - mllis) / SECOND) + " s), adresa: " + WiFi.localIP().toString());
@@ -526,7 +565,7 @@ void connectWifi()
 
 void sendHttpIndex(WiFiClient &client, bool is_mobile)
 {
-//Serial.println("Start sendHttpIndex");
+// if(D) Serial.println("Start sendHttpIndex");
   String r = "HTTP/1.1 200 OK\nContent-Type: text/html\nConnection: close\nRefresh: 10\r\n";
   client.println(r);
   String h = String("<!DOCTYPE html>\n") +
@@ -582,12 +621,12 @@ void sendHttpIndex(WiFiClient &client, bool is_mobile)
   }
   b += "</p></body></html>";
   client.println(b);
-//Serial.println("Start sendHttpIndex");
+// if(D) Serial.println("Start sendHttpIndex");
 }
 
 void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
 {
-//Serial.println("Start sendHttpProgramming");
+// if(D) Serial.println("Start sendHttpProgramming");
   if(index< 0 || index >= SENZOR_COUNT)
     return;
   String r = "HTTP/1.1 200 OK\nContent-Type: text/html\nConnection: close\r\n";
@@ -688,7 +727,7 @@ void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
     "</table>\n" +
     "</body></html>\n";
   client.println(f);
-//Serial.println("End sendHttpProgramming");
+// if(D) Serial.println("End sendHttpProgramming");
 }
 
 int savePostData(const String &data, int programm)
@@ -892,10 +931,10 @@ int savePostData(const String &data, int programm)
   }
   if(!valid)
   {
-    Serial.print("ERROR programm "); Serial.print(programm); Serial.print(" : "); Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);
+    if(D) {Serial.print("ERROR programm "); Serial.print(programm); Serial.print(" : "); Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);}
     writeLogger(String("[") + T_LOC + "] EROARE salvare - valoare invalida pentru " + bad_name + ":'" + value + "' pentru " + bad_room + "; ramane valoarea dinainte: " + old_value);
   }
-//  Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);
+//  if(D) {Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);}
   return programm;
 }
 
@@ -927,7 +966,7 @@ void sendPostData(const String &page, const String &data, bool sendLoc)
   WiFiClient client;
   if(client.connect(master_server_ip, master_server_port))
   {
-//Serial.println(String("send post data ") + page + " : " + post_data);
+// if(D) Serial.println(String("send post data ") + page + " : " + post_data);
     client.println(post_req);
     client.println(post_data);
     delay(50);
@@ -938,7 +977,7 @@ void sendPostData(const String &page, const String &data, bool sendLoc)
       req_str += (char)c;
     }
     client.stop();
-//    Serial.println(String("response: ") + req_str);
+//  if(D) Serial.println(String("response: ") + req_str);
   }
 }
 void sendPostData(const String &page, const String &data)
@@ -965,13 +1004,13 @@ void listen4HttpClient()
     connectWifi();
   if (WiFi.status() != WL_CONNECTED)
   {
-    Serial.print("ERROR: WiFi connection failed.");
+    if(D) Serial.print("ERROR: WiFi connection failed.");
     return;
   }
   // listen for incoming clients
   WiFiClient client = server.available();
   if (client) {
-//Serial.println("new HTTP request");
+// if(D) Serial.println("new HTTP request");
     // an http request ends with a blank line
     boolean currentLineIsBlank = true, skip = true;
     int data_length = -1;
@@ -1018,19 +1057,19 @@ void listen4HttpClient()
           if (req_str.startsWith("POST") && skip)
           {
             skip = false;
-//Serial.print(String("req_str: ") + req_str+"\n");
+// if(D) Serial.print(String("req_str: ") + req_str+"\n");
             String cl = "Content-Length:";
             String temp = req_str.substring(req_str.indexOf(cl) + cl.length());
             temp.trim();
             data_length = temp.toInt();
-//Serial.print(cl + data_length+"\n");
+// if(D) Serial.print(cl + data_length+"\n");
             while(data_length-- > 0)
             {
               c = client.read();
               req_str += c;
               post_data += c;
             }
-//Serial.println(String("received post data: ") + post_data+"\n");
+// if(D) Serial.println(String("received post data: ") + post_data+"\n");
             processPostData(post_data);
             got_programming = true;
             sendPostData("/programming_update.php", post_data);
@@ -1047,14 +1086,14 @@ void listen4HttpClient()
         }
       }
     }
-//    Serial.println();
-//    Serial.println(req_str);
-//    Serial.print("post_data: ");
-//    Serial.println(post_data);
+// if(D) Serial.println();
+// if(D) Serial.println(req_str);
+// if(D) Serial.print("post_data: ");
+// if(D) Serial.println(post_data);
     // close the connection:
-//Serial.println("HTTP stop client");
+// if(D) Serial.println("HTTP stop client");
     client.stop();
-//Serial.println("done new HTTP request");
+// if(D) Serial.println("done new HTTP request");
   }
 }
 
@@ -1065,7 +1104,7 @@ void startConversion1stHalf()
   {
     if(i > 0)
       delay(CONVERSION_TIME);
-//    Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+// if(D) Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
     dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
   }
 }
@@ -1076,7 +1115,7 @@ void startConversion2ndHalf()
   {
     if(i > SENZOR_COUNT / 2)
       delay(CONVERSION_TIME);
-//    Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+// if(D) Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
     dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
   }
 }
@@ -1093,11 +1132,11 @@ void updateTemperature()
   // read the temperature and store it as integer rounded to 0.05 grd C
   for (byte i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
   {
-//    Serial.println(String("read temperature i=") + i + " j=" + j);
+// if(D) Serial.println(String("read temperature i=") + i + " j=" + j);
     temp = floatToRound05Int(dallasTemperature1st_pin0.getTempC(SENZOR_ADDRESS[j]));
     if (temp <= -4000 || temp >= 7000)
     {
-      Serial.println(String("ERROR: bad temperature: ") + i + " - " + temp);
+      if(D) Serial.println(String("ERROR: bad temperature: ") + i + " - " + temp);
       temp = 0;
     }
     if(temp)
@@ -1105,11 +1144,11 @@ void updateTemperature()
   }
   for (byte i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
   {
-//    Serial.println(String("read temperature i=") + i + " j=" + j);
+// if(D) Serial.println(String("read temperature i=") + i + " j=" + j);
     temp = floatToRound05Int(dallasTemperature2nd_pin2.getTempC(SENZOR_ADDRESS[j]));
     if (temp <= -4000 || temp >= 7000)
     {
-      Serial.println(String("ERROR: bad temperature: ") + i + " - " + temp);
+      if(D) Serial.println(String("ERROR: bad temperature: ") + i + " - " + temp);
       temp = 0;
     }
     if(temp)
@@ -1149,7 +1188,7 @@ bool isNowAfter(byte start_h, byte start_m)
 
 void checkProgramming()
 {
-//  Serial.println("Start checkProgramming");
+// if(D) Serial.println("Start checkProgramming");
   bool should_run[] = {false, false, false, false, };
 //  bool does_run = false;
 //  byte programm = -1;
@@ -1158,68 +1197,116 @@ void checkProgramming()
   {
     if (!temperature[i])
       continue;
-    bool does_run = is_running[i];
-    byte programm = programming[i];
-    switch (programm)
+//    bool does_run = is_running[i];
+//    byte programm = programming[i];
+    // on a new day reset has_pX_run_today
+    if(hour() == 0 && minute() == 0)
+    {
+      bool p2_run_today = has_p2_run_today[i];
+      bool p3_run_today = has_p3_run_today[i];
+      switch (programming[i])
+      {
+        case P2_START_HOUR_1_INCREASE_05:
+        {
+          if(!is_running[i])
+            has_p2_run_today[i] = false;
+          has_p3_run_today[i] = false;
+          break;
+        }
+        case P3_START_HOUR_2_INCREASE_05:
+        {
+          if(!is_running[i])
+            has_p3_run_today[i] = false;
+          has_p2_run_today[i] = false;
+          break;
+        }
+        default:
+        {
+          has_p2_run_today[i] = false;
+          has_p3_run_today[i] = false;
+          break;
+        }
+      }
+      
+      if(p2_run_today != has_p2_run_today[i] && p3_run_today != has_p3_run_today[i])
+      {
+        writeLogger(String("[") + T_LOC + "] marcat P2 si P3 nu au rulat astazi pentru " + room_name[i + offset]);
+      }
+      else if(p2_run_today != has_p2_run_today[i])
+      {
+        writeLogger(String("[") + T_LOC + "] marcat P2 nu a rulat astazi pentru " + room_name[i + offset]);
+      }
+      else if(p3_run_today != has_p3_run_today[i])
+      {
+        writeLogger(String("[") + T_LOC + "] marcat P3 nu a rulat astazi pentru " + room_name[i + offset]);
+      }
+    }
+    switch (programming[i])
     {
       case P1_RUN_HOURS_MAKE_TEMP: // run between hour and keep target temperature
         {
-          should_run[i] = temperature[i] <= target_temperature_p1[i + offset] && isNowBetween(start_hour_p1[i], start_minute_p1[i], stop_hour_p1[i], stop_minute_p1[i]);
+          should_run[i] = temperature[i] <= target_temperature_p1[i + offset] 
+              && isNowBetween(start_hour_p1[i], start_minute_p1[i], stop_hour_p1[i], stop_minute_p1[i]);
           break;
         }
       case P2_START_HOUR_1_INCREASE_05: // start at given hour and increase temperature with DELTA_TEMP/100 deg.C
         {
-          should_run[i] = force_running[i] || isNowAfter(start_hour_p2[i], start_minute_p2[i]);
-          if(!should_run[i])
-            has_p2_run_today[i] = false;
+          should_run[i] = !has_p2_run_today[i] && isNowAfter(start_hour_p2[i], start_minute_p2[i]);
+//          if(!should_run[i])
+//            has_p2_run_today[i] = false;
           if (should_run[i] && !target_temperature_p2[i])
             target_temperature_p2[i] = temperature[i] + DELTA_TEMP;
-          should_run[i] = should_run[i] && !has_p2_run_today[i] && temperature[i] <= target_temperature_p2[i];
-          if (does_run && !should_run[i])
+          should_run[i] = should_run[i] && temperature[i] <= target_temperature_p2[i];
+          if (is_running[i] && !should_run[i])
           {
-            force_running[i] = false;
             has_p2_run_today[i] = true;
             target_temperature_p2[i] = 0;
-            programm_changed = programming[i] != next_programm_p2[i];
+            if (programming[i] != next_programm_p2[i])
+            {
+              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programming[i] + " la " + next_programm_p2[i]);
+            }
+            programm_changed = true;
             programming[i] = next_programm_p2[i];
-            if (programm_changed)
-              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programm + " la " + programming[i]);
           }
           break;
         }
       case P3_START_HOUR_2_INCREASE_05: // start at given hour and increase temperature with DELTA_TEMP/100 deg.C
         {
-          should_run[i] = isNowAfter(start_hour_p3[i], start_minute_p3[i]);
-          if(!should_run[i])
-            has_p3_run_today[i] = false;
+          should_run[i] = !has_p3_run_today[i] && isNowAfter(start_hour_p3[i], start_minute_p3[i]);
+//          if(!should_run[i])
+//            has_p3_run_today[i] = false;
           if (should_run[i] && !target_temperature_p3[i])
             target_temperature_p3[i] = temperature[i] + DELTA_TEMP;
-          should_run[i] = should_run[i] && !has_p3_run_today[i] && temperature[i] <= target_temperature_p3[i];
-          if (does_run && !should_run[i])
+          should_run[i] = should_run[i] && temperature[i] <= target_temperature_p3[i];
+          if (is_running[i] && !should_run[i])
           {
             has_p3_run_today[i] = true;
             target_temperature_p3[i] = 0;
-            programm_changed = programming[i] != next_programm_p3[i];
+            if (programming[i] != next_programm_p3[i])
+            {
+              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programming[i] + " la " + next_programm_p3[i]);
+            }
             programming[i] = next_programm_p3[i];
-            if (programm_changed)
-              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programm + " la " + programming[i]);
+            programm_changed = true;
           }
           break;
         }
       case P4_START_NOW_INCREASE_05: // start now and increase temperature with DELTA_TEMP/100 deg.C
         {
-          if (!does_run)
+          if (!is_running[i])
             target_temperature_p4[i] = temperature[i] + DELTA_TEMP;
           should_run[i] = temperature[i] <= target_temperature_p4[i];
-          if (does_run && !should_run[i])
+          if (is_running[i] && !should_run[i])
           {
             target_temperature_p4[i] = 0;
-            programm_changed = programming[i] != next_programm_p4[i];
+            if (programming[i] != next_programm_p4[i])
+            {
+              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programming[i] + " la " + next_programm_p4[i]);
+              programm_changed = true;
+            }
             programming[i] = next_programm_p4[i];
-            if (programm_changed)
-              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programm + " la " + programming[i]);
           }
-//Serial.println(String("does_run=")+does_run+", should_run="+should_run[i]+", target_temperature_p4="+target_temperature_p4[i]);
+// if(D) Serial.println(String("is_running=")+is_running[i]+", should_run="+should_run[i]+", target_temperature_p4="+target_temperature_p4[i]);
           break;
         }
       default: // stopped
@@ -1239,12 +1326,13 @@ void checkProgramming()
          post_data += "&";
       post_data += String("programming_") + i + "=" + programming[i];
     }
-//    Serial.println(String("Send programming_update: ") + post_data);
+// if(D) Serial.println(String("Send programming_update: ") + post_data);
     sendPostData("/programming_update.php", post_data);
   }
 
   // start up to MIN_RUNNING
   byte count_running = 0;
+  byte count_candidates = 0;
   byte candidates[] = {P_NONE, P_NONE, P_NONE, P_NONE,};
   int candidates_temp[] = {10000, 10000, 10000, 10000,};
   for (int i = 0; i < SENZOR_COUNT; ++i)
@@ -1254,14 +1342,18 @@ void checkProgramming()
     else if(programming[i] == P1_RUN_HOURS_MAKE_TEMP)
     {
       candidates_temp[i] = temperature[i] - target_temperature_p1[i + offset];
+      // for not bouncing add a -10 centi grades bonus to already running ones
+      if(is_running[i])
+        candidates_temp[i] -= 10;
       candidates[i] = i;
+      ++count_candidates;
     }
     // reset force_running
     force_running[i] = false;
   }
 
-  // should run at least one, but less then minimum 
-  if(count_running > 0 && count_running < MIN_RUNNING)
+  // should run at least one, but less then minimum, and there are candidates
+  if(count_running > 0 && count_running < MIN_RUNNING && count_candidates > 0)
   {
     // sort by delta temperature
     for (int i = 0; i < SENZOR_COUNT; ++i)
@@ -1295,25 +1387,23 @@ void checkProgramming()
 
   for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
   {
-    if (should_run[i])
+    if (should_run[i] || force_running[i])
     {
-      digitalWrite(relay[i], LOW);
       if(!is_running[i])
-        writeLogger(String("[") + T_LOC + "] Start program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false));
-      is_running[i] = true;
-    }
-    else if(force_running[i])
-    {
-      digitalWrite(relay[i], LOW);
-      if(!is_running[i])
-        writeLogger(String("[") + T_LOC + "] Start fortat program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false));
+      {
+        digitalWrite(relay[i], LOW);
+        writeLogger(String("[") + T_LOC + "] Start" + ((force_running[i]) ? " fortat" : "") +" program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false));
+
+      }
       is_running[i] = true;
     }
     else
     {
-      digitalWrite(relay[i], HIGH);
       if(is_running[i])
+      {
+        digitalWrite(relay[i], HIGH);
         writeLogger(String("[") + T_LOC + "] Stop program " + programming[i] + " pentru " + room_name[j]);
+      }
       is_running[i] = false;
     }
   }
@@ -1329,9 +1419,9 @@ void checkProgramming()
       "t_" + i + "=" + temperature[i] +
       "&t_" + i + "_r=" + (is_running[i] ? "1" : "0");
   }
-//  Serial.println(String("Send update: ") + post_data);
+// if(D) Serial.println(String("Send update: ") + post_data);
   sendPostData("/update.php", post_data);
-//  Serial.println("End checkProgramming");
+// if(D) Serial.println("End checkProgramming");
 }
 
 int floatToRound05Int(float temp)
@@ -1394,7 +1484,7 @@ time_t getTime()
     connectWifi();
   if (WiFi.status() != WL_CONNECTED)
   {
-    Serial.print("ERROR: WiFi connection failed.");
+    if(D) Serial.print("ERROR: WiFi connection failed.");
     return 0;
   }
 
@@ -1403,7 +1493,7 @@ time_t getTime()
   static int udpInitialized = udp.begin(12670);
   if (0 == udpInitialized) // returns 0 if there are no sockets available to use
   {
-    Serial.println("ERROR: there are no sockets available to use.");
+    if(D) Serial.println("ERROR: there are no sockets available to use.");
     return 0;
   }
   static char timeServer[] = "ro.pool.ntp.org";  // the NTP server
@@ -1417,7 +1507,7 @@ time_t getTime()
          && udp.write((byte *)&ntpFirstFourBytes, PKT_LEN) == PKT_LEN
          && udp.endPacket()))
   {
-    Serial.println("NTP ERROR: sending request failed");
+    if(D) Serial.println("NTP ERROR: sending request failed");
     return 0; // sending request failed
   }
 
@@ -1431,10 +1521,10 @@ time_t getTime()
   }
   if (pktLen != PKT_LEN)
   {
-    Serial.println();
-    Serial.print("NTP ERROR: no correct packet received; pktLen = ");
-    Serial.print(pktLen);
-    Serial.println(", expected 48");
+    if(D) Serial.println();
+    if(D) Serial.print("NTP ERROR: no correct packet received; pktLen = ");
+    if(D) Serial.print(pktLen);
+    if(D) Serial.println(", expected 48");
     return 0; // no correct packet received
   }
 
@@ -1465,7 +1555,7 @@ time_t getTime()
   t_time = EasternEuropeanTime.toLocal(t_time, &tcr);
   // set offset
   if(!start_second)
-    start_second = t_time - seconds();
+    start_second = t_time - secondsRunning();
 
   defere_log(String("[") + T_LOC + "] NTP primit ora exacta (" + (millis() - mllis) + " ms).");
   scheduler.add(recal_log, 20);
@@ -1474,11 +1564,22 @@ time_t getTime()
   return t_time;
 }
 
+int lost_msg_count = 1;
+
 void defere_log(const String &what)
 {
+  if(deferred_index >= MAX_LOGGER)
+  {
+    ++lost_msg_count;
+    // clean old last position
+    delete deferred_log[MAX_LOGGER - 1];
+    deferred_log[MAX_LOGGER - 1] = new String(String("Deffered log overflow by ") + lost_msg_count + " messages!");
+    deferred_time[MAX_LOGGER - 1] = secondsRunning();
+    return;
+  }
   deferred_log[deferred_index] = new String(what);
-  deferred_time[deferred_index] = seconds();
-  deferred_index++;
+  deferred_time[deferred_index] = secondsRunning();
+  ++deferred_index;
 }
 
 void recal_log()
@@ -1488,16 +1589,16 @@ void recal_log()
     for(int i = 0; i < deferred_index; i++)
     {
       time_t t_time = start_second + deferred_time[i];
-      String *t_log = deferred_log[i];
-      String post_data = String(timeString(day(t_time), month(t_time), year(t_time), hour(t_time), minute(t_time), second(t_time)))  + " - " + *t_log;
+      String *t_df_log = deferred_log[i];
+      String post_data = String(timeString(day(t_time), month(t_time), year(t_time), hour(t_time), minute(t_time), second(t_time)))  + " - " + *t_df_log;
       log_index = (++log_index) % MAX_LOGGER;
-      String *o_log = logger[log_index];
+      String *t_log = logger[log_index];
       logger[log_index] = new String(post_data);
-      Serial.println(post_data);
+      if(D) Serial.println(post_data);
       post_data = String("t_log=") + post_data;
       sendPostData("/log_save.php", post_data, false);
+      delete t_df_log;
       delete t_log;
-      delete o_log;
       deferred_log[i] = 0;
     }
     deferred_index = 0;
@@ -1517,7 +1618,7 @@ void writeLogger(const String &what)
   log_index = (++log_index) % MAX_LOGGER;
   String *o_log = logger[log_index];
   logger[log_index] = new String(post_data);
-  Serial.println(post_data);
+  if(D) Serial.println(post_data);
   post_data = String("t_log=") + post_data;
   sendPostData("/log_save.php", post_data, false);
   delete o_log;
