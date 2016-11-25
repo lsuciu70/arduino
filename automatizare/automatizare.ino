@@ -412,15 +412,15 @@ void update_pX_run_today()
 {
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
-    if(programming[i] == P2_START_HOUR_1_INCREASE_05 && (start_hour_p2[i] < hour() || start_minute_p2[i] < minute()))
+    if(programming[i] == P2_START_HOUR_1_INCREASE_05 && (start_hour_p2[i] < hour() || (start_hour_p2[i] == hour() && start_minute_p2[i] < minute())))
     {
       has_p2_run_today[i] = true;
-      writeLogger(String("[") + T_LOC + "] marcat P2 a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+      writeLogger(String("[") + T_LOC + "] P2 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
     }
-    if(programming[i] == P3_START_HOUR_2_INCREASE_05 && (start_hour_p3[i] < hour() || start_minute_p3[i] < minute()))
+    if(programming[i] == P3_START_HOUR_2_INCREASE_05 && (start_hour_p3[i] < hour() || (start_hour_p3[i] == hour() && start_minute_p3[i] < minute())))
     {
       has_p3_run_today[i] = true;
-      writeLogger(String("[") + T_LOC + "] marcat P3 a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+      writeLogger(String("[") + T_LOC + "] P3 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
     }
   }
 }
@@ -946,6 +946,7 @@ void processPostData(const String &post_data)
   }
   if(i)
     programm = savePostData(post_data.substring(i, j), programm);
+  update_pX_run_today();
 }
 
 void sendPostData(const String &page, const String &data, bool sendLoc)
@@ -1227,15 +1228,15 @@ void checkProgramming()
       
       if(p2_run_today != has_p2_run_today[i] && p3_run_today != has_p3_run_today[i])
       {
-        writeLogger(String("[") + T_LOC + "] marcat P2 si P3, nu au rulat astazi pentru " + room_name[i + offset]);
+        writeLogger(String("[") + T_LOC + "]  P2 si P3 marcate ca nu au rulat astazi pentru " + room_name[i + offset]);
       }
       else if(p2_run_today != has_p2_run_today[i])
       {
-        writeLogger(String("[") + T_LOC + "] marcat P2, nu a rulat astazi pentru " + room_name[i + offset]);
+        writeLogger(String("[") + T_LOC + "] P2 marcat ca nu a rulat astazi pentru " + room_name[i + offset]);
       }
       else if(p3_run_today != has_p3_run_today[i])
       {
-        writeLogger(String("[") + T_LOC + "] marcat P3, nu a rulat astazi pentru " + room_name[i + offset]);
+        writeLogger(String("[") + T_LOC + "] P3 marcat ca nu a rulat astazi pentru " + room_name[i + offset]);
       }
     }
     switch (programming[i])
@@ -1336,7 +1337,7 @@ void checkProgramming()
   {
     if(should_run[i])
       ++count_running;
-    else if(programming[i] == P1_RUN_HOURS_MAKE_TEMP)
+    else if(programming[i] == P1_RUN_HOURS_MAKE_TEMP || programming[i] == P2_START_HOUR_1_INCREASE_05 || programming[i] == P3_START_HOUR_2_INCREASE_05)
     {
       candidates_temp[i] = temperature[i] - target_temperature_p1[i + offset];
       // for not bouncing add a -10 centi grades bonus to already running ones
@@ -1352,7 +1353,7 @@ void checkProgramming()
   // should run at least one, but less then minimum, and there are candidates
   if(count_running > 0 && count_running < MIN_RUNNING && count_candidates > 0)
   {
-    // sort by delta temperature
+    // sort by delta temperature, highest delta first
     for (int i = 0; i < SENZOR_COUNT; ++i)
     {
       for (int j = i; j < SENZOR_COUNT; ++j)
@@ -1369,7 +1370,7 @@ void checkProgramming()
         }
       }
     }
-    String logCandidates = String("[") + T_LOC + "] Candidati pentru pornirea fortata: ";
+    String logCandidates = String("Candidati pentru pornirea fortata (in ordine): {");
     for (int i = 0; i < SENZOR_COUNT; ++i)
     {
       if(i)
@@ -1379,6 +1380,7 @@ void checkProgramming()
       else
         break;
     }
+    writeLogger(String("[") + T_LOC + "] " + logCandidates + "}");
     for (int i = 0; i < SENZOR_COUNT; ++i)
     {
       if(candidates[i] != P_NONE)
@@ -1394,12 +1396,21 @@ void checkProgramming()
 
   for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
   {
-    if (should_run[i] || force_running[i])
+    if (should_run[i])
     {
       if(!is_running[i])
       {
         digitalWrite(relay[i], LOW);
-        writeLogger(String("[") + T_LOC + "] Start" + ((force_running[i]) ? " fortat" : "") +" program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false) + ", temperatura curenta " + temperature[i]);
+        writeLogger(String("[") + T_LOC + "] Start program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false) + ", temperatura curenta " + temperature[i]);
+      }
+      is_running[i] = true;
+    }
+    else if (force_running[i])
+    {
+      if(!is_running[i])
+      {
+        digitalWrite(relay[i], LOW);
+        writeLogger(String("[") + T_LOC + "] Start fortat program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false) + ", temperatura curenta " + temperature[i]);
       }
       is_running[i] = true;
     }
