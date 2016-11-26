@@ -417,14 +417,20 @@ void update_pX_run_today()
     if((programming[i] == P2_START_HOUR_1_INCREASE_05 && delta_minute_p2 > 0)
         || (delta_minute_p2 > 2 * 60))
     {
-      has_p2_run_today[i] = true;
-      writeLogger(String("[") + T_LOC + "] P2 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+      if(!has_p2_run_today[i])
+      {
+        has_p2_run_today[i] = true;
+//        writeLogger(String("[") + T_LOC + "] P2 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+      }
     }
     if((programming[i] == P3_START_HOUR_2_INCREASE_05 && delta_minute_p3 > 0)
         || (delta_minute_p3 > 2 * 60))
     {
-      has_p3_run_today[i] = true;
-      writeLogger(String("[") + T_LOC + "] P3 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+      if(!has_p3_run_today[i])
+      {
+        has_p3_run_today[i] = true;
+//        writeLogger(String("[") + T_LOC + "] P3 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+      }
     }
   }
 }
