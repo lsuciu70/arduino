@@ -3,6 +3,9 @@
 !.gitignore
 !automatizare
 !onewire_search
+!lcd_20x4
+!I2CScanner
+!ntp_clock
 
 libraries
 !libraries/LsuScheduler

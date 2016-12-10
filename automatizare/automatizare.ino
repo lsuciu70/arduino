@@ -39,7 +39,6 @@ int deferred_index = 0;
 
 unsigned long start_second = 0;
 
-
 // WiFi section
 const byte SSID_SIZE = 2;
 const char* SSID_t[SSID_SIZE]   = {"cls-router", "cls-ap"};
@@ -130,6 +129,9 @@ const byte relay[] =
 const byte DELTA_TEMP = 30;
 const String DELTA_TEMP_STR = String("") + ((DELTA_TEMP - (DELTA_TEMP % 100)) / 100) + "." + (DELTA_TEMP % 100);
 const byte DELTA_P1_TEMP = 10;
+const int MAX_DELTA = 100; // 100 centi grades = 1 degree
+
+const byte MIN_RUNNING = 3;
 
 enum
 {
@@ -150,8 +152,6 @@ bool force_running[] =
 {
   false, false, false, false,
 };
-
-const byte MIN_RUNNING = 3;
 
 // POST names
 const String T_LOC_NAME = "t_loc";
@@ -198,7 +198,7 @@ byte stop_minute_p1[] =
 };
 int target_temperature_p1[] =
 {
-  2100, 2100, 1800, 2100, 2300, 2300, 2300, 2100
+  2000, 2000, 1900, 2000, 2400, 2400, 2300, 2100
 };
 
 // p2: P2_START_HOUR_1_INCREASE_05 - start at given hour and increase temperature with DELTA_TEMP/100 deg.C
@@ -459,23 +459,23 @@ String printProgramming(byte programm, byte index, bool is_mobile)
   {
     case P0_STOPPED:
       program_str = "P0";
-      if(is_mobile)
-        break;
+//      if(is_mobile)
+//        break;
       program_str += " - oprit";
       break;
     case P1_RUN_HOURS_MAKE_TEMP:
       program_str = "P1";
-      if(is_mobile)
-        break;
+//      if(is_mobile)
+//        break;
       program_str += " - merge intre "; program_str += start_hour_p1[index]; program_str += ":"; if(start_minute_p1[index] < 10) {program_str += "0";} program_str += start_minute_p1[index];
       program_str += " si "; program_str += stop_hour_p1[index]; program_str += ":"; if(stop_minute_p1[index] < 10) {program_str += "0";} program_str += stop_minute_p1[index];
-      if(start_hour_p1[index] > stop_hour_p1[index]) program_str += " (ziua urmatoare)";
+      if(start_hour_p1[index] > stop_hour_p1[index] || (start_hour_p1[index] == stop_hour_p1[index] && start_minute_p1[index] >= stop_minute_p1[index])) program_str += " (ziua urmatoare)";
       program_str += " si face "; program_str += (1.0 * target_temperature_p1[index + offset] / 100); program_str += " &deg;C";
       break;
     case P2_START_HOUR_1_INCREASE_05:
       program_str += "P2";
-      if(is_mobile)
-        break;
+//      if(is_mobile)
+//        break;
       program_str += " - porneste "; if(has_p2_run_today[index]) {program_str += "maine ";} program_str += "la "; program_str += start_hour_p2[index]; program_str += ":"; if(start_minute_p2[index] < 10) {program_str += "0";} program_str += start_minute_p2[index];
       if(target_temperature_p2[index])
       {
@@ -488,8 +488,8 @@ String printProgramming(byte programm, byte index, bool is_mobile)
       break;
     case P3_START_HOUR_2_INCREASE_05:
       program_str += "P3";
-      if(is_mobile)
-        break;
+//      if(is_mobile)
+//        break;
       program_str += " - porneste "; if(has_p3_run_today[index]) {program_str += "maine ";} program_str += "la "; program_str += start_hour_p3[index]; program_str += ":"; if(start_minute_p3[index] < 10) {program_str += "0";} program_str += start_minute_p3[index];
       if(target_temperature_p3[index])
       {
@@ -502,8 +502,8 @@ String printProgramming(byte programm, byte index, bool is_mobile)
       break;
     case P4_START_NOW_INCREASE_05:
       program_str += "P4";
-      if(is_mobile)
-        break;
+//      if(is_mobile)
+//        break;
       program_str += " - porneste acum si face "; 
       if(target_temperature_p4[index])
         program_str += (1.0 * target_temperature_p4[index] / 100);
@@ -513,8 +513,8 @@ String printProgramming(byte programm, byte index, bool is_mobile)
       break;
     default:
       program_str += "EROARE";
-      if(is_mobile)
-        break;
+//      if(is_mobile)
+//        break;
       program_str += ": program necunoscut: "; program_str += programm;
       break;
   }
@@ -786,7 +786,7 @@ int savePostData(const String &data, int programm)
     }
     if (programm != programming[index])
     {
-      writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(index + offset)] + " de la " + programming[index] + " la " + programm);
+      writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(index + offset)] + " program nou: " + programming[index] + ", program vechi: " + programm);
     }
     programming[index] = programm;
     return programm;
@@ -938,8 +938,8 @@ int savePostData(const String &data, int programm)
   }
   if(!valid)
   {
-    Serial.print("ERROR programm "); Serial.print(programm); Serial.print(" : "); Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);
-    writeLogger(String("[") + T_LOC + "] EROARE salvare - valoare invalida pentru " + bad_name + ":'" + value + "' pentru " + bad_room + "; ramane valoarea dinainte: " + old_value);
+//    Serial.println(String("ERROR programm ") + programm + " : " + data + " -> " + name + "[" + index + "] = " + value);
+    writeLogger(String("[") + T_LOC + "] EROARE salvare - valoare invalida pentru " + bad_name + ":'" + value + "' (apelat cu '" + data + "') pentru " + bad_room + "; ramane valoarea dinainte: " + old_value);
   }
 //  Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);
   return programm;
@@ -969,7 +969,7 @@ void sendPostData(const String &page, const String &data, bool sendLoc)
   "Host: " + master_server_ip.toString() + "\r\n" +
   "User-Agent: Arduino/1.0\r\n" +
   "Connection: close\r\n" +
-  "Content-Type: application/x-www-form-urlencoded\r\n"
+  "Content-Type: application/x-www-form-urlencoded\r\n" +
   "Content-Length: " + post_data.length() + "\r\n";
   WiFiClient client;
   if(client.connect(master_server_ip, master_server_port))
@@ -1172,10 +1172,13 @@ void updateTemperature()
 
 bool isNowBetween(byte start_h, byte start_m, byte stop_h, byte stop_m)
 {
-  int minutes_now = hour() * 60 + minute();
   int minutes_start = start_h * 60 + start_m;
   int minutes_end = stop_h * 60 + stop_m;
+  // check continuous running
+  if(minutes_start == minutes_end)
+    return true;
   bool next_day = minutes_end < minutes_start;
+  int minutes_now = hour() * 60 + minute();
   if (next_day)
     return minutes_start <= minutes_now || minutes_now < minutes_end;
   else
@@ -1194,15 +1197,20 @@ void checkProgramming()
 {
 // Serial.println("Start checkProgramming");
   bool should_run[] = {false, false, false, false, };
-//  bool does_run = false;
-//  byte programm = -1;
+  byte original_programm[] = {P_NONE, P_NONE, P_NONE, P_NONE};
   bool programm_changed = false;
+  bool run_marked = false;
+  bool one_delta_running = false;
+  for (byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    original_programm[i] = programming[i];
+    // reset forced running
+    force_running[i] = false;
+  }
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
     if (!temperature[i])
       continue;
-//    bool does_run = is_running[i];
-//    byte programm = programming[i];
     // on a new day reset has_pX_run_today
     if(hour() == 0 && minute() == 0)
     {
@@ -1231,23 +1239,13 @@ void checkProgramming()
           break;
         }
       }
-      
-      if(p2_run_today != has_p2_run_today[i] && p3_run_today != has_p3_run_today[i])
-      {
-        writeLogger(String("[") + T_LOC + "]  P2 si P3 marcate ca nu au rulat astazi pentru " + room_name[i + offset]);
-      }
-      else if(p2_run_today != has_p2_run_today[i])
-      {
-        writeLogger(String("[") + T_LOC + "] P2 marcat ca nu a rulat astazi pentru " + room_name[i + offset]);
-      }
-      else if(p3_run_today != has_p3_run_today[i])
-      {
-        writeLogger(String("[") + T_LOC + "] P3 marcat ca nu a rulat astazi pentru " + room_name[i + offset]);
-      }
+      run_marked = run_marked
+        || (p2_run_today != has_p2_run_today[i])
+        || (p3_run_today != has_p3_run_today[i]);
     }
     switch (programming[i])
     {
-      case P1_RUN_HOURS_MAKE_TEMP: // run between hour and keep target temperature
+      case P1_RUN_HOURS_MAKE_TEMP: // keep target temperature during time interval
         {
           int target_temp = target_temperature_p1[i + offset];
           // make a little more then desired to prevent bouncing
@@ -1257,11 +1255,9 @@ void checkProgramming()
               && isNowBetween(start_hour_p1[i], start_minute_p1[i], stop_hour_p1[i], stop_minute_p1[i]);
           break;
         }
-      case P2_START_HOUR_1_INCREASE_05: // start at given hour and increase temperature with DELTA_TEMP/100 deg.C
+      case P2_START_HOUR_1_INCREASE_05: // start at given time and increase temperature with DELTA_TEMP
         {
           should_run[i] = !has_p2_run_today[i] && isNowAfter(start_hour_p2[i], start_minute_p2[i]);
-//          if(!should_run[i])
-//            has_p2_run_today[i] = false;
           if (should_run[i] && !target_temperature_p2[i])
             target_temperature_p2[i] = temperature[i] + DELTA_TEMP;
           should_run[i] = should_run[i] && temperature[i] <= target_temperature_p2[i];
@@ -1272,17 +1268,16 @@ void checkProgramming()
             if (programming[i] != next_programm_p2[i])
             {
               writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programming[i] + " la " + next_programm_p2[i]);
+              programm_changed = true;
             }
-            programm_changed = true;
             programming[i] = next_programm_p2[i];
           }
+          one_delta_running = one_delta_running || should_run[i];
           break;
         }
-      case P3_START_HOUR_2_INCREASE_05: // start at given hour and increase temperature with DELTA_TEMP/100 deg.C
+      case P3_START_HOUR_2_INCREASE_05: // start at given hour and increase temperature with DELTA_TEMP
         {
           should_run[i] = !has_p3_run_today[i] && isNowAfter(start_hour_p3[i], start_minute_p3[i]);
-//          if(!should_run[i])
-//            has_p3_run_today[i] = false;
           if (should_run[i] && !target_temperature_p3[i])
             target_temperature_p3[i] = temperature[i] + DELTA_TEMP;
           should_run[i] = should_run[i] && temperature[i] <= target_temperature_p3[i];
@@ -1293,15 +1288,16 @@ void checkProgramming()
             if (programming[i] != next_programm_p3[i])
             {
               writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programming[i] + " la " + next_programm_p3[i]);
+              programm_changed = true;
             }
             programming[i] = next_programm_p3[i];
-            programm_changed = true;
           }
+          one_delta_running = one_delta_running || should_run[i];
           break;
         }
-      case P4_START_NOW_INCREASE_05: // start now and increase temperature with DELTA_TEMP/100 deg.C
+      case P4_START_NOW_INCREASE_05: // start now and increase temperature with DELTA_TEMP
         {
-          if (!is_running[i])
+          if (!target_temperature_p4[i])
             target_temperature_p4[i] = temperature[i] + DELTA_TEMP;
           should_run[i] = temperature[i] <= target_temperature_p4[i];
           if (is_running[i] && !should_run[i])
@@ -1314,7 +1310,7 @@ void checkProgramming()
             }
             programming[i] = next_programm_p4[i];
           }
-// Serial.println(String("is_running=")+is_running[i]+", should_run="+should_run[i]+", target_temperature_p4="+target_temperature_p4[i]);
+          one_delta_running = one_delta_running || should_run[i];
           break;
         }
       default: // stopped
@@ -1324,6 +1320,9 @@ void checkProgramming()
         }
     }
   }
+
+  if(run_marked)
+    writeLogger(String("[") + T_LOC + "]  P2 si P3 marcate ca nu au rulat astazi");
 
   if(programm_changed)
   {
@@ -1338,106 +1337,114 @@ void checkProgramming()
     sendPostData("/programming_update.php", post_data);
   }
 
-  // start up to MIN_RUNNING
-  byte count_running = 0;
-  byte count_candidates = 0;
-  byte candidates[] = {P_NONE, P_NONE, P_NONE, P_NONE,};
-  int candidates_temp[] = {10000, 10000, 10000, 10000,};
-  for (int i = 0; i < SENZOR_COUNT; ++i)
+  // if one delta temp is running start all P1 with current temperature less then MAX_DELTA centi grades greater then the target
+  if(one_delta_running)
   {
-    if(should_run[i])
-      ++count_running;
-    else if(programming[i] == P1_RUN_HOURS_MAKE_TEMP)
-    {
-      candidates_temp[i] = temperature[i] - target_temperature_p1[i + offset];
-      // for not bouncing add a -10 centi grades bonus to already running ones
-      if(is_running[i])
-        candidates_temp[i] -= 10;
-      candidates[i] = i;
-      ++count_candidates;
-    }
-    // reset force_running
-    force_running[i] = false;
-  }
-
-  // should run at least one, but less then minimum, and there are candidates
-  if(count_running > 0 && count_running < MIN_RUNNING && count_candidates > 0)
-  {
-    // sort by delta temperature, highest delta first
     for (int i = 0; i < SENZOR_COUNT; ++i)
     {
-      for (int j = i; j < SENZOR_COUNT; ++j)
+      if(should_run[i] || programming[i] != P1_RUN_HOURS_MAKE_TEMP)
+        continue;
+      int candidate_temp = temperature[i] - target_temperature_p1[i + offset];
+      force_running[i] = candidate_temp < MAX_DELTA;
+    }
+  }
+  else {
+    // start up to MIN_RUNNING
+    byte count_running = 0;
+    byte count_candidates = 0;
+    byte candidates[] = {P_NONE, P_NONE, P_NONE, P_NONE,};
+    const int MAX_TEMP = 10000;
+    int candidates_temp[] = {MAX_TEMP, MAX_TEMP, MAX_TEMP, MAX_TEMP,};
+    for (int i = 0; i < SENZOR_COUNT; ++i)
+    {
+      if(should_run[i])
+        ++count_running;
+      else if(programming[i] == P1_RUN_HOURS_MAKE_TEMP)
       {
-        if(candidates_temp[j] < candidates_temp[i])
-        {
-          // swap
-          int t_temp = candidates_temp[j];
-          candidates_temp[j] = candidates_temp[i];
-          candidates_temp[i] = t_temp;
-          byte t = candidates[j];
-          candidates[j] = candidates[i];
-          candidates[i] = t;
-        }
+        int candidate_temp = temperature[i] - target_temperature_p1[i + offset];
+        // if current temperature is more then MAX_DELTA centi grades greater then the target skip it
+        if(candidate_temp >= MAX_DELTA)
+          continue;
+        candidates_temp[i] = candidate_temp;
+        // for not bouncing add a -10 centi grades bonus to already running ones
+        if(is_running[i])
+          candidates_temp[i] -= 10;
+        candidates[i] = i;
+        ++count_candidates;
       }
     }
-//    String logCandidates = String("Candidati pentru pornirea fortata (in ordine): {");
-//    for (int i = 0; i < SENZOR_COUNT; ++i)
-//    {
-//      if(i)
-//        logCandidates += ", ";
-//      if(candidates[i] != P_NONE)
-//        logCandidates += String(room_name[candidates[i] + offset]) + " (" + candidates_temp[candidates[i]] + ")";
-//      else
-//        break;
-//    }
-//    writeLogger(String("[") + T_LOC + "] " + logCandidates + "}");
-    for (int i = 0; i < SENZOR_COUNT; ++i)
+  
+    // 
+    // should run at least one, but less then minimum, and there are candidates
+    if(count_running > 0 && count_running < MIN_RUNNING && count_candidates > 0)
     {
-      if(candidates[i] != P_NONE)
+      // sort by delta temperature, highest delta first
+      for (int i = 0; i < SENZOR_COUNT; ++i)
       {
-        // start it
-        force_running[candidates[i]] = true;
-        // count it
-        if(++count_running >= MIN_RUNNING)
-          break;
+        for (int j = i + 1; j < SENZOR_COUNT; ++j)
+        {
+          if(candidates_temp[j] < candidates_temp[i])
+          {
+            // swap
+            int t_temp = candidates_temp[j];
+            candidates_temp[j] = candidates_temp[i];
+            candidates_temp[i] = t_temp;
+            byte t = candidates[j];
+            candidates[j] = candidates[i];
+            candidates[i] = t;
+          }
+        }
+      }
+      for (int i = 0; i < SENZOR_COUNT; ++i)
+      {
+        if(candidates[i] != P_NONE)
+        {
+          // start it
+          force_running[candidates[i]] = true;
+          // count it
+          if(++count_running >= MIN_RUNNING)
+            break;
+        }
       }
     }
   }
 
   for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
   {
-    float temp = (1.0 * temperature[i] / 100);
-    if (force_running[i])
+    if (should_run[i] && !is_running[i])
     {
-      if(!is_running[i])
-      {
-        digitalWrite(relay[i], LOW);
-        writeLogger(String("[") + T_LOC + "] Start fortat program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false) + ", temperatura curenta " + temp);
-      }
-      is_running[i] = true;
+      // start
+      digitalWrite(relay[i], LOW);
+      float temp = (1.0 * temperature[i] / 100);
+      writeLogger(String("[") + T_LOC + "] Start program " + programming[i] + " pentru " + room_name[j] + ", temperatura curenta " + temp + "; " + printProgramming(i, false));
     }
-    else if (should_run[i])
+  }
+  for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
+  {
+    if (force_running[i] && !is_running[i])
     {
-      if(!is_running[i])
-      {
-        digitalWrite(relay[i], LOW);
-        writeLogger(String("[") + T_LOC + "] Start program " + programming[i] + " pentru " + room_name[j] + ": " + printProgramming(i, false) + ", temperatura curenta " + temp);
-      }
-      is_running[i] = true;
+      // start
+      digitalWrite(relay[i], LOW);
+      float temp = (1.0 * temperature[i] / 100);
+      writeLogger(String("[") + T_LOC + "] Start fortat program " + programming[i] + " pentru " + room_name[j] + ", temperatura curenta " + temp + "; " + printProgramming(i, false));
     }
-    else
+  }
+  for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
+  {
+    if (!should_run[i] && !force_running[i] && is_running[i])
     {
-      if(is_running[i])
-      {
-        digitalWrite(relay[i], HIGH);
-        writeLogger(String("[") + T_LOC + "] Stop program " + programming[i] + " pentru " + room_name[j] + ", temperatura curenta " + temp);
-      }
-      is_running[i] = false;
+      // stop
+      digitalWrite(relay[i], HIGH);
+      float temp = (1.0 * temperature[i] / 100);
+      writeLogger(String("[") + T_LOC + "] Stop program " + original_programm[i] + " pentru " + room_name[j] + ", temperatura curenta " + temp);
     }
+  }
+  for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
+  {
+    is_running[i] = should_run[i] || force_running[i];
   }
 
   // send data to the server 
-  // t_0=2210&t_0_r=0&t_1=2420&t_1_r=0&t_2=2435&t_2_r=0&t_3=2443&t_3_r=1
   String post_data = String("");
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
@@ -1631,7 +1638,6 @@ void recal_log()
     }
     deferred_index = 0;
   }
-
 }
 
 void writeLogger(const String &what)
