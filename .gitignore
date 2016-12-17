@@ -1,15 +1,18 @@
 /*
 
 !.gitignore
-!automatizare
-!onewire_search
-!lcd_20x4
-!I2CScanner
-!ntp_clock
+!automatizare/automatizare.ino
+!onewire_search/onewire_search.ino
+!lcd_20x4/lcd_20x4.ino
+!I2CScanner/I2CScanner.ino
+!ntp_clock/ntp_clock.ino
 
 libraries
 !libraries/LsuScheduler
 
-automatizare/.cproject
-automatizare/.project
+#automatizare/.cproject
+#automatizare/.project
+#automatizare/.settings
+#automatizare/Debug/*
+#automatizare/Debug
 

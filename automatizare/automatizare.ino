@@ -4,9 +4,12 @@
 #include <DallasTemperature.h>
 #include <Time.h>         // https://github.com/PaulStoffregen/Time
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
-#include <WiFiUdp.h>      // http://playground.arduino.cc/Code/NTPclient
+#include <WiFiServer.h>   // arduino/libraries/WiFi/src
+#include <WiFiClient.h>   // arduino/libraries/WiFi/src
+#include <WiFiUdp.h>      // arduino/libraries/WiFi/src
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
-#include <LsuScheduler.h>
+
+#include <LsuScheduler.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuScheduler
 
 // one second, 1000 milliseconds
 const int SECOND = 1000;
@@ -21,6 +24,17 @@ const String T_LOC_ETAJ = "etaj";
 const String MAC_ETAJ = "5C:CF:7F:88:EE:49";
 
 String T_LOC = "";
+
+// register section
+const byte MAX_REGISTER = 5;
+byte last_register = 0;
+IPAddress requester_ip[MAX_REGISTER];
+int requester_port[MAX_REGISTER];
+String requester_page[MAX_REGISTER];
+
+const String REQUESTER_IP = "requester_ip";
+const String REQUESTER_PORT = "requester_port";
+const String REQUESTER_PAGE = "requester_page";
 
 // logging section
 // log count
@@ -46,7 +60,9 @@ const char* PASSWD_t[SSID_SIZE] = {"r4cD7TPG", "r4cD7TPG"};
 
 byte ssid_ix = 0;
 
-WiFiServer server(80);
+const int HTTP_PORT = 80;
+
+WiFiServer server(HTTP_PORT);
 
 // NTP section
 // Eastern European Time (Timisoara)
@@ -64,7 +80,7 @@ const byte USELES_BYTES = 40; // Useless bytes to be discarded; set useless to 3
 
 WiFiUDP udp;
 
-IPAddress master_server_ip(192, 168, 100, 100);
+const IPAddress master_server_ip(192, 168, 100, 100);
 const int master_server_port = 8081;
 
 // Temperature senzor section
@@ -111,6 +127,7 @@ DallasTemperature dallasTemperature1st_pin0(&oneWire1st_pin0);
 DallasTemperature dallasTemperature2nd_pin2(&oneWire2nd_pin2);
 
 int temperature[SENZOR_COUNT];
+
 const String room_name[] =
 {
   "Bucatarie", "Living", "Birou", "Baie parter",
@@ -166,12 +183,15 @@ const String TARGET_TEMPERATURE_P1 = "target_temperature_p1";
 const String START_HOUR_P2 = "start_hour_p2";
 const String START_MINUTE_P2 = "start_minute_p2";
 const String NEXT_PROGRAMM_P2 = "next_programm_p2";
+const String TARGET_TEMPERATURE_P2 = "target_temperature_p2";
 // P3
 const String START_HOUR_P3 = "start_hour_p3";
 const String START_MINUTE_P3 = "start_minute_p3";
 const String NEXT_PROGRAMM_P3 = "next_programm_p3";
+const String TARGET_TEMPERATURE_P3 = "target_temperature_p3";
 // P4
 const String NEXT_PROGRAMM_P4 = "next_programm_p4";
+const String TARGET_TEMPERATURE_P4 = "target_temperature_p4";
 
 byte programming[] =
 {
@@ -269,49 +289,39 @@ byte next_programm_p4[] =
 LsuScheduler scheduler;
 
 // funtions prototype section
-int floatToRound05Int(float);
-
-void startConversion1stHalf();
-
-void startConversion2ndHalf();
-
-void updateTemperature();
-
 void checkProgramming();
-
-void pritSerial(long int);
 
 void connectWifi();
 
-void listen4HttpClient();
+void defere_log(const String &);
+
+int floatToRound05Int(float);
+
+byte* getIpBytes(String&, byte*);
 
 time_t getTime();
-
-String timeString();
-
-bool is_mobile(String &);
 
 bool isNowAfter(byte, byte);
 
 bool isNowBetween(byte, byte, byte, byte);
 
-String printProgramming(byte, byte, bool);
+void listen4HttpClient();
 
-String printProgramming(byte, bool);
+void parseRequest(const String &, const String &, String &);
 
-void processPostData(const String &);
+void parseRequest(const String &, const String &, int &);
 
-int savePostData(const String &, int);
+String printProgramming(byte, byte programm = P_NONE);
 
-void sendPostData(const String &, const String &, bool sendLoc = true);
+void pritSerial();
 
-void sendHttpIndex(WiFiClient &, bool);
+void processPostData_Programming(const String &);
 
-void sendHttpProgramming(WiFiClient &, byte, bool);
+void processPostData_Register(const String &);
 
-void writeLogger(const String &);
+void processPostData_Unregister(const String &);
 
-void defere_log(const String &);
+void saveRegister(const IPAddress &, const int, const String &);
 
 void recal_log();
 
@@ -319,9 +329,43 @@ void requestProgramming();
 
 unsigned long secondsRunning();
 
+void sendCurrentTemperatures();
+
+void sendCurrentTemperatures(const String &, const IPAddress & server = master_server_ip, const int port = master_server_port);
+
+int savePostData_Programming(const String &, int);
+
+void savePostData_Register(const String &);
+
+void sendPostData(const String &, const String &, const IPAddress & server = master_server_ip, const int port = master_server_port);
+
+void sendHttpIndex(WiFiClient &);
+
+void sendHttpProgramming(WiFiClient &, byte);
+
 void sendIp();
 
-void update_pX_run_today();
+//void startConversion1stHalf();
+//
+//void startConversion2ndHalf();
+//
+void startConversion_1();
+
+void startConversion_2();
+
+void startConversion_3();
+
+void startConversion_4();
+
+//String timeString();
+//
+String timeString(int day_t = day(), int month_t = month(), int year_t = year(), int hour_t = hour(), int minute_t = minute(), int second_t = second());
+
+void updatePxRunToday();
+
+void updateTemperature();
+
+void writeLogger(String &);
 
 bool no_time = true;
 
@@ -371,14 +415,20 @@ void setup()
   dallasTemperature2nd_pin2.setResolution(RESOLUTION);
   dallasTemperature2nd_pin2.setWaitForConversion(false);
 
-
   requestProgramming();
+
+  saveRegister(master_server_ip, master_server_port, "/update.php");
+
   int first_read = millis() + 5 * CONVERSION_TIME;
-  scheduler.add(startConversion1stHalf, first_read - 4 * CONVERSION_TIME);
-  scheduler.add(startConversion2ndHalf, first_read - 2 * CONVERSION_TIME);
+//  scheduler.add(startConversion1stHalf, first_read - 4 * CONVERSION_TIME);
+//  scheduler.add(startConversion2ndHalf, first_read - 2 * CONVERSION_TIME);
+  scheduler.add(startConversion_1, first_read - 4 * CONVERSION_TIME);
+  scheduler.add(startConversion_3, first_read - 2 * CONVERSION_TIME);
+  scheduler.add(startConversion_2, first_read - 3 * CONVERSION_TIME);
+  scheduler.add(startConversion_4, first_read - 1 * CONVERSION_TIME);
   scheduler.add(updateTemperature, first_read);
 
-  update_pX_run_today();
+  updatePxRunToday();
 }
 
 bool isRelayInitialized = false;
@@ -396,7 +446,6 @@ void relayInitialize()
   isRelayInitialized = true;
 }
 
-
 // the loop routine runs over and over again forever
 void loop()
 {
@@ -407,7 +456,7 @@ void loop()
   scheduler.execute(millis());
 }
 
-void update_pX_run_today()
+void updatePxRunToday()
 {
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
@@ -420,7 +469,7 @@ void update_pX_run_today()
       if(!has_p2_run_today[i])
       {
         has_p2_run_today[i] = true;
-//        writeLogger(String("[") + T_LOC + "] P2 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+//        writeLogger(String("[") + T_LOC + "] P2 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i));
       }
     }
     if((programming[i] == P3_START_HOUR_2_INCREASE_05 && delta_minute_p3 > 0)
@@ -429,7 +478,7 @@ void update_pX_run_today()
       if(!has_p3_run_today[i])
       {
         has_p3_run_today[i] = true;
-//        writeLogger(String("[") + T_LOC + "] P3 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i, false));
+//        writeLogger(String("[") + T_LOC + "] P3 marcat ca a rulat astazi pentru " + room_name[i + offset] + ": " + printProgramming(i));
       }
     }
   }
@@ -444,29 +493,43 @@ void requestProgramming()
 {
   connectWifi();
   String post_data = String("") + "t_ip=" + WiFi.localIP().toString();
-  sendPostData("/programming_send_back.php", post_data, true);
+  sendPostData(post_data, "/programming_send_back.php");
 }
 
-String printProgramming(byte index, bool is_mobile)
+void parseRequest(const String &request, const String &field, String &value)
 {
-  return printProgramming(programming[index], index, is_mobile);
+  int start_idx;
+  if((start_idx = request.indexOf(field)) < 0)
+    return;
+  start_idx += field.length();
+  int stop_idx = request.indexOf("\n", start_idx);
+  if(stop_idx < start_idx)
+    value = request.substring(start_idx);
+  else
+    value = request.substring(start_idx, stop_idx);
+  value.trim();
 }
 
-String printProgramming(byte programm, byte index, bool is_mobile)
+void parseRequest(const String &request, const String &field, int &value)
 {
+  String val_str;
+  parseRequest(request, field, val_str);
+  value = val_str.toInt();
+}
+
+String printProgramming(byte index, byte programm)
+{
+  if(programm >= P_AFTER_LAST)
+    programm = programming[index];
   String program_str = "";
   switch(programm)
   {
     case P0_STOPPED:
       program_str = "P0";
-//      if(is_mobile)
-//        break;
       program_str += " - oprit";
       break;
     case P1_RUN_HOURS_MAKE_TEMP:
       program_str = "P1";
-//      if(is_mobile)
-//        break;
       program_str += " - merge intre "; program_str += start_hour_p1[index]; program_str += ":"; if(start_minute_p1[index] < 10) {program_str += "0";} program_str += start_minute_p1[index];
       program_str += " si "; program_str += stop_hour_p1[index]; program_str += ":"; if(stop_minute_p1[index] < 10) {program_str += "0";} program_str += stop_minute_p1[index];
       if(start_hour_p1[index] > stop_hour_p1[index] || (start_hour_p1[index] == stop_hour_p1[index] && start_minute_p1[index] >= stop_minute_p1[index])) program_str += " (ziua urmatoare)";
@@ -474,8 +537,6 @@ String printProgramming(byte programm, byte index, bool is_mobile)
       break;
     case P2_START_HOUR_1_INCREASE_05:
       program_str += "P2";
-//      if(is_mobile)
-//        break;
       program_str += " - porneste "; if(has_p2_run_today[index]) {program_str += "maine ";} program_str += "la "; program_str += start_hour_p2[index]; program_str += ":"; if(start_minute_p2[index] < 10) {program_str += "0";} program_str += start_minute_p2[index];
       if(target_temperature_p2[index])
       {
@@ -488,8 +549,6 @@ String printProgramming(byte programm, byte index, bool is_mobile)
       break;
     case P3_START_HOUR_2_INCREASE_05:
       program_str += "P3";
-//      if(is_mobile)
-//        break;
       program_str += " - porneste "; if(has_p3_run_today[index]) {program_str += "maine ";} program_str += "la "; program_str += start_hour_p3[index]; program_str += ":"; if(start_minute_p3[index] < 10) {program_str += "0";} program_str += start_minute_p3[index];
       if(target_temperature_p3[index])
       {
@@ -502,8 +561,6 @@ String printProgramming(byte programm, byte index, bool is_mobile)
       break;
     case P4_START_NOW_INCREASE_05:
       program_str += "P4";
-//      if(is_mobile)
-//        break;
       program_str += " - porneste acum si face "; 
       if(target_temperature_p4[index])
         program_str += (1.0 * target_temperature_p4[index] / 100);
@@ -513,15 +570,13 @@ String printProgramming(byte programm, byte index, bool is_mobile)
       break;
     default:
       program_str += "EROARE";
-//      if(is_mobile)
-//        break;
       program_str += ": program necunoscut: "; program_str += programm;
       break;
   }
   return program_str;
 }
 
-void pritSerial(long int millisecond)
+void pritSerial()
 {
   Serial.print(timeString());
   Serial.print(String(" - [") + T_LOC + "] ");
@@ -570,7 +625,7 @@ void connectWifi()
   writeLogger(String("[") + T_LOC + "] WiFi: conectat la " + SSID_t[(ssid_ix % SSID_SIZE)] + " (" + (1.0 * (millis() - mllis) / SECOND) + " s), adresa: " + WiFi.localIP().toString());
 }
 
-void sendHttpIndex(WiFiClient &client, bool is_mobile)
+void sendHttpIndex(WiFiClient &client)
 {
 // Serial.println("Start sendHttpIndex");
   String r = "HTTP/1.1 200 OK\nContent-Type: text/html\nConnection: close\nRefresh: 10\r\n";
@@ -581,7 +636,7 @@ void sendHttpIndex(WiFiClient &client, bool is_mobile)
     " <title>CLLS " + T_LOC + "</title>\n" +
     " <style>\n" +
     "  html { height:100%; min-height:100%; width:100%; min-width:100%; }\n" +
-    (is_mobile ? "body { font-size:xx-large; }\ninput { font-size:xx-large; }\n" : "body { font-size:large; }\ninput { font-size:large; }\n") +
+    "  body { font-size:large; }\ninput { font-size:large; }\n" +
     "  table { border-collapse:collapse; border-style:solid; }\n" +
     "  th { padding:5px; border-style:solid; border-width: thin; }\n" +
     "  td { padding:5px; border-style:solid; border-width: thin; }\n" +
@@ -609,7 +664,7 @@ void sendHttpIndex(WiFiClient &client, bool is_mobile)
     "  <th align='left'>" + room_name[j] + "</th>\n" +
     "  <td align='center'>" + ((1.0 * temperature[i]) / 100) + " &deg;C</td>\n" +
     "  <td align='center'>" + ((is_running[i]) ? "<font color='red'>DA</font>" : "<font color='blue'>NU</font>") + "</td>\n" +
-    "  <td align='left'>" + printProgramming(i, is_mobile) + "</td>\n" +
+    "  <td align='left'>" + printProgramming(i) + "</td>\n" +
     "  <td align='center'><form action='programming" + i + ".html' method='get'><input type='submit' value='Programare'></form></td>\n" +
     " </tr>\n\n";
   client.println(p);
@@ -631,10 +686,10 @@ void sendHttpIndex(WiFiClient &client, bool is_mobile)
 // Serial.println("Start sendHttpIndex");
 }
 
-void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
+void sendHttpProgramming(WiFiClient &client, byte index)
 {
 // Serial.println("Start sendHttpProgramming");
-  if(index< 0 || index >= SENZOR_COUNT)
+  if(index >= SENZOR_COUNT)
     return;
   String r = "HTTP/1.1 200 OK\nContent-Type: text/html\nConnection: close\r\n";
   client.println(r);
@@ -644,7 +699,7 @@ void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
     " <title>CLLS " + T_LOC + " - Programare</title>\n" +
     " <style>\n" +
     "  html { height:100%; min-height:100%; width:100%; min-width:100%; }\n" +
-    (is_mobile ? "body { font-size:xx-large; }\ninput { font-size:xx-large; }\n" : "body { font-size:large; }\ninput { font-size:large; }\n") +
+    "  body { font-size:large; }\ninput { font-size:large; }\n" +
     "  table { border-collapse:collapse; border-style:solid; }\n" +
     "  td { padding:5px; border-style:solid; border-width: thin; }\n" +
     " </style>\n" +
@@ -658,13 +713,13 @@ void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
     "  <td rowspan=5>" + room_name[(index + offset)] + "</td>\n\n" +
     "<!-- programm: 0 -->\n" +
     "  <td align='left'>\n" +
-    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P0_STOPPED + ((programming[index] == P0_STOPPED) ? "' checked" : "'") + ">" + printProgramming(P0_STOPPED, index, is_mobile) + "</label>\n" +
+    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P0_STOPPED + ((programming[index] == P0_STOPPED) ? "' checked" : "'") + ">" + printProgramming(index, P0_STOPPED) + "</label>\n" +
     "  </td>\n" +
     " </tr>\n\n" +
     "<!-- programm: 1 -->\n" +
     " <tr>\n" +
     "  <td align='left'>\n" +
-    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P1_RUN_HOURS_MAKE_TEMP + ((programming[index] == P1_RUN_HOURS_MAKE_TEMP) ? "' checked" : "'") + ">" + printProgramming(P1_RUN_HOURS_MAKE_TEMP, index, is_mobile) + "</label><br>\n" +
+    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P1_RUN_HOURS_MAKE_TEMP + ((programming[index] == P1_RUN_HOURS_MAKE_TEMP) ? "' checked" : "'") + ">" + printProgramming(index, P1_RUN_HOURS_MAKE_TEMP) + "</label><br>\n" +
     "   Start\n" +
     "   <input type='text' style='text-align:center;' name='" + START_HOUR_P1 + "_" + index + "' maxlength='2' size='1' value='" + start_hour_p1[index] + "'>:\n" +
     "   <input type='text' style='text-align:center;' name='" + START_MINUTE_P1  + "_"  + index + "' maxlength='2' size='1' value='" + ((start_minute_p1[index] < 10) ? "0" : "") + start_minute_p1[index] + "'>\n" +
@@ -678,7 +733,7 @@ void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
     "<!-- programm: 2 -->\n" +
     " <tr>\n" +
     "  <td align='left'>\n" +
-    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P2_START_HOUR_1_INCREASE_05 + ((programming[index] == P2_START_HOUR_1_INCREASE_05) ? "' checked" : "'") + ">" + printProgramming(P2_START_HOUR_1_INCREASE_05, index, is_mobile) + "</label><br>\n" +
+    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P2_START_HOUR_1_INCREASE_05 + ((programming[index] == P2_START_HOUR_1_INCREASE_05) ? "' checked" : "'") + ">" + printProgramming(index, P2_START_HOUR_1_INCREASE_05) + "</label><br>\n" +
     "   Start\n" +
     "   <input type='text' style='text-align:center;' name='" + START_HOUR_P2 + "_" + index + "' maxlength='2' size='1' value='" + start_hour_p2[index] + "'>:\n" +
     "   <input type='text' style='text-align:center;' name='" + START_MINUTE_P2 + "_" + index + "' maxlength='2' size='1' value='" + ((start_minute_p2[index] < 10) ? "0" : "") + start_minute_p2[index] + "'>\n" +
@@ -694,7 +749,7 @@ void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
     "<!-- programm: 3 -->\n" +
     " <tr>\n" +
     "  <td align='left'>\n" +
-    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P3_START_HOUR_2_INCREASE_05 + ((programming[index] == P3_START_HOUR_2_INCREASE_05) ? "' checked" : "'") + ">" + printProgramming(P3_START_HOUR_2_INCREASE_05, index, is_mobile) + "</label><br>\n" +
+    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P3_START_HOUR_2_INCREASE_05 + ((programming[index] == P3_START_HOUR_2_INCREASE_05) ? "' checked" : "'") + ">" + printProgramming(index, P3_START_HOUR_2_INCREASE_05) + "</label><br>\n" +
     "   Start" +
     "   <input type='text' style='text-align:center;' name='" + START_HOUR_P3 + "_" + index + "' maxlength='2' size='1' value='" + start_hour_p3[index] + "'>:\n" +
     "   <input type='text' style='text-align:center;' name='" + START_MINUTE_P3 + "_" + index + "' maxlength='2' size='1' value='" + ((start_minute_p3[index] < 10) ? "0" : "") + start_minute_p3[index] + "'>\n" +
@@ -708,7 +763,7 @@ void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
     "<!-- programm: 4 -->\n" +
     " <tr>\n" +
     "  <td>\n" +
-    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P4_START_NOW_INCREASE_05 + ((programming[index] == P4_START_NOW_INCREASE_05) ? "' checked" : "'") + ">" + printProgramming(P4_START_NOW_INCREASE_05, index, is_mobile) + "</label><br>\n" +
+    "   <label style='padding:5px;'><input type='radio' name='" + PROGRAMMING + "_" + index + "' value='" + P4_START_NOW_INCREASE_05 + ((programming[index] == P4_START_NOW_INCREASE_05) ? "' checked" : "'") + ">" + printProgramming(index, P4_START_NOW_INCREASE_05) + "</label><br>\n" +
     "   Urmatorul program:\n" +
     "   <label><input type='radio' name='" + NEXT_PROGRAMM_P4 + "_" + index + "' value='" + P0_STOPPED +                  ((next_programm_p4[index] == P0_STOPPED) ?                  "' checked" : "'")  + ">P0</label>\n" +
     "   <label><input type='radio' name='" + NEXT_PROGRAMM_P4 + "_" + index + "' value='" + P1_RUN_HOURS_MAKE_TEMP +      ((next_programm_p4[index] == P1_RUN_HOURS_MAKE_TEMP) ?      "' checked" : "'")  + ">P1</label>\n" +
@@ -737,9 +792,9 @@ void sendHttpProgramming(WiFiClient &client, byte index, bool is_mobile)
 // Serial.println("End sendHttpProgramming");
 }
 
-int savePostData(const String &data, int programm)
+int savePostData_Programming(const String &data, int programm)
 {
-  byte i = data.indexOf("=");
+  int i = data.indexOf("=");
   if(i < 0)
   {
     writeLogger(String("[") + T_LOC + "] EROARE salvare - date invalide (lipseste semnul'='): " + data);
@@ -786,7 +841,7 @@ int savePostData(const String &data, int programm)
     }
     if (programm != programming[index])
     {
-      writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(index + offset)] + " program nou: " + programming[index] + ", program vechi: " + programm);
+      writeLogger(String("[") + T_LOC + "] " + room_name[(index + offset)] + " - programul s-a schimbat, program nou: " + programming[index] + ", program vechi: " + programm);
     }
     programming[index] = programm;
     return programm;
@@ -945,61 +1000,152 @@ int savePostData(const String &data, int programm)
   return programm;
 }
 
-void processPostData(const String &post_data)
+void processPostData_Programming(const String &post_data)
 {
   int i = 0, j=0;
   int programm = -1;
   while((j = post_data.indexOf("&", i)) >= 0)
   {
-    programm = savePostData(post_data.substring(i, j), programm);
+    programm = savePostData_Programming(post_data.substring(i, j), programm);
     i = j + 1;
   }
   if(i)
-    programm = savePostData(post_data.substring(i, j), programm);
-  update_pX_run_today();
+    programm = savePostData_Programming(post_data.substring(i, j), programm);
+  updatePxRunToday();
 }
 
-void sendPostData(const String &page, const String &data, bool sendLoc)
+void savePostData_Register(const String &data)
 {
-  String post_data = data;
-  if(sendLoc)
-    post_data = String(T_LOC_NAME) + "=" + T_LOC + "&" + post_data;
+  int i = data.indexOf("=");
+  if(i < 0)
+  {
+    writeLogger(String("[") + T_LOC + "] EROARE register - date invalide (lipseste semnul'='): " + data);
+    return;
+  }
+  String name = data.substring(0, i);
+  String value = data.substring(i + 1);
+  if(name.equals(REQUESTER_IP))
+  {
+    byte addr[4];
+    requester_ip[last_register] = IPAddress(getIpBytes(value, addr));
+  }
+  if(name.equals(REQUESTER_PORT))
+  {
+    requester_port[last_register] = value.toInt();
+  }
+  if(name.equals(REQUESTER_PAGE))
+  {
+    requester_page[last_register] = value;
+  }
+}
+
+void processPostData_Register(const String &post_data)
+{
+  if(last_register >= MAX_REGISTER)
+    return;
+  int i = 0, j=0;
+  while((j = post_data.indexOf("&", i)) >= 0)
+  {
+    savePostData_Register(post_data.substring(i, j));
+    i = j + 1;
+  }
+  if(i)
+    savePostData_Register(post_data.substring(i, j));
+  ++last_register;
+}
+
+void processPostData_Unregister(const String &post_data)
+{
+  int i = post_data.indexOf("=");
+  if(i < 0)
+  {
+    writeLogger(String("[") + T_LOC + "] EROARE ungegister - date invalide (lipseste semnul'='): " + post_data);
+    return;
+  }
+  String name = post_data.substring(0, i);
+  String value = post_data.substring(i + 1);
+  if(name.equals(REQUESTER_IP))
+  {
+    bool found = false;
+    byte addr[4];
+    IPAddress ip(getIpBytes(value, addr));
+    for(int i = 0; i < last_register; ++i)
+    {
+      if(requester_ip[i] == ip)
+        found = true;
+      else if(found)
+        requester_ip[i - 1] = requester_ip[i];
+    }
+    if(found)
+      --last_register;
+  }
+  else
+  {
+    writeLogger(String("[") + T_LOC + "] EROARE ungegister - date invalide (lipseste " + REQUESTER_IP + "): " + post_data);
+  }
+}
+
+void saveRegister(const IPAddress & ip, const int port, const String & page)
+{
+  if(last_register >= MAX_REGISTER)
+    return;
+  requester_ip[last_register] = ip;
+  requester_port[last_register] = port;
+  requester_page[last_register] = page;
+  ++last_register;
+}
+
+void sendPostData(const String &data, const String &page, const IPAddress & server, const int port)
+{
+  String post_data = String(T_LOC_NAME) + "=" + T_LOC + "&" + data;
   String post_req = String("") +
   "POST " +  page + " HTTP/1.1\r\n" +
-  "Host: " + master_server_ip.toString() + "\r\n" +
+  "Host: " + WiFi.localIP().toString() + "\r\n" +
   "User-Agent: Arduino/1.0\r\n" +
   "Connection: close\r\n" +
   "Content-Type: application/x-www-form-urlencoded\r\n" +
   "Content-Length: " + post_data.length() + "\r\n";
   WiFiClient client;
-  if(client.connect(master_server_ip, master_server_port))
+  if(client.connect(server, port))
   {
-// Serial.println(String("send post data to ") + page + " : " + post_data);
     client.println(post_req);
     client.println(post_data);
-    delay(50);
-    String req_str = "";
-    int c;
-    while((c = client.read()) >= 0)
-    {
-      req_str += (char)c;
-    }
+    delay(100);
     client.stop();
-//  Serial.println(String("post data response: ") + req_str);
   }
 }
 
-bool is_mobile(String &req_str)
+void sendCurrentTemperatures()
 {
-  if(req_str.indexOf("android") >= 0 || req_str.indexOf("android") >= 0)
-    return true;
-  if(req_str.indexOf("mobile") >= 0 || req_str.indexOf("Mobile") >= 0)
-    return true;
-  if(req_str.indexOf("tablet") >= 0 || req_str.indexOf("Tablet") >= 0)
-    return true;
-  if(req_str.indexOf("phone") >= 0 || req_str.indexOf("Phone") >= 0)
-    return true;
-  return false;
+  String post_data = String("");
+  for (byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    if(i)
+       post_data += "&";
+    post_data +=  String("") +
+      "t_" + i + "=" + temperature[i] +
+      "&t_" + i + "_r=" + (is_running[i] ? "1" : "0");
+  }
+  for(int i = 0; i < last_register; ++i)
+  {
+    sendPostData(post_data, requester_page[i], requester_ip[i], requester_port[i]);
+  }
+}
+
+void sendCurrentTemperatures(const String &page, const IPAddress & server, const int port)
+{
+  // send data to the server 
+  String post_data = String("");
+  for (byte i = 0; i < SENZOR_COUNT; ++i)
+  {
+    if(i)
+       post_data += "&";
+    post_data +=  String("") +
+      "t_" + i + "=" + temperature[i] +
+      "&t_" + i + "_r=" + (is_running[i] ? "1" : "0");
+  }
+//  Serial.println(String("Send post to ") + page + ": " + post_data);
+  sendPostData(post_data, page, server, port);
 }
 
 void listen4HttpClient()
@@ -1016,8 +1162,9 @@ void listen4HttpClient()
   if (client) {
 // Serial.println("new HTTP request");
     // an http request ends with a blank line
-    boolean currentLineIsBlank = true, skip = true;
-    int data_length = -1;
+    boolean currentLineIsBlank = true;
+    boolean hasReadPostData = false;
+    int content_length = 0;
     String req_str = "", post_data="";
     while (client.connected()) {
       if (client.available()) {
@@ -1030,54 +1177,72 @@ void listen4HttpClient()
         {
           if(req_str.indexOf("GET /programming0.html") >= 0)
           {
-            sendHttpProgramming(client, 0, is_mobile(req_str));
+            sendHttpProgramming(client, 0);
             break;
           }
           if (req_str.indexOf("GET /programming1.html") >= 0)
           {
-            sendHttpProgramming(client, 1, is_mobile(req_str));
+            sendHttpProgramming(client, 1);
             break;
           }
           if (req_str.indexOf("GET /programming2.html") >= 0)
           {
-            sendHttpProgramming(client, 2, is_mobile(req_str));
+            sendHttpProgramming(client, 2);
             break;
           }
           if (req_str.indexOf("GET /programming3.html") >= 0)
           {
-            sendHttpProgramming(client, 3, is_mobile(req_str));
+            sendHttpProgramming(client, 3);
             break;
           }
           if (req_str.indexOf("GET /") >= 0)
           {
-            sendHttpIndex(client, is_mobile(req_str));
+            sendHttpIndex(client);
             break;
           }
-          if (req_str.startsWith("POST") && !skip)
+          if (req_str.indexOf("POST") >= 0)
           {
-            sendHttpIndex(client, is_mobile(req_str));
-            break;
-          }
-          if (req_str.startsWith("POST") && skip)
-          {
-            skip = false;
-// Serial.print(String("req_str: ") + req_str+"\n");
-            String cl = "Content-Length:";
-            String temp = req_str.substring(req_str.indexOf(cl) + cl.length());
-            temp.trim();
-            data_length = temp.toInt();
-// Serial.print(cl + data_length+"\n");
-            while(data_length-- > 0)
+          	if(!hasReadPostData)
             {
-              c = client.read();
-              req_str += c;
-              post_data += c;
+          	  parseRequest(req_str, "Content-Length:", content_length);
+              while(content_length-- > 0)
+              {
+                c = client.read();
+                req_str += c;
+                post_data += c;
+              }
+              hasReadPostData = true;
+              String what;
+              parseRequest(req_str, "Accept:", what);
+//              Serial.println(what); // programming
+              if(what.compareTo("programming") == 0) // send programming
+              {
+                processPostData_Programming(post_data);
+                got_programming = true;
+                // nice to have: recompose programming, don't just send it back
+                sendPostData(post_data, "/programming_update.php");
+              }
+              else if(what.compareTo("temperatures") == 0) // send temperatures
+              {
+                String host;
+                parseRequest(req_str, "Host:", host);
+                byte addr[4];
+                IPAddress server(getIpBytes(host, addr));
+                sendCurrentTemperatures("/", server, HTTP_PORT);
+                break;
+              }
+              else if(what.compareTo("register") == 0) // register
+              {
+                processPostData_Register(post_data);
+                break;
+              }
+              else if(what.compareTo("unregister") == 0) // register
+              {
+                processPostData_Unregister(post_data);
+                break;
+              }
             }
-// Serial.println(String("received post data: ") + post_data+"\n");
-            processPostData(post_data);
-            got_programming = true;
-            sendPostData("/programming_update.php", post_data);
-            sendHttpIndex(client, is_mobile(req_str));
+            sendHttpIndex(client);
             break;
           }
         }
@@ -1090,38 +1255,86 @@ void listen4HttpClient()
         }
       }
     }
-// Serial.println();
-// Serial.println(req_str);
-// Serial.print("post_data: ");
-// Serial.println(post_data);
+// Serial.println(String("HTTP req: ") + req_str + " post_data: " + post_data);
     // close the connection:
-// Serial.println("HTTP stop client");
     client.stop();
-// Serial.println("done new HTTP request");
   }
 }
 
-void startConversion1stHalf()
+byte* getIpBytes(String& host, byte *addr)
+{
+  int start_idx = 0;
+  int stop_idx = 0;
+  int count = -1;
+  for(byte count = 0; count < 4; ++count)
+  {
+    stop_idx = host.indexOf(".", start_idx + 1);
+    if(stop_idx >= 0)
+      addr[count] = host.substring(start_idx, stop_idx).toInt();
+    else if(start_idx >= 0)
+      addr[count] = host.substring(start_idx).toInt();
+    start_idx = stop_idx + 1;
+  }
+  return addr;
+}
+
+//void startConversion1stHalf()
+//{
+//  // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
+//  for (byte i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
+//  {
+//    if(i > 0)
+//      delay(CONVERSION_TIME);
+//// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+//    dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+//  }
+//}
+//
+//void startConversion2ndHalf()
+//{
+//  for (byte i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
+//  {
+//    if(i > SENZOR_COUNT / 2)
+//      delay(CONVERSION_TIME);
+//// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+//    dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+//  }
+//}
+//
+void startConversion_1()
 {
   // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
-  for (byte i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
-  {
-    if(i > 0)
-      delay(CONVERSION_TIME);
+  byte i = 0;
+  byte j = i + offset;
 // Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
-    dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
-  }
+  dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
-void startConversion2ndHalf()
+void startConversion_2()
 {
-  for (byte i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
-  {
-    if(i > SENZOR_COUNT / 2)
-      delay(CONVERSION_TIME);
+  // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
+  byte i = 1;
+  byte j = i + offset;
 // Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
-    dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
-  }
+  dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+}
+
+void startConversion_3()
+{
+  // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
+  byte i = 2;
+  byte j = i + offset;
+// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+  dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+}
+
+void startConversion_4()
+{
+  // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
+  byte i = 3;
+  byte j = i + offset;
+// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+  dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
 void updateTemperature()
@@ -1159,13 +1372,17 @@ void updateTemperature()
       temperature[i] = temp;
   }
   // schedule conversion at'next_read' time, minus the time to wait for it
-  scheduler.add(startConversion1stHalf, next_read - 4 * CONVERSION_TIME);
-  scheduler.add(startConversion2ndHalf, next_read - 2 * CONVERSION_TIME);
+//  scheduler.add(startConversion1stHalf, next_read - 4 * CONVERSION_TIME);
+//  scheduler.add(startConversion2ndHalf, next_read - 2 * CONVERSION_TIME);
+  scheduler.add(startConversion_1, next_read - 4 * CONVERSION_TIME);
+  scheduler.add(startConversion_3, next_read - 2 * CONVERSION_TIME);
+  scheduler.add(startConversion_2, next_read - 3 * CONVERSION_TIME);
+  scheduler.add(startConversion_4, next_read - 1 * CONVERSION_TIME);
   // print it
-  pritSerial(m);
+  pritSerial();
 
-  // schedule programm checking ofter 50 ms
-  scheduler.add(checkProgramming, 50);
+  // schedule programm checking ofter 10 ms
+  scheduler.add(checkProgramming, 10);
   // schedule read at'next_read' time
   scheduler.add(updateTemperature, next_read);
 }
@@ -1197,13 +1414,17 @@ void checkProgramming()
 {
 // Serial.println("Start checkProgramming");
   bool should_run[] = {false, false, false, false, };
-  byte original_programm[] = {P_NONE, P_NONE, P_NONE, P_NONE};
-  bool programm_changed = false;
+  byte original_programming[] = {P_NONE, P_NONE, P_NONE, P_NONE};
+  bool send_programming_update = false;
+  bool send_target_temperature_update = false;
   bool run_marked = false;
   bool one_delta_running = false;
+  String programming_post = "";
+  String target_temperature_post = "";
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
-    original_programm[i] = programming[i];
+  	// save original programming
+    original_programming[i] = programming[i];
     // reset forced running
     force_running[i] = false;
   }
@@ -1259,58 +1480,88 @@ void checkProgramming()
         {
           should_run[i] = !has_p2_run_today[i] && isNowAfter(start_hour_p2[i], start_minute_p2[i]);
           if (should_run[i] && !target_temperature_p2[i])
-            target_temperature_p2[i] = temperature[i] + DELTA_TEMP;
+          {
+          	target_temperature_p2[i] = temperature[i] + DELTA_TEMP;
+          	send_target_temperature_update = true;
+          	target_temperature_post += String("&") + TARGET_TEMPERATURE_P2 + "_" + i + "=" + ((1.0 * target_temperature_p2[i]) / 100);
+          }
           should_run[i] = should_run[i] && temperature[i] <= target_temperature_p2[i];
-          if (is_running[i] && !should_run[i])
+          if(should_run[i])
+          {
+          	one_delta_running = true;
+          }
+          else if (is_running[i])
           {
             has_p2_run_today[i] = true;
             target_temperature_p2[i] = 0;
+          	send_target_temperature_update = true;
+          	target_temperature_post += String("&") + TARGET_TEMPERATURE_P2 + "_" + i + "=" + ((1.0 * target_temperature_p2[i]) / 100);
             if (programming[i] != next_programm_p2[i])
             {
-              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programming[i] + " la " + next_programm_p2[i]);
-              programm_changed = true;
+              programming[i] = next_programm_p2[i];
+              writeLogger(String("[") + T_LOC + "] " + room_name[(i + offset)] + " - programul s-a schimbat de la " + original_programming[i] + " la " + programming[i]);
+              send_programming_update = true;
+              programming_post += String("&") + PROGRAMMING + "_" + i + "=" + programming[i];
             }
-            programming[i] = next_programm_p2[i];
           }
-          one_delta_running = one_delta_running || should_run[i];
           break;
         }
       case P3_START_HOUR_2_INCREASE_05: // start at given hour and increase temperature with DELTA_TEMP
         {
           should_run[i] = !has_p3_run_today[i] && isNowAfter(start_hour_p3[i], start_minute_p3[i]);
           if (should_run[i] && !target_temperature_p3[i])
-            target_temperature_p3[i] = temperature[i] + DELTA_TEMP;
+          {
+          	target_temperature_p3[i] = temperature[i] + DELTA_TEMP;
+          	send_target_temperature_update = true;
+          	target_temperature_post += String("&") + TARGET_TEMPERATURE_P3 + "_" + i + "=" + ((1.0 * target_temperature_p3[i]) / 100);
+          }
           should_run[i] = should_run[i] && temperature[i] <= target_temperature_p3[i];
-          if (is_running[i] && !should_run[i])
+          if(should_run[i])
+          {
+          	one_delta_running = true;
+          }
+          else if (is_running[i])
           {
             has_p3_run_today[i] = true;
             target_temperature_p3[i] = 0;
+          	send_target_temperature_update = true;
+          	target_temperature_post += String("&") + TARGET_TEMPERATURE_P3 + "_" + i + "=" + ((1.0 * target_temperature_p3[i]) / 100);
             if (programming[i] != next_programm_p3[i])
             {
-              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programming[i] + " la " + next_programm_p3[i]);
-              programm_changed = true;
+              programming[i] = next_programm_p3[i];
+              writeLogger(String("[") + T_LOC + "] " + room_name[(i + offset)] + " - programul s-a schimbat de la " + original_programming[i] + " la " + programming[i]);
+              send_programming_update = true;
+              programming_post += String("&") + PROGRAMMING + "_" + i + "=" + programming[i];
             }
-            programming[i] = next_programm_p3[i];
           }
-          one_delta_running = one_delta_running || should_run[i];
           break;
         }
       case P4_START_NOW_INCREASE_05: // start now and increase temperature with DELTA_TEMP
         {
           if (!target_temperature_p4[i])
-            target_temperature_p4[i] = temperature[i] + DELTA_TEMP;
+          {
+          	target_temperature_p4[i] = temperature[i] + DELTA_TEMP;
+          	send_target_temperature_update = true;
+          	target_temperature_post += String("&") + TARGET_TEMPERATURE_P4 + "_" + i + "=" + ((1.0 * target_temperature_p4[i]) / 100);
+          }
           should_run[i] = temperature[i] <= target_temperature_p4[i];
-          if (is_running[i] && !should_run[i])
+          if(should_run[i])
+          {
+          	one_delta_running = true;
+          }
+          else if (is_running[i])
           {
             target_temperature_p4[i] = 0;
+          	send_target_temperature_update = true;
+          	target_temperature_post += String("&") + TARGET_TEMPERATURE_P4 + "_" + i + "=" + ((1.0 * target_temperature_p4[i]) / 100);
             if (programming[i] != next_programm_p4[i])
             {
-              writeLogger(String("[") + T_LOC + "] Programul s-a schimbat pentru " + room_name[(i + offset)] + " de la " + programming[i] + " la " + next_programm_p4[i]);
-              programm_changed = true;
+              programming[i] = next_programm_p4[i];
+              writeLogger(String("[") + T_LOC + "] " + room_name[(i + offset)] + " - programul s-a schimbat de la " + original_programming[i] + " la " + programming[i]);
+              send_programming_update = true;
+              programming_post += String("&") + PROGRAMMING + "_" + i + "=" + programming[i];
             }
-            programming[i] = next_programm_p4[i];
           }
-          one_delta_running = one_delta_running || should_run[i];
           break;
         }
       default: // stopped
@@ -1324,27 +1575,34 @@ void checkProgramming()
   if(run_marked)
     writeLogger(String("[") + T_LOC + "]  P2 si P3 marcate ca nu au rulat astazi");
 
-  if(programm_changed)
+  if(send_programming_update || send_target_temperature_update)
   {
-    String post_data = String("");
-    for (byte i = 0; i < SENZOR_COUNT; ++i)
-    {
-      if(i)
-         post_data += "&";
-      post_data += String("programming_") + i + "=" + programming[i];
-    }
-// Serial.println(String("Send programming_update: ") + post_data);
-    sendPostData("/programming_update.php", post_data);
+    String post_data = "";
+    if(send_programming_update)
+      post_data += programming_post;
+  	if(send_target_temperature_update)
+  	  post_data += target_temperature_post;
+  	if(post_data.length() > 0)
+  	  // remove leading "&"
+  	  post_data = post_data.substring(1);
+    // send it
+    sendPostData(post_data, "/programming_update.php");
   }
 
   // if one delta temp is running start all P1 with current temperature less then MAX_DELTA centi grades greater then the target
   if(one_delta_running)
   {
+  	// start all P1 not running
     for (int i = 0; i < SENZOR_COUNT; ++i)
     {
       if(should_run[i] || programming[i] != P1_RUN_HOURS_MAKE_TEMP)
         continue;
-      int candidate_temp = temperature[i] - target_temperature_p1[i + offset];
+      int target_temp = target_temperature_p1[i + offset];
+      // make a little more then desired to prevent bouncing
+      if (is_running[i])
+        target_temp += DELTA_P1_TEMP;
+      int candidate_temp = temperature[i] - target_temp;
+//      int candidate_temp = temperature[i] - target_temperature_p1[i + offset];
       force_running[i] = candidate_temp < MAX_DELTA;
     }
   }
@@ -1361,7 +1619,12 @@ void checkProgramming()
         ++count_running;
       else if(programming[i] == P1_RUN_HOURS_MAKE_TEMP)
       {
-        int candidate_temp = temperature[i] - target_temperature_p1[i + offset];
+        int target_temp = target_temperature_p1[i + offset];
+        // make a little more then desired to prevent bouncing
+        if (is_running[i])
+          target_temp += DELTA_P1_TEMP;
+        int candidate_temp = temperature[i] - target_temp;
+//        int candidate_temp = temperature[i] - target_temperature_p1[i + offset];
         // if current temperature is more then MAX_DELTA centi grades greater then the target skip it
         if(candidate_temp >= MAX_DELTA)
           continue;
@@ -1416,7 +1679,7 @@ void checkProgramming()
       // start
       digitalWrite(relay[i], LOW);
       float temp = (1.0 * temperature[i] / 100);
-      writeLogger(String("[") + T_LOC + "] Start program " + programming[i] + " pentru " + room_name[j] + ", temperatura curenta " + temp + "; " + printProgramming(i, false));
+      writeLogger(String("[") + T_LOC + "] " + room_name[j] + " - start program " + printProgramming(i) + "; temperatura curenta " + temp);
     }
   }
   for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
@@ -1426,7 +1689,7 @@ void checkProgramming()
       // start
       digitalWrite(relay[i], LOW);
       float temp = (1.0 * temperature[i] / 100);
-      writeLogger(String("[") + T_LOC + "] Start fortat program " + programming[i] + " pentru " + room_name[j] + ", temperatura curenta " + temp + "; " + printProgramming(i, false));
+      writeLogger(String("[") + T_LOC + "] " + room_name[j] + " - start fortat program " + printProgramming(i) + "; temperatura curenta " + temp);
     }
   }
   for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
@@ -1436,7 +1699,7 @@ void checkProgramming()
       // stop
       digitalWrite(relay[i], HIGH);
       float temp = (1.0 * temperature[i] / 100);
-      writeLogger(String("[") + T_LOC + "] Stop program " + original_programm[i] + " pentru " + room_name[j] + ", temperatura curenta " + temp);
+      writeLogger(String("[") + T_LOC + "] " + room_name[j] + " - stop program " + original_programming[i] + "; temperatura curenta " + temp);
     }
   }
   for (int i = 0, j = offset; i < SENZOR_COUNT; ++i, ++j)
@@ -1445,18 +1708,7 @@ void checkProgramming()
   }
 
   // send data to the server 
-  String post_data = String("");
-  for (byte i = 0; i < SENZOR_COUNT; ++i)
-  {
-    if(i)
-       post_data += "&";
-    post_data +=  String("") +
-      "t_" + i + "=" + temperature[i] +
-      "&t_" + i + "_r=" + (is_running[i] ? "1" : "0");
-  }
-// Serial.println(String("Send update: ") + post_data);
-  sendPostData("/update.php", post_data);
-// Serial.println("End checkProgramming");
+  sendCurrentTemperatures();
 }
 
 int floatToRound05Int(float temp)
@@ -1484,33 +1736,11 @@ int floatToRound05Int(float temp)
   return t;
 }
 
-String timeString()
-{
-  int day_t = day(), month_t = month(), year_t = year();
-  int hour_t = hour(), minute_t = minute(), second_t = second();
-  return timeString(day_t, month_t, year_t, hour_t, minute_t, second_t);
-}
-
 String timeString(int day_t, int month_t, int year_t, int hour_t, int minute_t, int second_t)
 {
-  String timeStr;
-  if (day_t < 10) timeStr += "0";
-  timeStr += day_t;
-  timeStr += "-";
-  if (month_t < 10) timeStr += "0";
-  timeStr += month_t;
-  timeStr += "-";
-  timeStr += year_t;
-  timeStr += " ";
-  if (hour_t < 10) timeStr += "0";
-  timeStr += hour_t;
-  timeStr += ":";
-  if (minute_t < 10) timeStr += "0";
-  timeStr += minute_t;
-  timeStr += ":";
-  if (second_t < 10) timeStr += "0";
-  timeStr += second_t;
-  return timeStr;
+  char buff[20];
+  sprintf(buff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t, hour_t, minute_t, second_t);
+  return String(buff);
 }
 
 time_t getTime()
@@ -1626,12 +1856,12 @@ void recal_log()
       time_t t_time = start_second + deferred_time[i];
       String *t_df_log = deferred_log[i];
       String post_data = String(timeString(day(t_time), month(t_time), year(t_time), hour(t_time), minute(t_time), second(t_time)))  + " - " + *t_df_log;
-      log_index = (++log_index) % MAX_LOGGER;
+      log_index = (log_index + 1) % MAX_LOGGER;
       String *t_log = logger[log_index];
       logger[log_index] = new String(post_data);
       Serial.println(post_data);
       post_data = String("t_log=") + post_data;
-      sendPostData("/log_save.php", post_data, false);
+      sendPostData(post_data, "/log_save.php");
       delete t_df_log;
       delete t_log;
       deferred_log[i] = 0;
@@ -1640,7 +1870,7 @@ void recal_log()
   }
 }
 
-void writeLogger(const String &what)
+void writeLogger(String &what)
 {
   if(no_time)
   {
@@ -1649,19 +1879,19 @@ void writeLogger(const String &what)
   }
   recal_log();
   String post_data = String(timeString()) + " - " + what;
-  log_index = (++log_index) % MAX_LOGGER;
+  log_index = (log_index + 1) % MAX_LOGGER;
   String *o_log = logger[log_index];
   logger[log_index] = new String(post_data);
   Serial.println(post_data);
   post_data = String("t_log=") + post_data;
-  sendPostData("/log_save.php", post_data, false);
+  sendPostData(post_data, "/log_save.php");
   delete o_log;
 }
 
 void sendIp()
 {
-  String post_data = String("t_loc=") + T_LOC + "&t_ip=" + WiFi.localIP().toString();
-  sendPostData("/ip_save.php", post_data, false);
+  String post_data = String("t_ip=") + WiFi.localIP().toString();
+  sendPostData(post_data, "/ip_save.php");
 }
 
 /*
