@@ -1,12 +1,13 @@
 /* automatizare */
-#include <time.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
+#include <OneWire.h>           // https://github.com/PaulStoffregen/OneWire
+#include <DallasTemperature.h> // https://github.com/milesburton/Arduino-Temperature-Control-Library
+
 #include <Time.h>         // https://github.com/PaulStoffregen/Time
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
-#include <WiFiServer.h>   // arduino/libraries/WiFi/src
-#include <WiFiClient.h>   // arduino/libraries/WiFi/src
-#include <WiFiUdp.h>      // arduino/libraries/WiFi/src
+
+#include <WiFiServer.h>   // arduino_ide/libraries/WiFi/src
+#include <WiFiClient.h>   // arduino_ide/libraries/WiFi/src
+#include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
 #include <LsuScheduler.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuScheduler
@@ -345,10 +346,6 @@ void sendHttpProgramming(WiFiClient &, byte);
 
 void sendIp();
 
-//void startConversion1stHalf();
-//
-//void startConversion2ndHalf();
-//
 void startConversion_1();
 
 void startConversion_2();
@@ -420,11 +417,9 @@ void setup()
   saveRegister(master_server_ip, master_server_port, "/update.php");
 
   int first_read = millis() + 5 * CONVERSION_TIME;
-//  scheduler.add(startConversion1stHalf, first_read - 4 * CONVERSION_TIME);
-//  scheduler.add(startConversion2ndHalf, first_read - 2 * CONVERSION_TIME);
   scheduler.add(startConversion_1, first_read - 4 * CONVERSION_TIME);
-  scheduler.add(startConversion_3, first_read - 2 * CONVERSION_TIME);
-  scheduler.add(startConversion_2, first_read - 3 * CONVERSION_TIME);
+  scheduler.add(startConversion_3, first_read - 3 * CONVERSION_TIME);
+  scheduler.add(startConversion_2, first_read - 2 * CONVERSION_TIME);
   scheduler.add(startConversion_4, first_read - 1 * CONVERSION_TIME);
   scheduler.add(updateTemperature, first_read);
 
@@ -797,7 +792,7 @@ int savePostData_Programming(const String &data, int programm)
   int i = data.indexOf("=");
   if(i < 0)
   {
-    writeLogger(String("[") + T_LOC + "] EROARE salvare - date invalide (lipseste semnul'='): " + data);
+    writeLogger(String("[") + T_LOC + "] EROARE salvare programare - date invalide (lipseste semnul '='): " + data);
     return programm;
   }
   String name = data.substring(0, i);
@@ -810,7 +805,7 @@ int savePostData_Programming(const String &data, int programm)
   i = name.lastIndexOf("_");
   if(i < 0)
   {
-    writeLogger(String("[") + T_LOC + "] EROARE salvare - date invalide (lipseste semnul'_'): " + data);
+    writeLogger(String("[") + T_LOC + "] EROARE salvare programare - date invalide (lipseste semnul '_'): " + data);
     return programm;
   }
   byte index = name.substring(i + 1).toInt();
@@ -836,7 +831,7 @@ int savePostData_Programming(const String &data, int programm)
     if(!valid || programm < 0 || programm >= P_AFTER_LAST)
     {
       // error case
-      writeLogger(String("[") + T_LOC + "] EROARE salvare - program necunoscut:'" + value + "'");
+      writeLogger(String("[") + T_LOC + "] EROARE salvare programare - program necunoscut:'" + value + "'");
       return -1;
     }
     if (programm != programming[index])
@@ -994,7 +989,7 @@ int savePostData_Programming(const String &data, int programm)
   if(!valid)
   {
 //    Serial.println(String("ERROR programm ") + programm + " : " + data + " -> " + name + "[" + index + "] = " + value);
-    writeLogger(String("[") + T_LOC + "] EROARE salvare - valoare invalida pentru " + bad_name + ":'" + value + "' (apelat cu '" + data + "') pentru " + bad_room + "; ramane valoarea dinainte: " + old_value);
+    writeLogger(String("[") + T_LOC + "] EROARE salvare programare - valoare invalida pentru " + bad_name + ":'" + value + "' (apelat cu '" + data + "') pentru " + bad_room + "; ramane valoarea dinainte: " + old_value);
   }
 //  Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);
   return programm;
@@ -1002,8 +997,8 @@ int savePostData_Programming(const String &data, int programm)
 
 void processPostData_Programming(const String &post_data)
 {
-  int i = 0, j=0;
   int programm = -1;
+  int i = 0, j = 0;
   while((j = post_data.indexOf("&", i)) >= 0)
   {
     programm = savePostData_Programming(post_data.substring(i, j), programm);
@@ -1019,7 +1014,7 @@ void savePostData_Register(const String &data)
   int i = data.indexOf("=");
   if(i < 0)
   {
-    writeLogger(String("[") + T_LOC + "] EROARE register - date invalide (lipseste semnul'='): " + data);
+    writeLogger(String("[") + T_LOC + "] EROARE inregistrare - date invalide (lipseste semnul '='): " + data);
     return;
   }
   String name = data.substring(0, i);
@@ -1028,6 +1023,7 @@ void savePostData_Register(const String &data)
   {
     byte addr[4];
     requester_ip[last_register] = IPAddress(getIpBytes(value, addr));
+    writeLogger(String("[") + T_LOC + "] Inregistrare notificari temperatura: " + value);
   }
   if(name.equals(REQUESTER_PORT))
   {
@@ -1043,7 +1039,7 @@ void processPostData_Register(const String &post_data)
 {
   if(last_register >= MAX_REGISTER)
     return;
-  int i = 0, j=0;
+  int i = 0, j = 0;
   while((j = post_data.indexOf("&", i)) >= 0)
   {
     savePostData_Register(post_data.substring(i, j));
@@ -1059,7 +1055,7 @@ void processPostData_Unregister(const String &post_data)
   int i = post_data.indexOf("=");
   if(i < 0)
   {
-    writeLogger(String("[") + T_LOC + "] EROARE ungegister - date invalide (lipseste semnul'='): " + post_data);
+    writeLogger(String("[") + T_LOC + "] EROARE deinregistrare - date invalide (lipseste semnul '='): " + post_data);
     return;
   }
   String name = post_data.substring(0, i);
@@ -1073,15 +1069,20 @@ void processPostData_Unregister(const String &post_data)
     {
       if(requester_ip[i] == ip)
         found = true;
-      else if(found)
-        requester_ip[i - 1] = requester_ip[i];
+      if(found)
+      {
+        requester_ip[i] = requester_ip[last_register - 1];
+  	    requester_port[i] = requester_port[last_register - 1];
+  	    requester_page[i] = requester_page[last_register - 1];
+        --last_register;
+        --i;
+        writeLogger(String("[") + T_LOC + "] Deinregistrare notificari temperatura: " + value);
+      }
     }
-    if(found)
-      --last_register;
   }
   else
   {
-    writeLogger(String("[") + T_LOC + "] EROARE ungegister - date invalide (lipseste " + REQUESTER_IP + "): " + post_data);
+    writeLogger(String("[") + T_LOC + "] EROARE deinregistrare - date invalide (lipseste " + REQUESTER_IP + "): " + post_data);
   }
 }
 
@@ -1093,6 +1094,7 @@ void saveRegister(const IPAddress & ip, const int port, const String & page)
   requester_port[last_register] = port;
   requester_page[last_register] = page;
   ++last_register;
+  writeLogger(String("[") + T_LOC + "] Inregistrare notificari temperatura: " + IPAddress(ip).toString());
 }
 
 void sendPostData(const String &data, const String &page, const IPAddress & server, const int port)
@@ -1278,29 +1280,6 @@ byte* getIpBytes(String& host, byte *addr)
   return addr;
 }
 
-//void startConversion1stHalf()
-//{
-//  // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
-//  for (byte i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
-//  {
-//    if(i > 0)
-//      delay(CONVERSION_TIME);
-//// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
-//    dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
-//  }
-//}
-//
-//void startConversion2ndHalf()
-//{
-//  for (byte i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
-//  {
-//    if(i > SENZOR_COUNT / 2)
-//      delay(CONVERSION_TIME);
-//// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
-//    dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
-//  }
-//}
-//
 void startConversion_1()
 {
   // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
@@ -1372,11 +1351,9 @@ void updateTemperature()
       temperature[i] = temp;
   }
   // schedule conversion at'next_read' time, minus the time to wait for it
-//  scheduler.add(startConversion1stHalf, next_read - 4 * CONVERSION_TIME);
-//  scheduler.add(startConversion2ndHalf, next_read - 2 * CONVERSION_TIME);
   scheduler.add(startConversion_1, next_read - 4 * CONVERSION_TIME);
-  scheduler.add(startConversion_3, next_read - 2 * CONVERSION_TIME);
-  scheduler.add(startConversion_2, next_read - 3 * CONVERSION_TIME);
+  scheduler.add(startConversion_3, next_read - 3 * CONVERSION_TIME);
+  scheduler.add(startConversion_2, next_read - 2 * CONVERSION_TIME);
   scheduler.add(startConversion_4, next_read - 1 * CONVERSION_TIME);
   // print it
   pritSerial();
@@ -1598,12 +1575,12 @@ void checkProgramming()
       if(should_run[i] || programming[i] != P1_RUN_HOURS_MAKE_TEMP)
         continue;
       int target_temp = target_temperature_p1[i + offset];
-      // make a little more then desired to prevent bouncing
+      // if running make a little more then desired to prevent bouncing
       if (is_running[i])
         target_temp += DELTA_P1_TEMP;
       int candidate_temp = temperature[i] - target_temp;
 //      int candidate_temp = temperature[i] - target_temperature_p1[i + offset];
-      force_running[i] = candidate_temp < MAX_DELTA;
+      force_running[i] = candidate_temp < 2 * MAX_DELTA;
     }
   }
   else {
@@ -1626,8 +1603,9 @@ void checkProgramming()
         int candidate_temp = temperature[i] - target_temp;
 //        int candidate_temp = temperature[i] - target_temperature_p1[i + offset];
         // if current temperature is more then MAX_DELTA centi grades greater then the target skip it
-        if(candidate_temp >= MAX_DELTA)
-          continue;
+//        // do it below
+//        if(candidate_temp >= MAX_DELTA)
+//          continue;
         candidates_temp[i] = candidate_temp;
         // for not bouncing add a -10 centi grades bonus to already running ones
         if(is_running[i])
@@ -1637,8 +1615,7 @@ void checkProgramming()
       }
     }
   
-    // 
-    // should run at least one, but less then minimum, and there are candidates
+    // at least one is running, but less then minimum, and there are candidates
     if(count_running > 0 && count_running < MIN_RUNNING && count_candidates > 0)
     {
       // sort by delta temperature, highest delta first
@@ -1658,16 +1635,23 @@ void checkProgramming()
           }
         }
       }
+      byte forced_running = 0;
       for (int i = 0; i < SENZOR_COUNT; ++i)
       {
-        if(candidates[i] != P_NONE)
+        if(candidates[i] != P_NONE && candidates_temp[i] < MAX_DELTA)
         {
           // start it
           force_running[candidates[i]] = true;
+          ++forced_running;
           // count it
           if(++count_running >= MIN_RUNNING)
             break;
         }
+      }
+      // just one is running, no on forced -> start first candidate
+      if(count_running == 1 && forced_running == 0)
+      {
+        force_running[candidates[0]] = true;
       }
     }
   }

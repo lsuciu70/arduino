@@ -164,14 +164,15 @@ void setup() {
 
 void loop() {
   showTimeOnLcd();
-  upToDateEtaj = false;
-  upToDateParter = false;
-  sendTemperaturesRequestParter();
-  listen4HttpClient();
-  sendTemperaturesRequestEtaj();
-  lcd.clear();
-  listen4HttpClient();
-  blink(10 * SECOND);
+//  upToDateEtaj = false;
+//  upToDateParter = false;
+//  sendTemperaturesRequestParter();
+//  listen4HttpClient();
+//  sendTemperaturesRequestEtaj();
+//  lcd.clear();
+//  listen4HttpClient();
+  delay(SECOND);
+//  blink(10 * SECOND);
   // scheduler.execute(millis());
 }
 
@@ -558,13 +559,13 @@ void sendTemperaturesRequest()
 void sendTemperaturesRequestEtaj()
 {
   connectWifi();
-  sendPostData(IP_ETAJ);
+//  sendPostData(IP_ETAJ);
 }
 
 void sendTemperaturesRequestParter()
 {
   connectWifi();
-  sendPostData(IP_PARTER);
+//  sendPostData(IP_PARTER);
 }
 
 void blink(int mills)
@@ -634,13 +635,12 @@ Serial.println(String("temp[") + i2 + "] = " + temp);
 
 void showTimeOnLcd()
 {
-	Serial.println("showTimeOnLcd");
-  String timeStr = timeString();
-  Serial.println(timeStr);
+//	Serial.println("showTimeOnLcd");
   lcd.clear();
-  lcd.home();
   lcd.setCursor(0, 0);
+  String timeStr = timeString();
   lcd.print(timeStr);
+  Serial.println(timeStr);
 //  scheduler.add(showTimeOnLcd, millis() + SECOND);
 }
 
@@ -654,8 +654,8 @@ String timeString()
 String timeString(int day_t, int month_t, int year_t, int hour_t, int minute_t, int second_t)
 {
   char buff[20];
-//  sprintf(buff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t, hour_t, minute_t, second_t);
-  sprintf(buff, "  %02d-%02d-%04d %02d:%02d", day_t, month_t, year_t, hour_t, minute_t);
+  sprintf(buff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t, hour_t, minute_t, second_t);
+//  sprintf(buff, "  %02d-%02d-%04d %02d:%02d", day_t, month_t, year_t, hour_t, minute_t);
   return String(buff);
 }
 
