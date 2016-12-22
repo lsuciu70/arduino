@@ -149,7 +149,7 @@ const String DELTA_TEMP_STR = String("") + ((DELTA_TEMP - (DELTA_TEMP % 100)) / 
 const byte DELTA_P1_TEMP = 10;
 const int MAX_DELTA = 100; // 100 centi grades = 1 degree
 
-const byte MIN_RUNNING = 3;
+const byte MIN_RUNNING = 2;
 
 enum
 {
@@ -316,7 +316,7 @@ String printProgramming(byte, byte programm = P_NONE);
 
 void pritSerial();
 
-void processPostData_Programming(const String &);
+void processPostData_Temperatures(const String &);
 
 void processPostData_Register(const String &);
 
@@ -334,7 +334,7 @@ void sendCurrentTemperatures();
 
 void sendCurrentTemperatures(const String &, const IPAddress & server = master_server_ip, const int port = master_server_port);
 
-int savePostData_Programming(const String &, int);
+int savePostData_Temperatures(const String &, int);
 
 void savePostData_Register(const String &);
 
@@ -787,7 +787,7 @@ void sendHttpProgramming(WiFiClient &client, byte index)
 // Serial.println("End sendHttpProgramming");
 }
 
-int savePostData_Programming(const String &data, int programm)
+int savePostData_Temperatures(const String &data, int programm)
 {
   int i = data.indexOf("=");
   if(i < 0)
@@ -995,17 +995,17 @@ int savePostData_Programming(const String &data, int programm)
   return programm;
 }
 
-void processPostData_Programming(const String &post_data)
+void processPostData_Temperatures(const String &post_data)
 {
   int programm = -1;
   int i = 0, j = 0;
   while((j = post_data.indexOf("&", i)) >= 0)
   {
-    programm = savePostData_Programming(post_data.substring(i, j), programm);
+    programm = savePostData_Temperatures(post_data.substring(i, j), programm);
     i = j + 1;
   }
   if(i)
-    programm = savePostData_Programming(post_data.substring(i, j), programm);
+    programm = savePostData_Temperatures(post_data.substring(i, j), programm);
   updatePxRunToday();
 }
 
@@ -1038,7 +1038,10 @@ void savePostData_Register(const String &data)
 void processPostData_Register(const String &post_data)
 {
   if(last_register >= MAX_REGISTER)
+  {
+    writeLogger(String("[") + T_LOC + "WARNING: Inregistrare notificari temperatura: registru plin!");
     return;
+  }
   int i = 0, j = 0;
   while((j = post_data.indexOf("&", i)) >= 0)
   {
@@ -1046,8 +1049,13 @@ void processPostData_Register(const String &post_data)
     i = j + 1;
   }
   if(i)
-    savePostData_Register(post_data.substring(i, j));
-  ++last_register;
+  {
+  	savePostData_Register(post_data.substring(i, j));
+    ++last_register;
+    writeLogger(String("[") + T_LOC + "] Inregistrare notificari temperatura; registri liberi: " + (MAX_REGISTER - last_register) + " din: " + MAX_REGISTER);
+  }
+  else
+    writeLogger(String("[") + T_LOC + "] EROARE - Inregistrare notificari temperatura: " + post_data);
 }
 
 void processPostData_Unregister(const String &post_data)
@@ -1058,25 +1066,28 @@ void processPostData_Unregister(const String &post_data)
     writeLogger(String("[") + T_LOC + "] EROARE deinregistrare - date invalide (lipseste semnul '='): " + post_data);
     return;
   }
+  int j = post_data.indexOf("&");
   String name = post_data.substring(0, i);
-  String value = post_data.substring(i + 1);
   if(name.equals(REQUESTER_IP))
   {
+    ++i;
+    String value = (j > i) ? post_data.substring(i, j) : post_data.substring(i);
     bool found = false;
     byte addr[4];
     IPAddress ip(getIpBytes(value, addr));
-    for(int i = 0; i < last_register; ++i)
+    for(int k = 0; k < last_register; ++k)
     {
-      if(requester_ip[i] == ip)
+      if(requester_ip[k] == ip)
         found = true;
       if(found)
       {
-        requester_ip[i] = requester_ip[last_register - 1];
-  	    requester_port[i] = requester_port[last_register - 1];
-  	    requester_page[i] = requester_page[last_register - 1];
+        requester_ip[k] = requester_ip[last_register - 1];
+  	    requester_port[k] = requester_port[last_register - 1];
+  	    requester_page[k] = requester_page[last_register - 1];
         --last_register;
-        --i;
+        --k;
         writeLogger(String("[") + T_LOC + "] Deinregistrare notificari temperatura: " + value);
+        writeLogger(String("[") + T_LOC + "] Inregistrare notificari temperatura; registri liberi: " + (MAX_REGISTER - last_register) + " din: " + MAX_REGISTER);
       }
     }
   }
@@ -1089,12 +1100,16 @@ void processPostData_Unregister(const String &post_data)
 void saveRegister(const IPAddress & ip, const int port, const String & page)
 {
   if(last_register >= MAX_REGISTER)
+  {
+    writeLogger(String("[") + T_LOC + "WARNING: Inregistrare notificari temperatura: toti registrii sunt plini!");
     return;
+  }
   requester_ip[last_register] = ip;
   requester_port[last_register] = port;
   requester_page[last_register] = page;
   ++last_register;
   writeLogger(String("[") + T_LOC + "] Inregistrare notificari temperatura: " + IPAddress(ip).toString());
+  writeLogger(String("[") + T_LOC + "] Inregistrare notificari temperatura; registri liberi: " + (MAX_REGISTER - last_register) + " din: " + MAX_REGISTER);
 }
 
 void sendPostData(const String &data, const String &page, const IPAddress & server, const int port)
@@ -1112,7 +1127,7 @@ void sendPostData(const String &data, const String &page, const IPAddress & serv
   {
     client.println(post_req);
     client.println(post_data);
-    delay(100);
+    delay(10);
     client.stop();
   }
 }
@@ -1128,8 +1143,10 @@ void sendCurrentTemperatures()
       "t_" + i + "=" + temperature[i] +
       "&t_" + i + "_r=" + (is_running[i] ? "1" : "0");
   }
+//Serial.println(String("sendCurrentTemperatures post_data: ") + post_data);
   for(int i = 0; i < last_register; ++i)
   {
+//Serial.println(String("sendCurrentTemperatures send to: ") + IPAddress(requester_ip[i]).toString());
     sendPostData(post_data, requester_page[i], requester_ip[i], requester_port[i]);
   }
 }
@@ -1167,7 +1184,7 @@ void listen4HttpClient()
     boolean currentLineIsBlank = true;
     boolean hasReadPostData = false;
     int content_length = 0;
-    String req_str = "", post_data="";
+    String req_str = "", post_data = "";
     while (client.connected()) {
       if (client.available()) {
         char c = client.read();
@@ -1210,31 +1227,24 @@ void listen4HttpClient()
               while(content_length-- > 0)
               {
                 c = client.read();
-                req_str += c;
                 post_data += c;
               }
               hasReadPostData = true;
               String what;
               parseRequest(req_str, "Accept:", what);
-//              Serial.println(what); // programming
+//Serial.println(what); // programming
               if(what.compareTo("programming") == 0) // send programming
               {
-                processPostData_Programming(post_data);
+                processPostData_Temperatures(post_data);
                 got_programming = true;
                 // nice to have: recompose programming, don't just send it back
                 sendPostData(post_data, "/programming_update.php");
               }
-              else if(what.compareTo("temperatures") == 0) // send temperatures
-              {
-                String host;
-                parseRequest(req_str, "Host:", host);
-                byte addr[4];
-                IPAddress server(getIpBytes(host, addr));
-                sendCurrentTemperatures("/", server, HTTP_PORT);
-                break;
-              }
               else if(what.compareTo("register") == 0) // register
               {
+                // unregister first
+//Serial.println(String("Register HTTP req:\n") + req_str + "\n\n post_data: " + post_data);
+                processPostData_Unregister(post_data);
                 processPostData_Register(post_data);
                 break;
               }

@@ -1,4 +1,6 @@
 /*
+ntp_clock/.cproject
+ntp_clock/.project
 
 !.gitignore
 !automatizare/automatizare.ino
@@ -16,3 +18,5 @@ libraries
 #automatizare/Debug/*
 #automatizare/Debug
 
+#ntp_clock/.cproject
+#ntp_clock/.project
