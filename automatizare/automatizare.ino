@@ -50,6 +50,7 @@ int deferred_index = 0;
 
 unsigned long start_second = 0;
 
+
 // WiFi section
 const byte SSID_SIZE = 2;
 const char* SSID_t[SSID_SIZE] =
@@ -62,6 +63,10 @@ byte ssid_ix = 0;
 const int HTTP_PORT = 80;
 
 WiFiServer server(HTTP_PORT);
+
+const String OK_CODE = "200 OK";
+const String NOK_CODE = "400 Bad Request";
+
 
 // NTP section
 // Eastern European Time (Timisoara)
@@ -280,11 +285,11 @@ String printProgramming(byte, byte programm = P_NONE);
 
 void pritSerial();
 
-void processPostData_Temperatures(const String &);
+void processPostData_Programming(const String &);
 
-void processPostData_Register(const String &);
+bool processPostData_Register(const String &);
 
-void processPostData_Unregister(const String &);
+bool processPostData_Unregister(const String &);
 
 void saveRegister(const IPAddress &, const int, const String &);
 
@@ -299,7 +304,7 @@ void sendCurrentTemperatures();
 void sendCurrentTemperatures(const String &, const IPAddress & server =
     master_server_ip, const int port = master_server_port);
 
-int savePostData_Temperatures(const String &, int);
+int savePostData_Programming(const String &, int);
 
 bool savePostData_Register(const String &);
 
@@ -309,6 +314,8 @@ void sendPostData(const String &, const String &, const IPAddress & server =
 void sendHttpIndex(WiFiClient &);
 
 void sendHttpProgramming(WiFiClient &, byte);
+
+void sendHttpResponse(WiFiClient &, const String &);
 
 void sendIp();
 
@@ -846,7 +853,7 @@ void sendHttpProgramming(WiFiClient &client, byte index)
 // Serial.println("End sendHttpProgramming");
 }
 
-int savePostData_Temperatures(const String &data, int programm)
+int savePostData_Programming(const String &data, int programm)
 {
   int i = data.indexOf("=");
   if (i < 0)
@@ -1079,17 +1086,17 @@ int savePostData_Temperatures(const String &data, int programm)
   return programm;
 }
 
-void processPostData_Temperatures(const String &post_data)
+void processPostData_Programming(const String &post_data)
 {
   int programm = -1;
   int i = 0, j = 0;
   while ((j = post_data.indexOf("&", i)) >= 0)
   {
-    programm = savePostData_Temperatures(post_data.substring(i, j), programm);
+    programm = savePostData_Programming(post_data.substring(i, j), programm);
     i = j + 1;
   }
   if (i)
-    programm = savePostData_Temperatures(post_data.substring(i, j), programm);
+    programm = savePostData_Programming(post_data.substring(i, j), programm);
   updatePxRunToday();
 }
 
@@ -1125,14 +1132,14 @@ bool savePostData_Register(const String &data)
   return true;
 }
 
-void processPostData_Register(const String &post_data)
+bool processPostData_Register(const String &post_data)
 {
   if (last_register >= MAX_REGISTER)
   {
     writeLogger(
         String("[") + T_LOC
             + "WARNING: Inregistrare notificari temperatura: registru plin!");
-    return;
+    return false;
   }
   int i = 0, j = 0;
   bool ok = true;
@@ -1159,9 +1166,10 @@ void processPostData_Register(const String &post_data)
         String("[") + T_LOC + "] EROARE - Inregistrare notificari temperatura: "
             + post_data);
   }
+  return ok;
 }
 
-void processPostData_Unregister(const String &post_data)
+bool processPostData_Unregister(const String &post_data)
 {
   int i = post_data.indexOf("=");
   if (i < 0)
@@ -1170,7 +1178,7 @@ void processPostData_Unregister(const String &post_data)
         String("[") + T_LOC
             + "] EROARE deinregistrare - date invalide (lipseste semnul '='): "
             + post_data);
-    return;
+    return false;
   }
   int j = post_data.indexOf("&");
   String name = post_data.substring(0, i);
@@ -1201,6 +1209,7 @@ void processPostData_Unregister(const String &post_data)
                 + (MAX_REGISTER - last_register) + " din: " + MAX_REGISTER);
       }
     }
+    return true;
   }
   else
   {
@@ -1209,6 +1218,7 @@ void processPostData_Unregister(const String &post_data)
             + "] EROARE deinregistrare - date invalide (lipseste "
             + REQUESTER_IP + "): " + post_data);
   }
+  return false;
 }
 
 void saveRegister(const IPAddress & ip, const int port, const String & page)
@@ -1304,7 +1314,6 @@ void listen4HttpClient()
     // an http request ends with a blank line
     boolean currentLineIsBlank = true;
     boolean hasReadPostData = false;
-    int content_length = 0;
     String req_str = "", post_data = "";
     while (client.connected())
     {
@@ -1346,6 +1355,7 @@ void listen4HttpClient()
           {
             if (!hasReadPostData)
             {
+              int content_length = 0;
               parseRequest(req_str, "Content-Length:", content_length);
               while (content_length-- > 0)
               {
@@ -1358,22 +1368,28 @@ void listen4HttpClient()
 //Serial.println(what); // programming
               if (what.compareTo("programming") == 0) // send programming
               {
-                processPostData_Temperatures(post_data);
+                processPostData_Programming(post_data);
                 got_programming = true;
-                // nice to have: recompose programming, don't just send it back
+                //TODO: nice to have: recompose programming, don't just send it back
                 sendPostData(post_data, "/programming_update.php");
               }
               else if (what.compareTo("register") == 0) // register
               {
                 // unregister first
 //Serial.println(String("Register HTTP req:\n") + req_str + "\n\n post_data: " + post_data);
-                processPostData_Unregister(post_data);
-                processPostData_Register(post_data);
+                if (processPostData_Unregister(post_data) &&
+                    processPostData_Register(post_data))
+                  sendHttpResponse(client, OK_CODE);
+                else
+                  sendHttpResponse(client, NOK_CODE);
                 break;
               }
               else if (what.compareTo("unregister") == 0) // register
               {
-                processPostData_Unregister(post_data);
+                if(processPostData_Unregister(post_data))
+                  sendHttpResponse(client, OK_CODE);
+                else
+                  sendHttpResponse(client, NOK_CODE);
                 break;
               }
             }
@@ -2045,6 +2061,11 @@ void writeLogger(String &what)
   post_data = String("t_log=") + post_data;
   sendPostData(post_data, "/log_save.php");
   delete o_log;
+}
+
+void sendHttpResponse(WiFiClient &client, const String &code)
+{
+  client.println(String("HTTP/1.1 ") + code + "\r\nConnection: close\r\n");
 }
 
 void sendIp()
