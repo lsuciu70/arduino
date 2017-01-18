@@ -4,6 +4,7 @@ ntp_clock/.project
 
 !.gitignore
 !automatizare/automatizare.ino
+!automatizare_cpp/automatizare_cpp.ino
 !onewire_search/onewire_search.ino
 !lcd_20x4/lcd_20x4.ino
 !I2CScanner/I2CScanner.ino
@@ -12,9 +13,9 @@ ntp_clock/.project
 libraries
 !libraries/LsuScheduler
 
-#automatizare/.cproject
-#automatizare/.project
-#automatizare/.settings
+automatizare_cpp/.cproject
+automatizare_cpp/.project
+automatizare_cpp/.settings
 #automatizare/Debug/*
 #automatizare/Debug
 
