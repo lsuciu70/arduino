@@ -22,10 +22,26 @@ onewire_search/.cproject
 onewire_search/.project
 onewire_search/.settings
 
-libraries
+libraries/DallasTemperature
+libraries/ESP8266WiFi
+libraries/OneWire/
+libraries/Robot_Control/
+libraries/Time/
+libraries/Timezone/
 
-!libraries/LsuLogger
-!libraries/LsuNtpTime
-!libraries/LsuScheduler
-!libraries/LsuWiFi
+libraries/LsuLogger/.cproject
+libraries/LsuLogger/.project
+libraries/LsuLogger/.settings
+
+libraries/LsuNtpTime/.cproject
+libraries/LsuNtpTime/.project
+libraries/LsuNtpTime/.settings
+
+libraries/LsuScheduler/.cproject
+libraries/LsuScheduler/.project
+libraries/LsuScheduler/.settings
+
+libraries/LsuWiFi/.cproject
+libraries/LsuWiFi/.project
+libraries/LsuWiFi/.settings
 
