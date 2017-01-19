@@ -10,7 +10,8 @@
 
 #include <Arduino.h>
 
-class ProgrammP1 {
+class ProgrammP1: Programm
+{
 public:
 	// constants
 	static const String START_HOUR_P1;
@@ -23,9 +24,12 @@ public:
 			byte start_minute = 0, byte stop_hour = 7, byte stop_minute = 0, int delta_running_temperature = 10) :
 			target_temperature_p1(target_temperature), start_hour_p1(
 					start_hour), start_minute_p1(start_minute), stop_hour_p1(
-					stop_hour), stop_minute_p1(stop_minute), delta_running_temperature_p1(delta_running_temperature), running(false) {
+                    stop_hour), stop_minute_p1(stop_minute), delta_running_temperature_p1(
+                    delta_running_temperature), running(false)
+    {
 	}
-	virtual ~ProgrammP1() {
+    virtual ~ProgrammP1()
+    {
 	}
 
 	bool shouldRun(int temperature);
