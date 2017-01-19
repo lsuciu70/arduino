@@ -8,10 +8,8 @@
 #ifndef LSUNTPTIME_H_
 #define LSUNTPTIME_H_
 
-#include "Arduino.h"
+#include <Arduino.h>
 
-#include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
-#include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
 #include <Time.h>         // https://github.com/PaulStoffregen/Time
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
 
@@ -50,7 +48,6 @@ private:
     void operator=(LsuNtpTime const&);
 
     friend time_t getTime();
-//	friend time_t now();
 private:
     class NoTimeAvailableSetter
     {

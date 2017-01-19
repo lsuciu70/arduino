@@ -59,8 +59,8 @@ void LsuWiFi::connect()
     }
     if(count)
         Serial.println();
-    Serial.println(String("Connected, took ")+ (1.0 * (millis() - mllis) / 1000) + " s, IP address: "
-            + WiFi.localIP().toString());
+    Serial.println(String("Connected, took ") + (1.0 * (millis() - mllis) / 1000) + " s, IP address: "
+            + String(WiFi.localIP().toString()));
     LsuLog::writeLogger(
             String("WiFi: conectat la ") + ssid + " ("
                     + (1.0 * (millis() - mllis) / 1000) + " s), adresa: "

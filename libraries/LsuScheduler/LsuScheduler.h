@@ -1,7 +1,7 @@
 #ifndef LsuScheduler_h
 #define LsuScheduler_h
 
-#include "Arduino.h"
+#include <Arduino.h>
 
 class LsuScheduler
 {

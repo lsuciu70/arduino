@@ -10,7 +10,9 @@
 
 #include <Arduino.h>
 
-class ProgrammP1: Programm
+#include "Programm.h"
+
+class ProgrammP1 : public Programm
 {
 public:
 	// constants

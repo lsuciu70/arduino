@@ -1,0 +1,35 @@
+#include <LiquidCrystal_I2C.h> // https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads/NewliquidCrystal_1.3.4.zip
+
+#include <LsuNtpTime.h>   // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuNtpTime
+
+const byte LCD_LINES = 4;
+const byte LCD_CHARS_PER_LINE = 20;
+
+LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
+
+void showTimeOnLcd();
+
+void setup() {
+	Serial.begin(115200);
+
+	// initialize the lcd
+	lcd.begin(LCD_CHARS_PER_LINE, LCD_LINES);
+	lcd.setBacklight(HIGH);
+	lcd.clear();
+
+	// initialize the NTP library
+	LsuNtpTime::start(6 * 3600);
+}
+
+void loop() {
+	showTimeOnLcd();
+	delay(LsuNtpTime::SECOND);
+}
+
+void showTimeOnLcd() {
+	lcd.setCursor(0, 0);
+	String timeStr = LsuNtpTime::timeString();
+	lcd.print(timeStr);
+	Serial.println(timeStr);
+}
+

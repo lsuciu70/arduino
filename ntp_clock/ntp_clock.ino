@@ -4,7 +4,6 @@
 #include <WiFiUdp.h>      // arduino/libraries/WiFi/src
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
-#include <Wire.h>              // arduino-ide/hardware/arduino/avr/libraries/Wire/src
 #include <LiquidCrystal_I2C.h> // https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads/NewliquidCrystal_1.3.4.zip
 
 // one second, 1000 milliseconds

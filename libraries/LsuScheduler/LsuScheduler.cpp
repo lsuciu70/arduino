@@ -1,4 +1,3 @@
-#include "Arduino.h"
 #include "LsuScheduler.h"
 
 void LsuScheduler::destroy(node *c)

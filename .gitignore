@@ -33,6 +33,10 @@ libraries/LsuLogger/.cproject
 libraries/LsuLogger/.project
 libraries/LsuLogger/.settings
 
+LsuNtpClock/.cproject
+LsuNtpClock/.project
+LsuNtpClock/.settings
+
 libraries/LsuNtpTime/.cproject
 libraries/LsuNtpTime/.project
 libraries/LsuNtpTime/.settings
@@ -44,4 +48,37 @@ libraries/LsuScheduler/.settings
 libraries/LsuWiFi/.cproject
 libraries/LsuWiFi/.project
 libraries/LsuWiFi/.settings
+
+.version
+#	LsuNtpClock/
+automatizare_display/
+automatizare_try_string/
+libraries/Adafruit_LiquidCrystal/
+libraries/Bridge/
+libraries/Firmata/
+libraries/MemoryFree/
+libraries/NewliquidCrystal/
+libraries/SD/
+libraries/Scheduler/
+libraries/SpacebrewYun/
+libraries/SparkFun_BME280_Arduino_Library-master/
+libraries/Temboo/
+libraries/readme.txt
+lsuNtpClient/
+lsuWeather/
+millis/
+ntp_client/
+ntp_client_schedule/
+ntp_clock/.ino.cpp
+show_mac/
+simple-wifi-http-time-client/
+simple-wifi-web-client/
+simple_web_client/
+sketch_jun19a/
+swserial/
+termometru-ow-serial/
+termometru-ow/
+termometru/
+test_post_response/
+wifi_ntp_client/
 
