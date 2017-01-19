@@ -23,4 +23,3 @@ class LsuScheduler
 };
 
 #endif // LsuScheduler_h
-

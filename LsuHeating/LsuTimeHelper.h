@@ -25,6 +25,7 @@ public:
 	  // check continuous running
 	  if (minutes_start == minutes_end)
 	    return true;
+	  // next day
 	  bool next_day = minutes_end < minutes_start;
 	  int minutes_now = hour() * 60 + minute();
 	  if (next_day)

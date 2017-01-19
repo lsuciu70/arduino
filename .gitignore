@@ -1,23 +1,31 @@
-/*
+automatizare/.cproject
+automatizare/.project
+automatizare/.settings
+
+I2CScanner/.cproject
+I2CScanner/.project
+I2CScanner/.settings
+
+lcd_20x4/.cproject
+lcd_20x4/.project
+lcd_20x4/.settings
+
+LsuHeating/.cproject
+LsuHeating/.project
+LsuHeating/.settings
+
 ntp_clock/.cproject
 ntp_clock/.project
+ntp_clock/.settings
 
-!.gitignore
-!automatizare/automatizare.ino
-!automatizare_cpp/automatizare_cpp.ino
-!onewire_search/onewire_search.ino
-!lcd_20x4/lcd_20x4.ino
-!I2CScanner/I2CScanner.ino
-!ntp_clock/ntp_clock.ino
+onewire_search/.cproject
+onewire_search/.project
+onewire_search/.settings
 
 libraries
+
+!libraries/LsuLogger
+!libraries/LsuNtpTime
 !libraries/LsuScheduler
+!libraries/LsuWiFi
 
-automatizare_cpp/.cproject
-automatizare_cpp/.project
-automatizare_cpp/.settings
-#automatizare/Debug/*
-#automatizare/Debug
-
-#ntp_clock/.cproject
-#ntp_clock/.project

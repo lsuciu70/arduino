@@ -31,11 +31,11 @@ public:
 	bool shouldRun(int temperature);
 private:
 	// fields
+	int target_temperature_p1;
 	byte start_hour_p1;
 	byte start_minute_p1;
 	byte stop_hour_p1;
 	byte stop_minute_p1;
-	int target_temperature_p1;
 	int delta_running_temperature_p1;
 
 	// running states
