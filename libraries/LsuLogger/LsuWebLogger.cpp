@@ -7,7 +7,7 @@
 
 #include <LsuNtpTime.h>
 
-#include "LsuWebLogger.h"
+#include <LsuWebLogger.h>
 
 const String LsuWebLogger::T_LOC_NAME = "t_loc";
 
@@ -25,7 +25,7 @@ void LsuWebLogger::writeLogger(const String &what)
         return;
     }
     recal_log();
-    String timeString = String(LsuNtpTime::timeString());
+    String timeString = String(LsuNtpTime::datetimeString());
     String post_data;
     if (loc.length() > 0)
         post_data = timeString + " - [" + loc + "] " + what;
@@ -62,7 +62,7 @@ void LsuWebLogger::recal_log()
     for (int i = 0; i < deferred_index; i++)
     {
         time_t t_time = LsuNtpTime::getStartSecond() + deferred_time[i];
-        String timeString = LsuNtpTime::timeString(day(t_time), month(t_time),
+        String timeString = LsuNtpTime::datetimeString(day(t_time), month(t_time),
                 year(t_time), hour(t_time), minute(t_time), second(t_time));
         String *t_df_log = deferred_log[i];
         String post_data;

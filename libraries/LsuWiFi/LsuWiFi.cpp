@@ -5,7 +5,7 @@
  *      Author: lsuciu
  */
 
-#include "LsuWiFi.h"
+#include <LsuWiFi.h>
 
 #include <LsuLog.h>
 

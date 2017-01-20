@@ -2,7 +2,8 @@
 #include <OneWire.h>           // https://github.com/PaulStoffregen/OneWire
 #include <DallasTemperature.h> // https://github.com/milesburton/Arduino-Temperature-Control-Library
 
-#include <LsuLog.h>
+#include <LsuLog.h>       // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuLogger
+#include <LsuWebLogger.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuLogger
 #include <LsuScheduler.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuScheduler
 #include <LsuWiFi.h>      // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuWiFi
 #include <LsuNtpTime.h>   // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuNtpTime
@@ -281,6 +282,9 @@ byte offset = 0;
 
 bool unknown_board = false;
 
+LsuWebLogger lsuLogger(T_LOC, "/log_save.php", master_server_ip,
+        master_server_port);
+
 // the setup routine runs once when starts
 void setup()
 {
@@ -304,11 +308,9 @@ void setup()
         return;
     }
 
-    LsuWebLogger lsuLogger(T_LOC, "/log_save.php", master_server_ip,
-            master_server_port);
     LsuLog::setLogger(&lsuLogger);
     LsuWiFi::connect();
-    LsuNtpTime::start(6 * 3600);
+    LsuNtpTime::start(6 * 3600, false);
 
     // Start up the temperature library
     dallasTemperature1st_pin0.begin();
@@ -354,7 +356,7 @@ void loop()
 {
     if (unknown_board)
     {
-        LsuLog::writeLogger(
+        writeLogger(
                 String("Unknown board; MAC Address: ") + LsuWiFi::macAddress());
         delay(10 * SECOND);
         return;
@@ -533,7 +535,7 @@ String printProgramming(byte index, byte programm)
 
 void pritSerial()
 {
-    Serial.print(LsuNtpTime::timeString());
+    Serial.print(LsuNtpTime::datetimeString());
     Serial.print(String(" - [") + T_LOC + "] ");
     for (byte i = 0; i < SENZOR_COUNT; ++i)
     {
@@ -561,7 +563,7 @@ void sendHttpIndex(WiFiClient &client)
                     + " </style>\n" + "</head>\n" + "<body>\n" + "<table>\n"
                     + " <tr>\n" + "  <th>Data</th>\n"
                     + "  <td align='center' colspan='4'>"
-                    + LsuNtpTime::timeString()
+                    + LsuNtpTime::datetimeString()
                     + "</td>\n" + " </tr>\n" + " <tr>\n" + "  <td></td>\n"
                     + "  <th align='center'>Temperatura</th>\n"
                     + "  <th align='center'>Merge</th>\n"

@@ -5,36 +5,70 @@
  *      Author: lsuciu
  */
 
-#include "LsuNtpTime.h"
+#include <LsuNtpTime.h>
 
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 #include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
 
 const int LsuNtpTime::SECOND = 1000;
+
+const byte LsuNtpTime::datetimeStringLength = 19;
+const byte LsuNtpTime::dateStringLength = 10;
+const byte LsuNtpTime::timeStringLength = 8;
+
 bool LsuNtpTime::timeAvailable = false;
 unsigned long LsuNtpTime::startSecond = 0;
+bool LsuNtpTime::disconnectAfterSynch = true;
 
-void LsuNtpTime::start(time_t seconds) {
+char * LsuNtpTime::UNSET = "time not set";
+
+void LsuNtpTime::start(time_t seconds, bool disconnect)
+{
+    disconnectAfterSynch = disconnect;
 	// Set the external time provider
 	setSyncProvider(getTime);
 	// Set synch interval to one second till sync
 	setSyncInterval(1);
-	while (timeStatus() != timeSet) {
+    while (timeStatus() != timeSet)
+    {
 		;
 	}
 	// Set synch interval
 	setSyncInterval(seconds);
 }
 
-char * LsuNtpTime::timeString(int day_t, int month_t, int year_t, int hour_t,
-		int minute_t, int second_t) {
-	static char buff[20];
-	sprintf(buff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t,
+char * LsuNtpTime::datetimeString(int day_t, int month_t, int year_t, int hour_t,
+		int minute_t, int second_t)
+{
+    if (!timeAvailable)
+        return UNSET;
+    static char datetimebuff[20];
+    sprintf(datetimebuff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t,
+            year_t,
 			hour_t, minute_t, second_t);
-	return buff;
+    return datetimebuff;
 }
 
-time_t getTime() {
+char * LsuNtpTime::dateString(int day_t, int month_t, int year_t)
+{
+    if (!timeAvailable)
+        return UNSET;
+    static char datebuff[20];
+    sprintf(datebuff, "%02d-%02d-%04d", day_t, month_t, year_t);
+    return datebuff;
+}
+
+char * LsuNtpTime::timeString(int hour_t, int minute_t, int second_t)
+{
+    if (!timeAvailable)
+        return UNSET;
+    static char timebuff[20];
+    sprintf(timebuff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
+    return timebuff;
+}
+
+time_t getTime()
+{
 	LsuWiFi::connect();
 	WiFiUDP udp;
 	const byte POLL_INTERVAL = 10; // poll every this many ms
@@ -43,15 +77,17 @@ time_t getTime() {
 	const byte USELES_BYTES = 40; // Useless bytes to be discarded; set useless to 32 for speed; set to 40 for accuracy.
 
 	// Eastern European Time (Timisoara)
-	const TimeChangeRule EEST = { "EEST", Last, Sun, Mar, 3, 180 }; // Eastern European Summer Time
-	const TimeChangeRule EET = { "EET", Last, Sun, Oct, 4, 120 }; // Eastern European Standard Time
+    const TimeChangeRule EEST =
+    { "EEST", Last, Sun, Mar, 3, 180 };  // Eastern European Summer Time
+    const TimeChangeRule EET =
+    { "EET", Last, Sun, Oct, 4, 120 };   // Eastern European Standard Time
 	Timezone EasternEuropeanTime(EEST, EET);
 
 	TimeChangeRule *tcr;
 
 	{
 		// if fails (returns 0 in between) timeAvailable will be kept as is
-		LsuNtpTime::NoTimeAvailableSetter(
+		LsuNtpTime::TimeAvailableSetter(
 				LsuNtpTime::timeAvailable ? true : false);
 		unsigned long mllis = millis();
 
@@ -96,7 +132,7 @@ time_t getTime() {
 			udp.read();
 	}
 	// timeAvailable will be set to true immediately after return
-	LsuNtpTime::NoTimeAvailableSetter(true);
+	LsuNtpTime::TimeAvailableSetter(true);
 	// Read the integer part of sending time
 	time_t t_time = udp.read();  // NTP time
 	for (byte i = 1; i < 4; i++)
@@ -113,8 +149,9 @@ time_t getTime() {
 	// Discard the rest of the packet
 	udp.flush();
 
-	// disconnect Wifi
-	WiFi.disconnect();
+    if (LsuNtpTime::disconnectAfterSynch)
+        // disconnect WiFi
+        WiFi.disconnect();
 
 	// convert NTP time to GMT time
 	t_time -= 2208988800ul;

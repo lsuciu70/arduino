@@ -1,4 +1,4 @@
-#include "LsuScheduler.h"
+#include <LsuScheduler.h>
 
 void LsuScheduler::destroy(node *c)
 {
@@ -23,7 +23,7 @@ LsuScheduler::LsuScheduler()
 }
 
 LsuScheduler::~LsuScheduler()
-{ 
+{
   destroy(head);
 }
 

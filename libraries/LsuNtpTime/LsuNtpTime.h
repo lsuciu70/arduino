@@ -19,23 +19,63 @@ extern time_t getTime();
 
 class LsuNtpTime {
 public:
+    /**
+     * One second, 1000 milliseconds.
+     */
     static const int SECOND;
+    /**
+     * The length of date and time String: 19
+     */
+    static const byte datetimeStringLength;
+    /**
+     * The length of date String: 10
+     */
+    static const byte dateStringLength;
+    /**
+     * The length of time String: 8
+     */
+    static const byte timeStringLength;
 private:
     static bool timeAvailable;
     static unsigned long startSecond;
+    static bool disconnectAfterSynch;
+    static char * UNSET;
 public:
-    static void start(time_t seconds = 3600);
-    static char * timeString(int day_t = day(), int month_t = month(),
+    /**
+     * Starts the library, makes synch every given seconds, default one hour.
+     * By default disconnects WiFi unless disconnect is true.
+     */
+    static void start(time_t seconds = 3600, bool disconnect = true);
+
+    /**
+     * Returns the date and time as "DD-MM-YYYY hh:mm:ss"
+     */
+    static char * datetimeString(int day_t = day(), int month_t = month(),
             int year_t = year(), int hour_t = hour(), int minute_t = minute(),
             int second_t = second());
-    static bool isTimeAvailable()
+
+    /**
+     * Returns the date as "DD-MM-YYYY"
+     */
+    static char * dateString(int day_t = day(), int month_t = month(),
+            int year_t = year());
+
+    /**
+     * Returns the time as "hh:mm:ss"
+     */
+    static char * timeString(int hour_t = hour(), int minute_t = minute(),
+            int second_t = second());
+
+    static inline bool isTimeAvailable()
     {
         return timeAvailable;
     }
-    static unsigned long getStartSecond()
+
+    static inline unsigned long getStartSecond()
     {
         return startSecond;
     }
+
     static inline unsigned long secondsRunning()
     {
         return millis() / SECOND;
@@ -49,18 +89,18 @@ private:
 
     friend time_t getTime();
 private:
-    class NoTimeAvailableSetter
+    class TimeAvailableSetter
     {
     private:
-        bool nt;
+        bool ta;
     public:
-        NoTimeAvailableSetter(bool nt_t) :
-                nt(nt_t)
+        TimeAvailableSetter(bool ta_t) :
+                ta(ta_t)
         {
         }
-        ~NoTimeAvailableSetter()
+        ~TimeAvailableSetter()
         {
-            timeAvailable = nt;
+            timeAvailable = ta;
         }
     };
 };

@@ -8,22 +8,26 @@
 #ifndef LSULOG_H_
 #define LSULOG_H_
 
-#include "LsuWebLogger.h"
+#include <Arduino.h>
+
+#include <LsuLogger.h>
+#include <LsuConsoleLogger.h>
 
 class LsuLog
 {
 private:
-    static LsuWebLogger * logger;
+    static LsuLogger * logger;
 public:
-    static void setLogger(LsuWebLogger * logger_t)
+    static void setLogger(LsuLogger * logger_t)
     {
         logger = logger_t;
     }
     static void writeLogger(const String &what)
     {
-        if (!logger)
-            return;
-        logger->writeLogger(what);
+        if (logger == nullptr)
+            LsuConsoleLogger().writeLogger(what);
+        else
+            logger->writeLogger(what);
     }
 private:
     LsuLog()

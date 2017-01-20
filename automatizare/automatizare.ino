@@ -1284,7 +1284,7 @@ void sendCurrentTemperatures()
 void sendCurrentTemperatures(const String &page, const IPAddress & server,
     const int port)
 {
-  // send data to the server 
+  // send data to the server
   String post_data = String("");
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
@@ -1873,7 +1873,7 @@ void checkProgramming()
     is_running[i] = should_run[i] || force_running[i];
   }
 
-  // send data to the server 
+  // send data to the server
   sendCurrentTemperatures();
 }
 
@@ -2079,7 +2079,7 @@ void sendIp()
  #ifndef LsuScheduler_h
  #define LsuScheduler_h
 
- #include "Arduino.h"
+ #include <Arduino.h>
 
  class LsuScheduler
  {
@@ -2106,8 +2106,8 @@ void sendIp()
 
 /*
  // libraries/LsuScheduler/LsuScheduler.cpp
- #include "Arduino.h"
- #include "LsuScheduler.h"
+ #include <Arduino.h>
+ #include <LsuScheduler.h>
 
  void LsuScheduler::destroy(node *c)
  {

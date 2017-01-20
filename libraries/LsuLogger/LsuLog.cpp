@@ -5,6 +5,6 @@
  *      Author: lsuciu
  */
 
-#include "LsuLog.h"
+#include <LsuLog.h>
 
-LsuWebLogger * LsuLog::logger = 0;
+LsuLogger * LsuLog::logger = nullptr;

@@ -8,7 +8,7 @@
 #ifndef LSUWIFI_H_
 #define LSUWIFI_H_
 
-#include "Arduino.h"
+#include <Arduino.h>
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
 class LsuWiFi {

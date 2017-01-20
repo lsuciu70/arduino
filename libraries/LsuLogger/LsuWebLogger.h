@@ -15,7 +15,9 @@
 
 #include <LsuWiFi.h>
 
-class LsuWebLogger
+#include <LsuLogger.h>
+
+class LsuWebLogger: public LsuLogger
 {
 private:
     static const String T_LOC_NAME;
