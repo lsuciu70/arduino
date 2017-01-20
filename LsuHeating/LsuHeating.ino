@@ -304,7 +304,7 @@ void setup()
         return;
     }
 
-    LsuLogger lsuLogger(T_LOC, "/log_save.php", master_server_ip,
+    LsuWebLogger lsuLogger(T_LOC, "/log_save.php", master_server_ip,
             master_server_port);
     LsuLog::setLogger(&lsuLogger);
     LsuWiFi::connect();

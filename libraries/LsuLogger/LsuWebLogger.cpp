@@ -7,17 +7,17 @@
 
 #include <LsuNtpTime.h>
 
-#include "LsuLogger.h"
+#include "LsuWebLogger.h"
 
-const String LsuLogger::T_LOC_NAME = "t_loc";
+const String LsuWebLogger::T_LOC_NAME = "t_loc";
 
-const String LsuLogger::T_LOG_NAME = "t_log";
+const String LsuWebLogger::T_LOG_NAME = "t_log";
 
-const String LsuLogger::EMPTY = "";
+const String LsuWebLogger::EMPTY = "";
 
-const int LsuLogger::MAX_LOGGER = 15;
+const int LsuWebLogger::MAX_LOGGER = 15;
 
-void LsuLogger::writeLogger(const String &what)
+void LsuWebLogger::writeLogger(const String &what)
 {
     if (!LsuNtpTime::isTimeAvailable())
     {
@@ -35,7 +35,7 @@ void LsuLogger::writeLogger(const String &what)
     sendPostData(post_data);
 }
 
-void LsuLogger::defere_log(const String &what)
+void LsuWebLogger::defere_log(const String &what)
 {
     if (deferred_index >= MAX_LOGGER)
     {
@@ -53,7 +53,7 @@ void LsuLogger::defere_log(const String &what)
     ++deferred_index;
 }
 
-void LsuLogger::recal_log()
+void LsuWebLogger::recal_log()
 {
     if (deferred_index <= 0)
         return;
@@ -78,7 +78,7 @@ void LsuLogger::recal_log()
     deferred_index = 0;
 }
 
-void LsuLogger::sendPostData(const String &data)
+void LsuWebLogger::sendPostData(const String &data)
 {
     if (server == LsuWiFi::NO_IP || page.length() <= 0 || port == 0)
         return;

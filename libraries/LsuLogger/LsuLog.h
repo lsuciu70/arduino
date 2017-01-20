@@ -8,14 +8,14 @@
 #ifndef LSULOG_H_
 #define LSULOG_H_
 
-#include "LsuLogger.h"
+#include "LsuWebLogger.h"
 
 class LsuLog
 {
 private:
-    static LsuLogger * logger;
+    static LsuWebLogger * logger;
 public:
-    static void setLogger(LsuLogger * logger_t)
+    static void setLogger(LsuWebLogger * logger_t)
     {
         logger = logger_t;
     }

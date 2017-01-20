@@ -5,8 +5,8 @@
  *      Author: lsuciu
  */
 
-#ifndef LSULOGGER_H_
-#define LSULOGGER_H_
+#ifndef LSUWEBLOGGER_H_
+#define LSUWEBLOGGER_H_
 
 #include <algorithm>
 
@@ -15,7 +15,7 @@
 
 #include <LsuWiFi.h>
 
-class LsuLogger
+class LsuWebLogger
 {
 private:
     static const String T_LOC_NAME;
@@ -33,7 +33,7 @@ private:
     const IPAddress server;
     const unsigned int port;
 public:
-    LsuLogger(const String &loc_t = EMPTY, const String &page_t = EMPTY,
+    LsuWebLogger(const String &loc_t = EMPTY, const String &page_t = EMPTY,
             const IPAddress server_t =
             LsuWiFi::NO_IP, const unsigned int port_t = 0) :
             deferred_index(0), loc(loc_t), page(page_t), server(server_t), port(
@@ -42,7 +42,7 @@ public:
         std::fill(deferred_log, deferred_log + MAX_LOGGER, (String *) 0);
         std::fill(deferred_time, deferred_time + MAX_LOGGER, 0);
     }
-    virtual ~LsuLogger()
+    virtual ~LsuWebLogger()
     {
     }
 
@@ -53,4 +53,4 @@ private:
     void recal_log();
 };
 
-#endif /* LSULOGGER_H_ */
+#endif /* LSUWEBLOGGER_H_ */

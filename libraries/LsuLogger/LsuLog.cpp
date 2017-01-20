@@ -7,4 +7,4 @@
 
 #include "LsuLog.h"
 
-LsuLogger * LsuLog::logger = 0;
+LsuWebLogger * LsuLog::logger = 0;
