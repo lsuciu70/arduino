@@ -29,6 +29,8 @@ public:
     virtual inline void setRunning(bool doesnt_matter)
     {
     }
+
+    virtual char * toString();
 };
 
 #endif /* PROGRAMMP0_H_ */

@@ -29,6 +29,8 @@ private:
     // running states
     bool running;
     bool hasRun;
+
+    char asString[75];
 public:
     ProgrammP2(byte start_hour, byte start_minute,
             int delta_running_temperature = 30) :
@@ -37,6 +39,10 @@ public:
                     delta_running_temperature), running(false), hasRun(
                     false)
     {
+        sprintf(asString,
+                "P2 - porneste la %d:%02d si face temperatura de la pornire + %.2f &deg;C",
+                start_hour_p2, start_minute_p2,
+                (1.0 * delta_running_temperature_p2 / 100));
     }
     virtual ~ProgrammP2()
     {
@@ -46,6 +52,11 @@ public:
      * Returns true if the program should run, false otherwise.
      */
     virtual bool shouldRun(int temperature);
+
+    virtual char * toString()
+    {
+        return asString;
+    }
 
     /**
      * Returns true if the program is running, false otherwise.

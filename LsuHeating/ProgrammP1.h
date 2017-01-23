@@ -32,6 +32,8 @@ private:
 
     // running states
     bool running;
+
+    char asString[70];
 public:
 	ProgrammP1(int target_temperature = 2100, byte start_hour = 15,
             byte start_minute = 0, byte stop_hour = 7, byte stop_minute = 0,
@@ -41,6 +43,21 @@ public:
                     stop_hour), stop_minute_p1(stop_minute), delta_running_temperature_p1(
                     delta_running_temperature), running(false)
     {
+        int start = start_hour_p1 + start_minute_p1 * 60;
+        int stop = stop_hour_p1 + stop_minute_p1 * 60;
+        if (start == stop)
+            sprintf(asString, "P1 - merge continuu si face %.2f &deg;C",
+                    (1.0 * target_temperature_p1 / 100));
+        else if (start > stop)
+            sprintf(asString,
+                    "P1 - merge intre  %d:%02d si %d:%02d (ziua urmatoare) si face %.2f &deg;C",
+                    start_hour_p1, start_minute_p1, stop_hour_p1,
+                    stop_minute_p1, (1.0 * target_temperature_p1 / 100));
+        else
+            sprintf(asString,
+                    "P1 - merge intre  %d:%02d si %d:%02d si face %.2f &deg;C",
+                    start_hour_p1, start_minute_p1, stop_hour_p1,
+                    stop_minute_p1, (1.0 * target_temperature_p1 / 100));
     }
     virtual ~ProgrammP1()
     {
@@ -50,6 +67,11 @@ public:
      * Returns true if the program should run, false otherwise.
      */
     virtual bool shouldRun(int temperature);
+
+    virtual char * toString()
+    {
+        return asString;
+    }
 
     /**
      * Returns true if the program is running, false otherwise.

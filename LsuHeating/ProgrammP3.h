@@ -24,11 +24,16 @@ private:
 
     // running states
     bool running;
+
+    char asString[65];
 public:
     ProgrammP3(int delta_running_temperature = 30) :
             target_temperature_p3(0), delta_running_temperature_p3(
                     delta_running_temperature), running(false)
     {
+        sprintf(asString,
+                "P3 - porneste acum si face temperatura de la pornire + %.2f &deg;C",
+                (1.0 * delta_running_temperature_p3 / 100));
     }
     virtual ~ProgrammP3()
     {
@@ -38,6 +43,11 @@ public:
      * Returns true if the program should run, false otherwise.
      */
     virtual bool shouldRun(int temperature);
+
+    virtual char * toString()
+    {
+        return asString;
+    }
 
     /**
      * Returns true if the program is running, false otherwise.
