@@ -18,8 +18,8 @@ class LsuScheduler
   public:
     LsuScheduler();
     virtual ~LsuScheduler();
-    void execute(long int);
-    void add(void (*)(), long int );
+    void execute(unsigned long);
+    void add(void (*)(), unsigned long );
 };
 
 #endif // LsuScheduler_h

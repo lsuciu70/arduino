@@ -27,7 +27,7 @@ LsuScheduler::~LsuScheduler()
   destroy(head);
 }
 
-void LsuScheduler::execute(long int current_time)
+void LsuScheduler::execute(unsigned long current_time)
 {
   node * c = head;
   while (c->next)
@@ -48,7 +48,7 @@ void LsuScheduler::execute(long int current_time)
   }
 }
 
-void LsuScheduler::add(void (*funt)(), long int when)
+void LsuScheduler::add(void (*funt)(), unsigned long when)
 {
   node * n = new node();
   n->when = when;
