@@ -17,92 +17,93 @@
 
 extern time_t getTime();
 
-class LsuNtpTime {
+class LsuNtpTime
+{
 public:
-    /**
-     * One second, 1000 milliseconds.
-     */
-    static const int SECOND;
-    /**
-     * The length of date and time String: 19
-     */
-    static const byte datetimeStringLength;
-    /**
-     * The length of date String: 10
-     */
-    static const byte dateStringLength;
-    /**
-     * The length of time String: 8
-     */
-    static const byte timeStringLength;
+  /**
+   * One second, 1000 milliseconds.
+   */
+  static const int SECOND;
+  /**
+   * The length of date and time String (DD-MM-YYYY hh:mm:ss): 19
+   */
+  static const byte datetimeStringLength;
+  /**
+   * The length of date String (DD-MM-YYYY): 10
+   */
+  static const byte dateStringLength;
+  /**
+   * The length of time String (hh:mm:ss): 8
+   */
+  static const byte timeStringLength;
 private:
-    static bool timeAvailable;
-    static unsigned long startSecond;
-    static bool disconnectAfterSynch;
-    static char * UNSET;
+  static bool timeAvailable;
+  static unsigned long startSecond;
+  static bool disconnectAfterSynch;
+  static char * UNSET;
 public:
-    /**
-     * Starts the library, makes synch every given seconds, default one hour.
-     * By default disconnects WiFi unless disconnect is true.
-     */
-    static void start(time_t seconds = 3600, bool disconnect = true);
+  /**
+   * Starts the library, makes synch every given seconds, default one hour.
+   * By default disconnects WiFi unless disconnect is true.
+   */
+  static void start(time_t seconds = 3600, bool disconnect = true);
 
-    /**
-     * Returns the date and time as "DD-MM-YYYY hh:mm:ss"
-     */
-    static char * datetimeString(int day_t = day(), int month_t = month(),
-            int year_t = year(), int hour_t = hour(), int minute_t = minute(),
-            int second_t = second());
+  /**
+   * Returns the date and time as "DD-MM-YYYY hh:mm:ss"
+   */
+  static char * datetimeString(int day_t = day(), int month_t = month(),
+      int year_t = year(), int hour_t = hour(), int minute_t = minute(),
+      int second_t = second());
 
-    /**
-     * Returns the date as "DD-MM-YYYY"
-     */
-    static char * dateString(int day_t = day(), int month_t = month(),
-            int year_t = year());
+  /**
+   * Returns the date as "DD-MM-YYYY"
+   */
+  static char * dateString(int day_t = day(), int month_t = month(),
+      int year_t = year());
 
-    /**
-     * Returns the time as "hh:mm:ss"
-     */
-    static char * timeString(int hour_t = hour(), int minute_t = minute(),
-            int second_t = second());
+  /**
+   * Returns the time as "hh:mm:ss"
+   */
+  static char * timeString(int hour_t = hour(), int minute_t = minute(),
+      int second_t = second());
 
-    static inline bool isTimeAvailable()
-    {
-        return timeAvailable;
-    }
+  static inline bool isTimeAvailable()
+  {
+    return timeAvailable;
+  }
 
-    static inline unsigned long getStartSecond()
-    {
-        return startSecond;
-    }
+  static inline unsigned long getStartSecond()
+  {
+    return startSecond;
+  }
 
-    static inline unsigned long secondsRunning()
-    {
-        return millis() / SECOND;
-    }
+  static inline unsigned long secondsRunning()
+  {
+    return millis() / SECOND;
+  }
 private:
-    LsuNtpTime()
+  LsuNtpTime()
+  {
+  }
+  LsuNtpTime(LsuNtpTime const&);
+  void operator=(LsuNtpTime const&);
+
+  friend time_t getTime();
+private:
+  class TimeAvailableSetter
+  {
+  private:
+    bool ta;
+  public:
+    TimeAvailableSetter(bool ta_t) :
+        ta(ta_t)
     {
     }
-    LsuNtpTime(LsuNtpTime const&);
-    void operator=(LsuNtpTime const&);
-
-    friend time_t getTime();
-private:
-    class TimeAvailableSetter
+    ~TimeAvailableSetter()
     {
-    private:
-        bool ta;
-    public:
-        TimeAvailableSetter(bool ta_t) :
-                ta(ta_t)
-        {
-        }
-        ~TimeAvailableSetter()
-        {
-            timeAvailable = ta;
-        }
-    };
+      timeAvailable = ta;
+    }
+  };
 };
 
 #endif /* LSUNTPTIME_H_ */

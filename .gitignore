@@ -82,6 +82,10 @@ LsuWifiScanner/.cproject
 LsuWifiScanner/.project
 LsuWifiScanner/.settings
 
+LsuAlarm/.cproject
+LsuAlarm/.project
+LsuAlarm/.settings
+
 .version
 #	LsuNtpClock/
 automatizare_display/

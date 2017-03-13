@@ -11,35 +11,36 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
-class LsuWiFi {
+class LsuWiFi
+{
 public:
-    // constants
-    static const IPAddress NO_IP;
+  // constants
+  static const IPAddress NO_IP;
 private:
-	// constants
-    static const byte SSID_SIZE;
-    static const char* SSID_t[];
-    static const char* PASSWD_t[];
-	static byte ssid_ix;
+  // constants
+  static const byte SSID_SIZE;
+  static const char* SSID_t[];
+  static const char* PASSWD_t[];
+  static byte ssid_ix;
 
-    static bool initialized;
+  static bool initialized;
 private:
-    LsuWiFi()
-    {
-    }
-	LsuWiFi(LsuWiFi const&);
-	void operator=(LsuWiFi const&);
-    static inline bool init()
-    {
-        WiFi.mode(WIFI_STA);
-        return true;
-    }
+  LsuWiFi()
+  {
+  }
+  LsuWiFi(LsuWiFi const&);
+  void operator=(LsuWiFi const&);
+  static inline bool init()
+  {
+    WiFi.mode(WIFI_STA);
+    return true;
+  }
 public:
-	static void connect();
-    static inline String macAddress()
-    {
-        return WiFi.macAddress();
-    }
+  static void connect();
+  static inline String macAddress()
+  {
+    return WiFi.macAddress();
+  }
 };
 
 #endif /* LSUWIFI_H_ */
