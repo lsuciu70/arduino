@@ -8,6 +8,8 @@
 #include <LsuWiFi.h>      // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuWiFi
 #include <LsuNtpTime.h>   // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuNtpTime
 
+#include <liblwm2m.h>
+
 #include "LsuTimeHelper.h"
 
 // one second, 1000 milliseconds

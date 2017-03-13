@@ -52,6 +52,7 @@ libraries/OneWire/
 libraries/Robot_Control/
 libraries/Time/
 libraries/Timezone/
+libraries/WakaanaA
 
 libraries/LsuLogger/.cproject
 libraries/LsuLogger/.project
