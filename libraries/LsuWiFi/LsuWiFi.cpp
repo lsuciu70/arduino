@@ -11,9 +11,17 @@ const IPAddress LsuWiFi::NO_IP = IPAddress(0, 0, 0, 0);
 
 const byte LsuWiFi::SSID_SIZE = 2;
 
+<<<<<<< HEAD
 const char* LsuWiFi::SSID_t[] = { "cls-router", "cls-ap" };
 
 const char* LsuWiFi::PASSWD_t[] = { "r4cD7TPG", "r4cD7TPG" };
+=======
+const char* LsuWiFi::SSID_t[] =
+{ "cls-router", "cls-ap" };
+
+const char* LsuWiFi::PASSWD_t[] =
+{ "r4cD7TPG", "r4cD7TPG" };
+>>>>>>> d9ce5a010d5b4af3314703ac75d616a7a0040dc7
 
 byte LsuWiFi::ssid_ix = 0;
 
@@ -41,6 +49,12 @@ void LsuWiFi::connect()
       if (count)
         Serial.println();
       Serial.println("Not connected; 10 s timed out. Trying next SSID.");
+<<<<<<< HEAD
+=======
+      LsuLog::writeLogger(
+          String("WiFi: connectare nereusita dupa 10 s la ") + +ssid
+              + "; incearca urmatorul SSID");
+>>>>>>> d9ce5a010d5b4af3314703ac75d616a7a0040dc7
       ssid_ix += 1;
       return connect();
     }
@@ -57,7 +71,16 @@ void LsuWiFi::connect()
   if (count)
     Serial.println();
   Serial.println(
+<<<<<<< HEAD
       String("Connected, took ") + (1.0 * (millis() - mllis) / 1000) + " s;"
           + "\n MAC: " + macAddress()
           + "\n IP:  " + String(WiFi.localIP().toString()));
+=======
+      String("Connected, took ") + (1.0 * (millis() - mllis) / 1000)
+          + " s, IP address: " + String(WiFi.localIP().toString()));
+  LsuLog::writeLogger(
+      String("WiFi: conectat la ") + ssid + " ("
+          + (1.0 * (millis() - mllis) / 1000) + " s), adresa: "
+          + WiFi.localIP().toString());
+>>>>>>> d9ce5a010d5b4af3314703ac75d616a7a0040dc7
 }

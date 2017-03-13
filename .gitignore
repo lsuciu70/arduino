@@ -52,6 +52,7 @@ libraries/OneWire/
 libraries/Robot_Control/
 libraries/Time/
 libraries/Timezone/
+libraries/WakaanaA
 
 libraries/LsuLogger/.cproject
 libraries/LsuLogger/.project
@@ -72,6 +73,18 @@ libraries/LsuScheduler/.settings
 libraries/LsuWiFi/.cproject
 libraries/LsuWiFi/.project
 libraries/LsuWiFi/.settings
+
+LsuWifiAp/.cproject
+LsuWifiAp/.project
+LsuWifiAp/.settings
+
+LsuWifiScanner/.cproject
+LsuWifiScanner/.project
+LsuWifiScanner/.settings
+
+LsuAlarm/.cproject
+LsuAlarm/.project
+LsuAlarm/.settings
 
 .version
 #	LsuNtpClock/
