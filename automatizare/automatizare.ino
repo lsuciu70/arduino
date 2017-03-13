@@ -2078,9 +2078,7 @@ void sendIp()
  // libraries/LsuScheduler/LsuScheduler.h
  #ifndef LsuScheduler_h
  #define LsuScheduler_h
-
  #include <Arduino.h>
-
  class LsuScheduler
  {
  private:
@@ -2099,7 +2097,6 @@ void sendIp()
  void execute(long int);
  void add(void (*)(), long int );
  };
-
  #endif // LsuScheduler_h
  // end LsuScheduler.h
  */
@@ -2108,13 +2105,11 @@ void sendIp()
  // libraries/LsuScheduler/LsuScheduler.cpp
  #include <Arduino.h>
  #include <LsuScheduler.h>
-
  void LsuScheduler::destroy(node *c)
  {
  if (c)
  destroy_r(c, c->next);
  }
-
  void LsuScheduler::destroy_r(node *c, node *n)
  {
  if (c)
@@ -2122,7 +2117,6 @@ void sendIp()
  if (n)
  destroy_r(n, n->next);
  }
-
  LsuScheduler::LsuScheduler()
  {
  head = new node();
@@ -2130,12 +2124,10 @@ void sendIp()
  head->funt = 0;
  head->next = 0;
  }
-
  LsuScheduler::~LsuScheduler()
  {
  destroy(head);
  }
-
  void LsuScheduler::execute(long int current_time)
  {
  node * c = head;
@@ -2156,7 +2148,6 @@ void sendIp()
  c = c->next;
  }
  }
-
  void LsuScheduler::execute(long int current_time)
  {
  node * c = head;
@@ -2177,7 +2168,6 @@ void sendIp()
  c = c->next;
  }
  }
-
  void LsuScheduler::add(void (*funt)(), long int when)
  {
  node * n = new node();
@@ -2194,4 +2184,3 @@ void sendIp()
  }
  // end LsuScheduler.cpp
  */
-
