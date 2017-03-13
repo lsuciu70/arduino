@@ -86,6 +86,14 @@ LsuAlarm/.cproject
 LsuAlarm/.project
 LsuAlarm/.settings
 
+NodeMcuCoap/.cproject
+NodeMcuCoap/.project
+NodeMcuCoap/.settings/
+
+NodeMcuDtls/.cproject
+NodeMcuDtls/.project
+NodeMcuDtls/.settings/
+
 .version
 #	LsuNtpClock/
 automatizare_display/
