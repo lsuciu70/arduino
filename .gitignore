@@ -46,6 +46,17 @@ onewire_search/.cproject
 onewire_search/.project
 onewire_search/.settings
 
+LsuMqttTest/.cproject
+LsuMqttTest/.project
+LsuMqttTest/.settings
+
+LsuWifiDeepSleep/.cproject
+LsuWifiDeepSleep/.project
+LsuWifiDeepSleep/.settings
+
+libraries/Adafruit_MQTT
+libraries/pubsubclient
+
 libraries/DallasTemperature
 libraries/ESP8266WiFi
 libraries/OneWire/

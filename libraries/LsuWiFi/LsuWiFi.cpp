@@ -43,9 +43,9 @@ void LsuWiFi::connect()
       if (count)
         Serial.println();
       Serial.println("Not connected; 10 s timed out. Trying next SSID.");
-      LsuLog::writeLogger(
-          String("WiFi: connectare nereusita dupa 10 s la ") + +ssid
-              + "; incearca urmatorul SSID");
+//      LsuLog::writeLogger(
+//          String("WiFi: connectare nereusita dupa 10 s la ") + +ssid
+//              + "; incearca urmatorul SSID");
       ssid_ix += 1;
       return connect();
     }
@@ -65,8 +65,8 @@ void LsuWiFi::connect()
       String("Connected, took ") + (1.0 * (millis() - mllis) / 1000) + " s;"
           + "\n MAC: " + macAddress() + "\n IP:  "
           + String(WiFi.localIP().toString()));
-  LsuLog::writeLogger(
-      String("WiFi: conectat la ") + ssid + " ("
-          + (1.0 * (millis() - mllis) / 1000) + " s), adresa: "
-          + WiFi.localIP().toString());
+//  LsuLog::writeLogger(
+//      String("WiFi: conectat la ") + ssid + " ("
+//          + (1.0 * (millis() - mllis) / 1000) + " s), adresa: "
+//          + WiFi.localIP().toString());
 }

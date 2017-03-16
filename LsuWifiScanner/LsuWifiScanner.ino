@@ -7,7 +7,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("Scanning available networks...");
+  Serial.println(F("Scanning available networks..."));
   listNetworks();
   Serial.println();
   delay(10000);
@@ -19,63 +19,63 @@ void printMacAddress() {
 
   // print your MAC address:
   WiFi.macAddress(mac);
-  Serial.print("MAC: ");
+  Serial.print(F("MAC: "));
   Serial.print(mac[5], HEX);
-  Serial.print(":");
+  Serial.print(F(":"));
   Serial.print(mac[4], HEX);
-  Serial.print(":");
+  Serial.print(F(":"));
   Serial.print(mac[3], HEX);
-  Serial.print(":");
+  Serial.print(F(":"));
   Serial.print(mac[2], HEX);
-  Serial.print(":");
+  Serial.print(F(":"));
   Serial.print(mac[1], HEX);
-  Serial.print(":");
+  Serial.print(F(":"));
   Serial.println(mac[0], HEX);
 }
 
 void listNetworks() {
   // scan for nearby networks:
-  Serial.println("** Scan Networks **");
   int numSsid = WiFi.scanNetworks();
   if (numSsid == -1) {
-    Serial.println("Couldn't get a wifi connection");
+    Serial.println(F("Couldn't get a wifi connection"));
     while (true);
   }
 
   // print the list of networks seen:
-  Serial.print("number of available networks:");
+  Serial.print(F("number of available networks:"));
   Serial.println(numSsid);
 
   // print the network number and name for each network found:
   for (int thisNet = 0; thisNet < numSsid; thisNet++) {
     int thisEncryptionType = WiFi.encryptionType(thisNet);
     Serial.print(thisNet);
-    Serial.print(") ");
+    Serial.print(F(") "));
     Serial.print(WiFi.SSID(thisNet));
-    Serial.print("\tSignal: ");
+    Serial.print(F("\tSignal: "));
     Serial.print(WiFi.RSSI(thisNet));
-    Serial.print(" dBm");
+    Serial.print(F(" dBm"));
         Serial.print("\tChannel: ");
         Serial.print(WiFi.channel(thisNet));
-    Serial.print("\tEncryption: ");
+    Serial.print(F("\tEncryption: "));
     switch (thisEncryptionType) {
       case ENC_TYPE_WEP:
-        Serial.println("WEP");
+        Serial.println(F("WEP"));
         break;
       case ENC_TYPE_TKIP:
-        Serial.println("WPA");
+        Serial.println(F("WPA"));
         break;
       case ENC_TYPE_CCMP:
-        Serial.println("WPA2");
+        Serial.println(F("WPA2"));
         break;
       case ENC_TYPE_NONE:
-        Serial.println("None");
+        Serial.println(F("None"));
         break;
       case ENC_TYPE_AUTO:
-        Serial.println("Auto");
+        Serial.println(F("Auto"));
         break;
       default:
-                Serial.println(String("Unknown: ") + thisEncryptionType);
+        Serial.print(F("Unknown: "));
+        Serial.println(thisEncryptionType);
         break;
     }
   }

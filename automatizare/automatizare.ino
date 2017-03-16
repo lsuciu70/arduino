@@ -17,6 +17,14 @@ const int SECOND = 1000;
 // Sensor count
 const byte SENZOR_COUNT = 4;
 
+// Feather HUZZAH pins
+const byte GPIO_0 = 0; // 1st temperature sensor, OneWire, DallasTemperature
+const byte GPIO_2 = 2; // 2nd temperature sensor, OneWire, DallasTemperature
+const byte GPIO_12 = 12; // 1st room, Camera Luca | Bucatarie, relay 1
+const byte GPIO_13 = 13; // 2nd room, Dormitor matrimonial | Living, relay 2
+const byte GPIO_14 = 14; // 3rd room, Dormitor oaspeti | Birou, relay 3
+const byte GPIO_15 = 15; // 4th room, Baie etaj | Baie parter, relay 4
+
 // parter
 const String T_LOC_PARTER = "parter";
 const String MAC_PARTER = "18:FE:34:D4:0D:EC";
@@ -90,11 +98,6 @@ const IPAddress master_server_ip(192, 168, 100, 100);
 const int master_server_port = 8081;
 
 // Temperature senzor section
-// Feather HUZZAH pin 0
-const byte ONE_WIRE_1ST_PIN_0 = 0;
-// Feather HUZZAH pin 2
-const byte ONE_WIRE_2ND_PIN_2 = 2;
-
 // Temperature senzor resolution: 9, 10, 11, or 12 bits
 const byte RESOLUTION = 12;
 
@@ -123,12 +126,12 @@ const uint8_t SENZOR_ADDRESS[2 * SENZOR_COUNT][SENZOR_ADDRESS_LENGTH] =
 // The interval temperature is read
 const byte TEMP_READ_INTERVAL = 10;
 
-// Setup a oneWire instance to communicate with any OneWire devices
+// Setup a oneWire instance to communicate with OneWire devices
 // (not just Maxim/Dallas temperature ICs)
-OneWire oneWire1st_pin0(ONE_WIRE_1ST_PIN_0);
-OneWire oneWire2nd_pin2(ONE_WIRE_2ND_PIN_2);
+OneWire oneWire1st_pin0(GPIO_0);
+OneWire oneWire2nd_pin2(GPIO_2);
 
-// Pass our oneWire reference to Dallas Temperature.
+// Pass oneWire reference to Dallas Temperature.
 DallasTemperature dallasTemperature1st_pin0(&oneWire1st_pin0);
 DallasTemperature dallasTemperature2nd_pin2(&oneWire2nd_pin2);
 
@@ -141,7 +144,7 @@ const String room_name[] =
 // Relay section
 // Feather HUZZAH relay's pins
 const byte relay[] =
-{ 12, 13, 14, 15, };
+{ GPIO_12, GPIO_13, GPIO_14, GPIO_15, };
 
 // programming section
 // temperature increase amount for P2, P3, and P4 in centi degrees Celsius
