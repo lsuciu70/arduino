@@ -33,10 +33,10 @@ void onWiFiEventCb(WiFiEvent_t evt)
             Serial.println(" WIFI_EVENT_SOFTAPMODE_STACONNECTED");
             break;
         case WIFI_EVENT_SOFTAPMODE_STADISCONNECTED:
-            Serial.println(" WIFI_EVENT_SOFTAPMODE_STACONNECTED");
+            Serial.println(" WIFI_EVENT_SOFTAPMODE_STADISCONNECTED");
             break;
         case WIFI_EVENT_SOFTAPMODE_PROBEREQRECVED:
-            Serial.println(" WIFI_EVENT_SOFTAPMODE_STACONNECTED");
+            Serial.println(" WIFI_EVENT_SOFTAPMODE_PROBEREQRECVED");
             break;
         default:
             Serial.println(" ** UNKNOWN **");

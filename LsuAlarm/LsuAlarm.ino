@@ -2,7 +2,7 @@
 
 static const uint8_t PINS = 10;
 
-static const uint8_t pin[PINS] =
+uint8_t pin[PINS] =
 {
   D1, D2, D3, D4, D5, D6, D7, D8, D9, D10
 };
@@ -33,6 +33,6 @@ void handleInterrupt()
       bitSet(value, i);
     else
       bitClear(value, i);
-  }  
+  }
 }
 
