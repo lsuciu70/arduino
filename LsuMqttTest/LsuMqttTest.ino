@@ -5,7 +5,9 @@
 
 const char* broker = "192.168.100.11";
 uint16_t port = 1883;
+
 void callback(char* topic, byte* payload, unsigned int length);
+
 WiFiClient espClient;
 
 MqttClient client(broker, port, callback, espClient);
@@ -14,30 +16,37 @@ long lastMsg = 0;
 char msg[50];
 int value = 0;
 
-void callback(char* topic, byte* payload, unsigned int length) {
+void callback(char* topic, byte* payload, unsigned int length)
+{
   Serial.print(F("Message arrived ["));
   Serial.print(topic);
   Serial.print(F("] "));
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+  for (int i = 0; i < length; i++)
+  {
+    Serial.print((char) payload[i]);
   }
   Serial.println();
 }
 
-void reconnect() {
+void reconnect()
+{
   // Loop until we're reconnected
-  while (!client.connected()) {
+  while (!client.connected())
+  {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
     String clientId = "LsuMqttClient";
     // Attempt to connect
-    if (client.connect(clientId.c_str())) {
+    if (client.connect(clientId.c_str()))
+    {
       Serial.println("connected");
       // Once connected, publish an announcement...
       client.publish("mqtt", "hello world");
       // ... and resubscribe
       client.subscribe("mqtt");
-    } else {
+    }
+    else
+    {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
@@ -47,20 +56,24 @@ void reconnect() {
   }
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
 }
 
-void loop() {
+void loop()
+{
   LsuWiFi::connect();
-  if(!client.loop())
+  if (!client.connected())
     reconnect();
+  client.loop();
 
   long now = millis();
-  if (now - lastMsg > 10000) {
+  if (now - lastMsg > 10000)
+  {
     lastMsg = now;
     ++value;
-    snprintf (msg, 75, "hello world #%ld", value);
+    snprintf(msg, 75, "hello world #%ld", value);
     Serial.print(F("Publish message: "));
     Serial.println(msg);
     client.publish("mqtt", msg);
