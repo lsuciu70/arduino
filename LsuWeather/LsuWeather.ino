@@ -3,7 +3,6 @@
 #include <SparkFunBME280.h> // https://github.com/sparkfun/SparkFun_BME280_Arduino_Library
 #include <LsuWiFiC.h>
 #include <Esp.h>
-#include <WiFiUdp.h>
 
 #include <math.h>
 
@@ -11,8 +10,6 @@
 
 #define SECONDS_AS_PICO (1000000)
 #define SECONDS_AS_NANO (1000)
-#ifdef UDP_TX_PACKET_MAX_SIZE
-#endif
 
 BME280 sensor;
 
