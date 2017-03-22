@@ -1,7 +1,8 @@
-#include <ESP8266WiFi.h>
-#include <LsuWiFi.h>
+#include <LsuWiFiC.h>
 
 #include "MqttClient.h"
+
+#define DEBUG
 
 const char* broker = "192.168.100.11";
 uint16_t port = 1883;
@@ -63,7 +64,7 @@ void setup()
 
 void loop()
 {
-  LsuWiFi::connect();
+  connectLsuWiFi();
   if (!client.connected())
     reconnect();
   client.loop();
