@@ -4,7 +4,7 @@
 
 #define DEBUG
 
-const char* broker = "192.168.100.11";
+const char* broker = "192.168.100.25";
 uint16_t port = 1883;
 
 void callback(char* topic, byte* payload, unsigned int length);
@@ -15,7 +15,6 @@ MqttClient client(broker, port, callback, espClient);
 
 long lastMsg = 0;
 char msg[50];
-int value = 0;
 
 void callback(char* topic, byte* payload, unsigned int length)
 {
@@ -73,8 +72,9 @@ void loop()
   if (now - lastMsg > 10000)
   {
     lastMsg = now;
-    ++value;
-    snprintf(msg, 75, "hello world #%ld", value);
+    int value = analogRead(A0);
+    value = map(value, 265, 350, 0, 100);
+    snprintf(msg, 75, "level %d", value);
     Serial.print(F("Publish message: "));
     Serial.println(msg);
     client.publish("mqtt", msg);

@@ -15,7 +15,7 @@ namespace
 {
 
 #ifndef DEBUG
-#undef DEBUG
+#define DEBUG
 #endif
 
 const uint8_t SSID_SIZE = 3;

@@ -8,13 +8,13 @@
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   Serial.println(F("\n"));
   Serial.println(millis());
   Serial.println(F("setup ..."));
 
-  connectLsuWiFi(2);
+  connectLsuWiFi();
 
   Serial.println(F("Wait 10 seconds"));
   delay(10 * SECONDS_AS_NANO);

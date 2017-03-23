@@ -34,6 +34,14 @@ libraries/WakaanaA/.cproject
 libraries/WakaanaA/.project
 libraries/WakaanaA/.settings
 
+LsuBatteryHuzzah/.cproject
+LsuBatteryHuzzah/.project
+LsuBatteryHuzzah/.settings
+
+LsuGarden/.cproject
+LsuGarden/.project
+LsuGarden/.settings
+
 LsuHeating/.cproject
 LsuHeating/.project
 LsuHeating/.settings
@@ -59,11 +67,13 @@ libraries/pubsubclient
 
 libraries/DallasTemperature
 libraries/ESP8266WiFi
-libraries/OneWire/
-libraries/Robot_Control/
-libraries/Time/
-libraries/Timezone/
+libraries/OneWire
+libraries/Robot_Control
+libraries/Time
+libraries/Timezone
 libraries/WakaanaA
+libraries/Adafruit_BME280
+libraries/Adafruit_Sensor
 
 libraries/LsuLogger/.cproject
 libraries/LsuLogger/.project
