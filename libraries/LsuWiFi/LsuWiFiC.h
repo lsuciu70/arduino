@@ -32,12 +32,12 @@ bool initialized = false;
 /**
  * Connects to one of LSU WiFi networks.
  * ssid_idx - the index to try, default 0 (first one)
- * timeout - the timeout (in milliseconds) before giving up on current index, default 10000
+ * timeout - the timeout (in milliseconds) before giving up on current index, default 5000
  * retry_after_timeout - flag indicating if should retry after timeout
  * try_next_ssid - flag indicating to try next index on retry
  */
-bool connectLsuWiFi(const uint8_t ssid_idx = 0, const uint16_t timeout = 10000,
-    const bool retry_after_timeout = true, const bool try_next_ssid = true)
+bool connectLsuWiFi(const uint8_t ssid_idx = 0, const uint16_t timeout = 5000,
+    const bool retry_after_timeout = true, const bool try_next_ssid = true, const uint8_t try_index = 1)
 {
   if (!initialized && (initialized = true))
     WiFi.mode(WIFI_STA);
@@ -74,12 +74,13 @@ bool connectLsuWiFi(const uint8_t ssid_idx = 0, const uint16_t timeout = 10000,
         Serial.println(F(" s timed out. No retry."));
       }
 #endif
-      if (!retry_after_timeout)
+      if (!retry_after_timeout && try_index == SSID_SIZE)
+        // do not retry, and tried all available
         return false;
       if (try_next_ssid)
         ssid_ix += 1;
       return connectLsuWiFi(ssid_ix, timeout, retry_after_timeout,
-          try_next_ssid);
+          try_next_ssid, try_index + 1);
     }
 #ifdef DEBUG
     if ((++count) % 10 == 0)

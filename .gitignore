@@ -109,11 +109,21 @@ LsuAlarm/.settings
 
 NodeMcuCoap/.cproject
 NodeMcuCoap/.project
-NodeMcuCoap/.settings/
+NodeMcuCoap/.settings
 
 NodeMcuDtls/.cproject
 NodeMcuDtls/.project
-NodeMcuDtls/.settings/
+NodeMcuDtls/.settings
+
+LsuWeather2/.cproject
+LsuWeather2/.project
+LsuWeather2/.settings
+
+LsuWeather3/.cproject
+LsuWeather3/.project
+LsuWeather3/.settings
+
+libraries/Bosch_BME280/
 
 .version
 #	LsuNtpClock/

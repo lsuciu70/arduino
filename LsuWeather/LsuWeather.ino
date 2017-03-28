@@ -10,7 +10,6 @@
 #include "MqttClient.h"
 
 #define SECONDS_AS_PICO (1000000)
-#define SECONDS_AS_NANO (1000)
 
 BME280 sensor;
 
@@ -20,14 +19,6 @@ void mqttCallback(char*, byte*, unsigned int);
 WiFiClient espClient;
 
 MqttClient mqttClient(broker, port, mqttCallback, espClient);
-
-int charsOf(float n, uint8_t decimals = 2)
-{
-  if(decimals)
-    return snprintf(0, 0, "%d", (int) n) + 1 + decimals;
-  else
-    return snprintf(0, 0, "%d", (int) n) + decimals;
-}
 
 void startBME280()
 {
@@ -63,7 +54,7 @@ void setup()
 
   // start sensor
   startBME280();
-  
+
   Serial.println();
 
   // read temperature [C]
@@ -117,19 +108,20 @@ void setup()
   Serial.println(msg);
 
   // connect to WiFi
-  connectLsuWiFi();
-
-  // send data
-  if (mqttClient.connect("LsuWeather"))
+  if(connectLsuWiFi(0, 5000, false))
   {
-    mqttClient.loop();
-    mqttClient.subscribe("weather");
-    mqttClient.publish("weather", msg);
-    Serial.println("Sent date to MQTT broker");
-  }
-  else
-  {
-    Serial.println("Could not connect MQTT broker");
+    // send data
+    if (mqttClient.connect("LsuWeather"))
+    {
+      mqttClient.loop();
+      mqttClient.subscribe("weather");
+      mqttClient.publish("weather", msg);
+      Serial.println("Sent date to MQTT broker");
+    }
+    else
+    {
+      Serial.println("Could not connect MQTT broker");
+    }
   }
 
   // deep sleep
