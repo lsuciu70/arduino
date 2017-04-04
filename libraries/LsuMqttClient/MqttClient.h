@@ -83,7 +83,7 @@
 
 class MqttClient {
 private:
-   Nokia_MqttClientAdapter* _client;
+   Client* _client;
    uint8_t buffer[MQTT_MAX_PACKET_SIZE];
    uint16_t nextMsgId;
    unsigned long lastOutActivity;
@@ -102,25 +102,25 @@ private:
    int _state;
 public:
    MqttClient();
-   MqttClient(Nokia_MqttClientAdapter& client);
-   MqttClient(IPAddress, uint16_t, Nokia_MqttClientAdapter& client);
-   MqttClient(IPAddress, uint16_t, Nokia_MqttClientAdapter& client, Stream&);
-   MqttClient(IPAddress, uint16_t, MQTT_CALLBACK_SIGNATURE,Nokia_MqttClientAdapter& client);
-   MqttClient(IPAddress, uint16_t, MQTT_CALLBACK_SIGNATURE,Nokia_MqttClientAdapter& client, Stream&);
-   MqttClient(uint8_t *, uint16_t, Nokia_MqttClientAdapter& client);
-   MqttClient(uint8_t *, uint16_t, Nokia_MqttClientAdapter& client, Stream&);
-   MqttClient(uint8_t *, uint16_t, MQTT_CALLBACK_SIGNATURE,Nokia_MqttClientAdapter& client);
-   MqttClient(uint8_t *, uint16_t, MQTT_CALLBACK_SIGNATURE,Nokia_MqttClientAdapter& client, Stream&);
-   MqttClient(const char*, uint16_t, Nokia_MqttClientAdapter& client);
-   MqttClient(const char*, uint16_t, Nokia_MqttClientAdapter& client, Stream&);
-   MqttClient(const char*, uint16_t, MQTT_CALLBACK_SIGNATURE,Nokia_MqttClientAdapter& client);
-   MqttClient(const char*, uint16_t, MQTT_CALLBACK_SIGNATURE,Nokia_MqttClientAdapter& client, Stream&);
+   MqttClient(Client& client);
+   MqttClient(IPAddress, uint16_t, Client& client);
+   MqttClient(IPAddress, uint16_t, Client& client, Stream&);
+   MqttClient(IPAddress, uint16_t, MQTT_CALLBACK_SIGNATURE,Client& client);
+   MqttClient(IPAddress, uint16_t, MQTT_CALLBACK_SIGNATURE,Client& client, Stream&);
+   MqttClient(uint8_t *, uint16_t, Client& client);
+   MqttClient(uint8_t *, uint16_t, Client& client, Stream&);
+   MqttClient(uint8_t *, uint16_t, MQTT_CALLBACK_SIGNATURE,Client& client);
+   MqttClient(uint8_t *, uint16_t, MQTT_CALLBACK_SIGNATURE,Client& client, Stream&);
+   MqttClient(const char*, uint16_t, Client& client);
+   MqttClient(const char*, uint16_t, Client& client, Stream&);
+   MqttClient(const char*, uint16_t, MQTT_CALLBACK_SIGNATURE,Client& client);
+   MqttClient(const char*, uint16_t, MQTT_CALLBACK_SIGNATURE,Client& client, Stream&);
 
    MqttClient& setServer(IPAddress ip, uint16_t port);
    MqttClient& setServer(uint8_t * ip, uint16_t port);
    MqttClient& setServer(const char * domain, uint16_t port);
    MqttClient& setCallback(MQTT_CALLBACK_SIGNATURE);
-   MqttClient& setClient(Nokia_MqttClientAdapter& client);
+   MqttClient& setClient(Client& client);
    MqttClient& setStream(Stream& stream);
 
    boolean connect(const char* id);

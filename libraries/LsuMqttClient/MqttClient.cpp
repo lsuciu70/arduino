@@ -15,32 +15,32 @@ MqttClient::MqttClient() {
     setCallback(NULL);
 }
 
-MqttClient::MqttClient(Nokia_MqttClientAdapter& client) {
+MqttClient::MqttClient(Client& client) {
     this->_state = MQTT_DISCONNECTED;
     setClient(client);
     this->stream = NULL;
 }
 
-MqttClient::MqttClient(IPAddress addr, uint16_t port, Nokia_MqttClientAdapter& client) {
+MqttClient::MqttClient(IPAddress addr, uint16_t port, Client& client) {
     this->_state = MQTT_DISCONNECTED;
     setServer(addr, port);
     setClient(client);
     this->stream = NULL;
 }
-MqttClient::MqttClient(IPAddress addr, uint16_t port, Nokia_MqttClientAdapter& client, Stream& stream) {
+MqttClient::MqttClient(IPAddress addr, uint16_t port, Client& client, Stream& stream) {
     this->_state = MQTT_DISCONNECTED;
     setServer(addr,port);
     setClient(client);
     setStream(stream);
 }
-MqttClient::MqttClient(IPAddress addr, uint16_t port, MQTT_CALLBACK_SIGNATURE, Nokia_MqttClientAdapter& client) {
+MqttClient::MqttClient(IPAddress addr, uint16_t port, MQTT_CALLBACK_SIGNATURE, Client& client) {
     this->_state = MQTT_DISCONNECTED;
     setServer(addr, port);
     setCallback(callback);
     setClient(client);
     this->stream = NULL;
 }
-MqttClient::MqttClient(IPAddress addr, uint16_t port, MQTT_CALLBACK_SIGNATURE, Nokia_MqttClientAdapter& client, Stream& stream) {
+MqttClient::MqttClient(IPAddress addr, uint16_t port, MQTT_CALLBACK_SIGNATURE, Client& client, Stream& stream) {
     this->_state = MQTT_DISCONNECTED;
     setServer(addr,port);
     setCallback(callback);
@@ -48,26 +48,26 @@ MqttClient::MqttClient(IPAddress addr, uint16_t port, MQTT_CALLBACK_SIGNATURE, N
     setStream(stream);
 }
 
-MqttClient::MqttClient(uint8_t *ip, uint16_t port, Nokia_MqttClientAdapter& client) {
+MqttClient::MqttClient(uint8_t *ip, uint16_t port, Client& client) {
     this->_state = MQTT_DISCONNECTED;
     setServer(ip, port);
     setClient(client);
     this->stream = NULL;
 }
-MqttClient::MqttClient(uint8_t *ip, uint16_t port, Nokia_MqttClientAdapter& client, Stream& stream) {
+MqttClient::MqttClient(uint8_t *ip, uint16_t port, Client& client, Stream& stream) {
     this->_state = MQTT_DISCONNECTED;
     setServer(ip,port);
     setClient(client);
     setStream(stream);
 }
-MqttClient::MqttClient(uint8_t *ip, uint16_t port, MQTT_CALLBACK_SIGNATURE, Nokia_MqttClientAdapter& client) {
+MqttClient::MqttClient(uint8_t *ip, uint16_t port, MQTT_CALLBACK_SIGNATURE, Client& client) {
     this->_state = MQTT_DISCONNECTED;
     setServer(ip, port);
     setCallback(callback);
     setClient(client);
     this->stream = NULL;
 }
-MqttClient::MqttClient(uint8_t *ip, uint16_t port, MQTT_CALLBACK_SIGNATURE, Nokia_MqttClientAdapter& client, Stream& stream) {
+MqttClient::MqttClient(uint8_t *ip, uint16_t port, MQTT_CALLBACK_SIGNATURE, Client& client, Stream& stream) {
     this->_state = MQTT_DISCONNECTED;
     setServer(ip,port);
     setCallback(callback);
@@ -75,26 +75,26 @@ MqttClient::MqttClient(uint8_t *ip, uint16_t port, MQTT_CALLBACK_SIGNATURE, Noki
     setStream(stream);
 }
 
-MqttClient::MqttClient(const char* domain, uint16_t port, Nokia_MqttClientAdapter& client) {
+MqttClient::MqttClient(const char* domain, uint16_t port, Client& client) {
     this->_state = MQTT_DISCONNECTED;
     setServer(domain,port);
     setClient(client);
     this->stream = NULL;
 }
-MqttClient::MqttClient(const char* domain, uint16_t port, Nokia_MqttClientAdapter& client, Stream& stream) {
+MqttClient::MqttClient(const char* domain, uint16_t port, Client& client, Stream& stream) {
     this->_state = MQTT_DISCONNECTED;
     setServer(domain,port);
     setClient(client);
     setStream(stream);
 }
-MqttClient::MqttClient(const char* domain, uint16_t port, MQTT_CALLBACK_SIGNATURE, Nokia_MqttClientAdapter& client) {
+MqttClient::MqttClient(const char* domain, uint16_t port, MQTT_CALLBACK_SIGNATURE, Client& client) {
     this->_state = MQTT_DISCONNECTED;
     setServer(domain,port);
     setCallback(callback);
     setClient(client);
     this->stream = NULL;
 }
-MqttClient::MqttClient(const char* domain, uint16_t port, MQTT_CALLBACK_SIGNATURE, Nokia_MqttClientAdapter& client, Stream& stream) {
+MqttClient::MqttClient(const char* domain, uint16_t port, MQTT_CALLBACK_SIGNATURE, Client& client, Stream& stream) {
     this->_state = MQTT_DISCONNECTED;
     setServer(domain,port);
     setCallback(callback);
@@ -574,7 +574,7 @@ MqttClient& MqttClient::setCallback(MQTT_CALLBACK_SIGNATURE) {
     return *this;
 }
 
-MqttClient& MqttClient::setClient(Nokia_MqttClientAdapter& client){
+MqttClient& MqttClient::setClient(Client& client){
     this->_client = &client;
     return *this;
 }

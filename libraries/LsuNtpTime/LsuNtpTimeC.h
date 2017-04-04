@@ -12,6 +12,7 @@
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
 
 #include <LsuWiFiC.h>
+#include <WiFiUdp.h>
 
 #ifndef SECOND
 #define SECOND (1000)
@@ -62,9 +63,9 @@ void timeString(char* outbuff, int hour_t = hour(), int minute_t = minute(),
   sprintf(outbuff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
 }
 
-time_t getTime()
+time_t getNtpTime()
 {
-  connectLsuWiFi();
+  connectLsuWiFi(0, 5000, false);
   WiFiUDP udp;
   const byte POLL_INTERVAL = 10; // poll every this many ms
   const byte POLL_TIMES = 100;  // poll up to this many times
@@ -152,6 +153,26 @@ time_t getTime()
   // convert Unix to locale (EET | EEST)
   t_time = EasternEuropeanTime.toLocal(t_time, &tcr);
   return t_time;
+}
+
+bool LsuNtpBegin(uint64_t syncInterval = 3600)
+{
+  if(!connectLsuWiFi(0, 5000, false))
+  {
+#ifdef DEBUG
+    Serial.println(F("NTP ERROR: could not connect WiFi"));
+#endif
+    return false;
+  }
+  setSyncProvider(getNtpTime);
+  // Set synch interval to one second till sync
+  while (timeStatus() != timeSet)
+  {
+    setSyncInterval(1);
+  }
+  // Set synch interval
+  setSyncInterval(syncInterval);
+  return true;
 }
 
 #endif /* LSUNTPTIMEC_H_ */

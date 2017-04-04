@@ -13,10 +13,12 @@
 
 BME280 sensor;
 
-const char* broker = "192.168.100.25";
+const char* broker = "192.168.100.59";
 uint16_t port = 1883;
 void mqttCallback(char*, byte*, unsigned int);
 WiFiClient espClient;
+
+typedef uint8_t (*SEND_FUNCTION)(uint8_t*, uint8_t, uint8_t, ...);
 
 MqttClient mqttClient(broker, port, mqttCallback, espClient);
 
@@ -110,9 +112,10 @@ void setup()
   // connect to WiFi
   if(connectLsuWiFi(0, 5000, false))
   {
-    // send data
+    // connect to MQTT broker
     if (mqttClient.connect("LsuWeather"))
     {
+      // send data
       mqttClient.loop();
       mqttClient.subscribe("weather");
       mqttClient.publish("weather", msg);
@@ -122,6 +125,10 @@ void setup()
     {
       Serial.println("Could not connect MQTT broker");
     }
+  }
+  else
+  {
+    Serial.println("Could not connect WiFi");
   }
 
   // deep sleep

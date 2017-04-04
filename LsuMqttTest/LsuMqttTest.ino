@@ -4,7 +4,8 @@
 
 #define DEBUG
 
-const char* broker = "192.168.100.25";
+//const char* broker = "192.168.100.25";
+const char* broker = "92.81.33.180"; // lsuciu.no-ip.org
 uint16_t port = 1883;
 
 void callback(char* topic, byte* payload, unsigned int length);
@@ -40,10 +41,10 @@ void reconnect()
     if (client.connect(clientId.c_str()))
     {
       Serial.println("connected");
-      // Once connected, publish an announcement...
-      client.publish("mqtt", "hello world");
-      // ... and resubscribe
+      // Once connected, subscribe
       client.subscribe("mqtt");
+      // ... and publish an announcement
+      client.publish("mqtt", "hello world");
     }
     else
     {
@@ -63,20 +64,20 @@ void setup()
 
 void loop()
 {
-  connectLsuWiFi();
+  connectLsuWiFi(2);
   if (!client.connected())
     reconnect();
   client.loop();
-
-  long now = millis();
-  if (now - lastMsg > 10000)
-  {
-    lastMsg = now;
-    int value = analogRead(A0);
-    value = map(value, 265, 350, 0, 100);
-    snprintf(msg, 75, "level %d", value);
-    Serial.print(F("Publish message: "));
-    Serial.println(msg);
-    client.publish("mqtt", msg);
-  }
+//
+//  long now = millis();
+//  if (now - lastMsg > 10000)
+//  {
+//    lastMsg = now;
+//    int value = analogRead(A0);
+//    value = map(value, 265, 350, 0, 100);
+//    snprintf(msg, 75, "level %d", value);
+//    Serial.print(F("Publish message: "));
+//    Serial.println(msg);
+//    client.publish("mqtt", msg);
+//  }
 }
