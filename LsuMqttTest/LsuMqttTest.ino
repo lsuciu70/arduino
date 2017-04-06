@@ -4,8 +4,8 @@
 
 #define DEBUG
 
-//const char* broker = "192.168.100.25";
-const char* broker = "92.81.33.180"; // lsuciu.no-ip.org
+const char* broker = "192.168.100.59";
+//const char* broker = "92.81.33.180"; // lsuciu.no-ip.org
 uint16_t port = 1883;
 
 void callback(char* topic, byte* payload, unsigned int length);
@@ -36,15 +36,15 @@ void reconnect()
   {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
-    String clientId = "LsuMqttClient";
+    String clientId = "NokiaMQTTClient";
     // Attempt to connect
     if (client.connect(clientId.c_str()))
     {
       Serial.println("connected");
       // Once connected, subscribe
-      client.subscribe("mqtt");
+      client.subscribe("la_topic");
       // ... and publish an announcement
-      client.publish("mqtt", "hello world");
+      client.publish("la_topic", "mere");
     }
     else
     {
@@ -64,7 +64,7 @@ void setup()
 
 void loop()
 {
-  connectLsuWiFi(2);
+  connectLsuWiFi(0, 10000);
   if (!client.connected())
     reconnect();
   client.loop();
