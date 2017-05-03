@@ -10,8 +10,6 @@
 
 #include <stdint.h>
 
-#include <Wasp4G.h>
-
 #ifndef MQTT_MAX_PACKET_SIZE
 #define MQTT_MAX_PACKET_SIZE 127
 #endif

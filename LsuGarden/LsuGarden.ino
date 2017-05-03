@@ -23,10 +23,10 @@ void setup()
 
 void loop()
 {
-  delay(5000);
-  out = (++out) % 2;
-  for(uint8_t i = 0; i < NB_PINS; ++i)
-  {
-  	digitalWrite(pin[i], out);
-  }
+//  delay(5000);
+//  out = (++out) % 2;
+//  for(uint8_t i = 0; i < NB_PINS; ++i)
+//  {
+//  	digitalWrite(pin[i], out);
+//  }
 }

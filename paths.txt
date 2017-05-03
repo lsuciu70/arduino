@@ -1,3 +1,5 @@
+
+
 Arduino.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
@@ -21,11 +23,21 @@ stdint.h
 
 stddef.h
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/lib/gcc/xtensa-lx106-elf/4.8.2/include
+/home/lsuciu/arduino-ide/hardware/tools/avr/lib/gcc/avr/4.9.2/include
 
 common.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/generic
 
 Esp.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+
+ESP8266WebServer.h
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266WebServer/src
+
+EEPROM.h
+/home/lsuciu/arduino-ide/packages/esp8266/hardware/esp8266/2.3.0/libraries/EEPROM/EEPROM.h
+/home/lsuciu/arduino-ide/packages/arduino/hardware/avr/1.6.15/libraries/EEPROM/src/EEPROM.h
+
+
 
 

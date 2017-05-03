@@ -123,6 +123,14 @@ LsuWeather3/.cproject
 LsuWeather3/.project
 LsuWeather3/.settings
 
+LsuWiFiSetHostname/.cproject
+LsuWiFiSetHostname/.project
+LsuWiFiSetHostname/.settings
+
+NodeMcuEeprom/.cproject
+NodeMcuEeprom/.project
+NodeMcuEeprom/.settings
+
 libraries/Bosch_BME280/
 
 .version

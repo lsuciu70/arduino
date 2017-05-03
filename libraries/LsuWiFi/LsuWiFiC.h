@@ -11,13 +11,15 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 namespace
 {
 
-#ifndef DEBUG
-#define DEBUG
-#endif
-
+namespace
+{
 const uint8_t SSID_SIZE = 3;
 
 const char* SSID_t[] =
@@ -28,6 +30,18 @@ const char* PASSWD_t[] =
 
 bool initialized = false;
 }
+}
+
+namespace LsuWiFiC
+{
+
+/**
+ * Returns true if WiFi is connected, false otherwise.
+ */
+inline bool isConnected()
+{
+  return (WiFi.status() == WL_CONNECTED);
+}
 
 /**
  * Connects to one of LSU WiFi networks.
@@ -36,29 +50,29 @@ bool initialized = false;
  * retry_after_timeout - flag indicating if should retry after timeout
  * try_next_ssid - flag indicating to try next index on retry
  */
-bool connectLsuWiFi(const uint8_t ssid_idx = 0, const uint16_t timeout = 5000,
+bool connect(const uint8_t ssid_idx = 0, const uint16_t timeout = 5000,
     const bool retry_after_timeout = true, const bool try_next_ssid = true, const uint8_t try_index = 1)
 {
   if (!initialized && (initialized = true))
     WiFi.mode(WIFI_STA);
-  if (WiFi.status() == WL_CONNECTED)
+  if (isConnected())
     return true;
   uint8_t ssid_ix = ssid_idx % SSID_SIZE;
   const char* ssid = SSID_t[ssid_ix];
   const char* passwd = PASSWD_t[ssid_ix];
-#ifdef DEBUG
+#if DEBUG
   Serial.print(F("WiFi: connecting to "));
   Serial.println(ssid);
 #endif
   WiFi.begin(ssid, passwd);
   unsigned long mllis = millis();
   byte count = 1;
-  while (WiFi.status() != WL_CONNECTED)
+  while (!isConnected())
   {
     delay(10);
     if (millis() - mllis >= timeout)
     {
-#ifdef DEBUG
+#if DEBUG
       if (count)
         Serial.println();
       if (retry_after_timeout)
@@ -79,10 +93,10 @@ bool connectLsuWiFi(const uint8_t ssid_idx = 0, const uint16_t timeout = 5000,
         return false;
       if (try_next_ssid)
         ssid_ix += 1;
-      return connectLsuWiFi(ssid_ix, timeout, retry_after_timeout,
+      return connect(ssid_ix, timeout, retry_after_timeout,
           try_next_ssid, try_index + 1);
     }
-#ifdef DEBUG
+#if DEBUG
     if ((++count) % 10 == 0)
       Serial.print(". ");
     if (count == 100)
@@ -90,7 +104,7 @@ bool connectLsuWiFi(const uint8_t ssid_idx = 0, const uint16_t timeout = 5000,
 #endif
     count %= 100;
   }
-#ifdef DEBUG
+#if DEBUG
   if (count)
     Serial.println();
   Serial.print(F("Connected, took "));
@@ -104,4 +118,5 @@ bool connectLsuWiFi(const uint8_t ssid_idx = 0, const uint16_t timeout = 5000,
   return true;
 }
 
+}
 #endif /* LSUWIFIC_H_ */
