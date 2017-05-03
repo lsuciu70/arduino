@@ -1,71 +1,26 @@
 /*
  * LsuNtpTimeC.h
  *
- *  Created on: Mar 20, 2017
+ *  Created on: Apr 17, 2017
  *      Author: lsuciu
  */
 
 #ifndef LSUNTPTIMEC_H_
 #define LSUNTPTIMEC_H_
 
+#include <Arduino.h>
+
 #include <Time.h>         // https://github.com/PaulStoffregen/Time
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
 
-#include <LsuWiFiC.h>
-#include <WiFiUdp.h>
-
-#ifndef SECOND
-#define SECOND (1000)
-#endif
-
 #ifndef DEBUG
-#undef DEBUG
+#define DEBUG 0
 #endif
 
-const uint8_t datetimeStringLength = 19;
-
-const uint8_t dateStringLength = 10;
-
-const uint8_t timeStringLength = 8;
-
-/**
- * Fills the outbuf with the current date and time string as DD-MM-YYYY hh:mm:ss.
- * The outbuf must be at least (datetimeStringLength + 1) in size.
- * The outbuf will be null terminated.
- */
-void datetimeString(char* outbuff, int day_t = day(), int month_t = month(),
-    int year_t = year(), int hour_t = hour(), int minute_t = minute(),
-    int second_t = second())
+namespace
 {
-  sprintf(outbuff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t,
-      hour_t, minute_t, second_t);
-}
-
-/**
- * Fills the outbuf with the current date string as DD-MM-YYYY.
- * The outbuf must be at least (dateStringLength + 1) in size.
- * The outbuf will be null terminated.
- */
-void dateString(char* outbuff, int day_t = day(), int month_t = month(),
-    int year_t = year())
+time_t getTime()
 {
-  sprintf(outbuff, "%02d-%02d-%04d", day_t, month_t, year_t);
-}
-
-/**
- * Fills the outbuf with the current time string as hh:mm:ss.
- * The outbuf must be at least (timeStringLength + 1) in size.
- * The outbuf will be null terminated.
- */
-void timeString(char* outbuff, int hour_t = hour(), int minute_t = minute(),
-    int second_t = second())
-{
-  sprintf(outbuff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
-}
-
-time_t getNtpTime()
-{
-  connectLsuWiFi(0, 5000, false);
   WiFiUDP udp;
   const byte POLL_INTERVAL = 10; // poll every this many ms
   const byte POLL_TIMES = 100;  // poll up to this many times
@@ -87,11 +42,12 @@ time_t getNtpTime()
   static int udpInitialized = udp.begin(12670);
   if (0 == udpInitialized) // returns 0 if there are no sockets available to use
   {
-#ifdef DEBUG
-    Serial.println(F("ERROR: there are no sockets available to use."));
+#if DEBUG
+    Serial.println("ERROR: there are no sockets available to use.");
 #endif
     return 0;
   }
+
   static char timeServer[] = "ro.pool.ntp.org";  // the NTP server
   static long ntpFirstFourBytes = 0xEC0600E3; // the NTP request header
 
@@ -102,8 +58,8 @@ time_t getNtpTime()
       && udp.write((const uint8_t *) &ntpFirstFourBytes, (size_t) PKT_LEN)
           == PKT_LEN && udp.endPacket()))
   {
-#ifdef DEBUG
-    Serial.println(F("NTP ERROR: sending request failed"));
+#if DEBUG
+    Serial.println("NTP ERROR: sending request failed");
 #endif
     return 0; // sending request failed
   }
@@ -119,11 +75,11 @@ time_t getNtpTime()
   }
   if (pktLen != PKT_LEN)
   {
-#ifdef DEBUG
+#if DEBUG
     Serial.println();
-    Serial.print(F("NTP ERROR: no correct packet received; pktLen = "));
+    Serial.print("NTP ERROR: no correct packet received; pktLen = ");
     Serial.print(pktLen);
-    Serial.println(F(", expected 48"));
+    Serial.println(", expected 48");
 #endif
     return 0; // no correct packet received
   }
@@ -154,25 +110,72 @@ time_t getNtpTime()
   t_time = EasternEuropeanTime.toLocal(t_time, &tcr);
   return t_time;
 }
+}
 
-bool LsuNtpBegin(uint64_t syncInterval = 3600)
+namespace LsuNtpTimeC
 {
-  if(!connectLsuWiFi(0, 5000, false))
-  {
-#ifdef DEBUG
-    Serial.println(F("NTP ERROR: could not connect WiFi"));
-#endif
-    return false;
-  }
-  setSyncProvider(getNtpTime);
+/** "DD-MM-YYYY" */
+const byte dateStringLength = 10;
+
+/** "hh:mm:ss" */
+const byte timeStringLength = 8;
+
+/** "DD-MM-YYYY hh:mm:ss" */
+const byte datetimeStringLength = dateStringLength + 1 + timeStringLength;
+
+/**
+ * Starts the NTP time library, and waits for first synch.
+ * Sets the sync interval in seconds, default 6 hours, and the WiFi disconcect
+ * after sync flag.
+ */
+void begin(time_t seconds = (6 * 3600))
+{
+  // Set the external time provider
+  setSyncProvider(getTime);
   // Set synch interval to one second till sync
+  setSyncInterval(2);
   while (timeStatus() != timeSet)
   {
-    setSyncInterval(1);
+    ;
   }
   // Set synch interval
-  setSyncInterval(syncInterval);
-  return true;
+  setSyncInterval(seconds);
+}
+
+/**
+ * Fills and returns the input datetime buffer as "DD-MM-YYYY hh:mm:ss".
+ * The buffer should be at least (datetimeStringLength + 1) in size.
+ */
+char* datetimeString(char* datetimebuff, int day_t = day(), int month_t =
+    month(), int year_t = year(), int hour_t = hour(), int minute_t = minute(),
+    int second_t = second())
+{
+  sprintf(datetimebuff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t,
+      hour_t, minute_t, second_t);
+  return datetimebuff;
+}
+
+/**
+ * Fills and returns the input date buffer as "DD-MM-YYYY"
+ * The buffer should be at least (dateStringLength + 1) in size.
+ */
+char* dateString(char* datebuff, int day_t = day(), int month_t = month(),
+    int year_t = year())
+{
+  sprintf(datebuff, "%02d-%02d-%04d", day_t, month_t, year_t);
+  return datebuff;
+}
+
+/**
+ * Fills and returns the input time buffer as "hh:mm:ss"
+ * The buffer should be at least (timeStringLength + 1) in size.
+ */
+char* timeString(char* timebuff, int hour_t, int minute_t, int second_t)
+{
+  sprintf(timebuff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
+  return timebuff;
+}
+
 }
 
 #endif /* LSUNTPTIMEC_H_ */
