@@ -13,14 +13,15 @@
 #include <Time.h>         // https://github.com/PaulStoffregen/Time
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif
-
 namespace
 {
 time_t getTime()
 {
+  if(!(WiFi.status() == WL_CONNECTED))
+  {
+    Serial.println(F("NTP ERROR: WiFi not connected."));
+    return 0;
+  }
   WiFiUDP udp;
   const byte POLL_INTERVAL = 10; // poll every this many ms
   const byte POLL_TIMES = 100;  // poll up to this many times
@@ -42,9 +43,7 @@ time_t getTime()
   static int udpInitialized = udp.begin(12670);
   if (0 == udpInitialized) // returns 0 if there are no sockets available to use
   {
-#if DEBUG
-    Serial.println("ERROR: there are no sockets available to use.");
-#endif
+    Serial.println(F("NTP ERROR: there are no sockets available to use."));
     return 0;
   }
 
@@ -58,9 +57,7 @@ time_t getTime()
       && udp.write((const uint8_t *) &ntpFirstFourBytes, (size_t) PKT_LEN)
           == PKT_LEN && udp.endPacket()))
   {
-#if DEBUG
-    Serial.println("NTP ERROR: sending request failed");
-#endif
+    Serial.println(F("NTP ERROR: sending request failed"));
     return 0; // sending request failed
   }
 
@@ -75,12 +72,9 @@ time_t getTime()
   }
   if (pktLen != PKT_LEN)
   {
-#if DEBUG
-    Serial.println();
-    Serial.print("NTP ERROR: no correct packet received; pktLen = ");
+    Serial.print(F("NTP ERROR: no correct packet received; pktLen = "));
     Serial.print(pktLen);
-    Serial.println(", expected 48");
-#endif
+    Serial.println(F(", expected 48"));
     return 0; // no correct packet received
   }
 

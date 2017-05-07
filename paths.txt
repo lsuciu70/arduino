@@ -39,5 +39,11 @@ EEPROM.h
 /home/lsuciu/arduino-ide/packages/arduino/hardware/avr/1.6.15/libraries/EEPROM/src/EEPROM.h
 
 
+pgmspace.h
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+/home/lsuciu/.arduino15/packages/arduino/tools/avr-gcc/4.9.2-atmel3.5.4-arduino2/avr/include/avr
+/home/lsuciu/arduino-ide/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+/home/lsuciu/arduino-ide/packages/arduino/tools/avr-gcc/4.9.2-atmel3.5.3-arduino2/avr/include/avr
+/home/lsuciu/arduino-ide/hardware/tools/avr/avr/include/avr
 
 
