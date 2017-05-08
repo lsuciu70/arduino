@@ -21,10 +21,10 @@
 Adafruit_BME280 bme;
 
 const char* broker = "192.168.100.59";
-uint16_t port = 1883;
+uint16_t mqtt_port = 1883;
 
 WiFiClient espClient;
-MqttClient mqttClient(broker, port, espClient);
+MqttClient mqttClient(broker, mqtt_port, espClient);
 
 
 //                        12345..6..789 12..3..456789 ..1..234567

@@ -14,13 +14,13 @@
 BME280 sensor;
 
 const char* broker = "192.168.100.59";
-uint16_t port = 1883;
+uint16_t mqtt_port = 1883;
 void mqttCallback(char*, byte*, unsigned int);
 WiFiClient espClient;
 
 typedef uint8_t (*SEND_FUNCTION)(uint8_t*, uint8_t, uint8_t, ...);
 
-MqttClient mqttClient(broker, port, mqttCallback, espClient);
+MqttClient mqttClient(broker, mqtt_port, mqttCallback, espClient);
 
 void startBME280()
 {

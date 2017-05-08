@@ -6,13 +6,13 @@
 
 const char* broker = "192.168.100.59";
 //const char* broker = "92.81.33.180"; // lsuciu.no-ip.org
-uint16_t port = 1883;
+uint16_t mqtt_port = 1883;
 
 void callback(char* topic, byte* payload, unsigned int length);
 
 WiFiClient espClient;
 
-MqttClient client(broker, port, callback, espClient);
+MqttClient client(broker, mqtt_port, callback, espClient);
 
 long lastMsg = 0;
 char msg[50];
