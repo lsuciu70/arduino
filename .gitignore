@@ -74,6 +74,7 @@ libraries/Timezone
 libraries/WakaanaA
 libraries/Adafruit_BME280
 libraries/Adafruit_Sensor
+libraries/Adafruit_DHT
 
 libraries/LsuLogger/.cproject
 libraries/LsuLogger/.project
