@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <pins_arduino.h>
+#include <ESP8266WiFi.h>
 
 #include <LsuNtpTimeC.h>
 
@@ -58,10 +59,10 @@ uint16_t now_as_week_minutes()
 uint16_t now_to_week_minutes(uint16_t week_minutes)
 {
   uint16_t now_week_minutes = now_as_week_minutes();
-  if(week_minutes < now_as_week_minutes)
+  if(week_minutes < now_week_minutes)
     // will be next week
     week_minutes += MINUTES_A_WEEK;
-  return (week_minutes - now_as_week_minutes) % MINUTES_A_WEEK;
+  return (week_minutes - now_week_minutes) % MINUTES_A_WEEK;
 }
 
 /**

@@ -13,6 +13,8 @@
 #include <Time.h>         // https://github.com/PaulStoffregen/Time
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
 
+#include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
+
 namespace
 {
 time_t getTime()

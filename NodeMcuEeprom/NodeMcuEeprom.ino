@@ -15,7 +15,30 @@ const uint8_t BUFF_SIZE     =   16;
 
 const uint8_t EEPROM_UNSET = 0xFF;
 
-const uint8_t ssid_len = 32;
+/* Memory mapping */
+/*
+op_mode  ->   0 (EEPROM_START)
+0        ->   1
+guard    ->   2
+0        ->   3
+u_name   ->   4
+0        ->  20 (  4 + 16)
+u_pwd    ->  21
+0        ->  37 ( 21 + 16)
+ap1_name ->  38
+0        ->  54 ( 38 + 16)
+ap1_pwd  ->  55
+0        ->  71 ( 55 + 16)
+ap2_name ->  72
+0        ->  88 ( 72 + 16)
+ap2_pwd  ->  89
+0        -> 105 ( 89 + 16)
+ap0_name -> 106               // host_name
+0        -> 122 (106 + 16)    // 0
+ap0_pwd  -> 123               // -
+0        -> 139 (123 + 16)    // -
+*/
+const uint8_t ssid_len = 16;
 const uint8_t usr_pwd_len = 16;
 const uint8_t host_len = 8;
 
@@ -70,7 +93,7 @@ String content_root =
 "<h2>Ac&#539;iuni:</h2>"
 "<table>"
 "<tr><td><form name='programming' method='POST' action='programming'><input type='submit' value='Programare' style='width:100%'></form></td></tr>"
-"<tr><td><form name='reset' method='POST' action='reset'><input type='submit' value='Restare' style='width:100%'></form></td></tr>"
+"<tr><td><form name='reset' method='POST' action='reset'><input type='submit' value='Resetare' style='width:100%'></form></td></tr>"
 "</table>"
 "</body>"
 "</html>";
@@ -82,8 +105,8 @@ String content_settings =
 "<h1>Sistemul de iriga&#539;ie</h1>"
 "<h2>Setare mod lucru:</h2>"
 "<table>"
-"<tr><td><form name='ap_mode' method='POST' action='ap_mode'><input type='submit' value='Access Point' style='width:100%'></form></td></tr>"
-"<tr><td><form name='client_mode' method='POST' action='client_mode'><input type='submit' value='WiFi Client' style='width:100%'></form></td></tr>"
+"<tr><td><form name='ap_mode' method='POST' action='ap_mode'><input type='submit' value='Punct Acces WiFi' style='width:100%'></form></td></tr>"
+"<tr><td><form name='cli_mode' method='POST' action='cli_mode'><input type='submit' value='Client WiFi' style='width:100%'></form></td></tr>"
 "</table>"
 "</body>"
 "</html>";
@@ -99,7 +122,7 @@ const char* content_set_ap_mode_fmt =
 "</head>"
 "<body>"
 "<h1>Sistemul de iriga&#539;ie</h1>"
-"<h2>Setare mod lucru 'Access Point'</h2>"
+"<h2>Setare mod lucru 'Punct Acces WiFi'</h2>"
 "<table>"
 "<form name='save_ap_mode' method='POST' action='save_ap_mode'>"
 "<tr><td colspan=2><b>Setare sistem:</b></td></tr>"
@@ -112,16 +135,16 @@ const char* content_set_ap_mode_fmt =
 "<tr><td>Confirmare parola:</td><td><input type='text' name='u_pwd_2' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td colspan=2><b>Setare conexiune Internet:</b></td></tr>"
-"<tr><td>Nume AP principal:</td><td><input type='text' name='ap1_name' size='16' maxlength='32' value='%s'></td></tr>"
-"<tr><td>Parola AP principal:</td><td><input type='text' name='ap1_pwd' size='16' maxlength='32'></td></tr>"
+"<tr><td>Nume AP principal:</td><td><input type='text' name='ap1_name' size='16' maxlength='16' value='%s'></td></tr>"
+"<tr><td>Parola AP principal:</td><td><input type='text' name='ap1_pwd' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td>Nume AP secundar:</td><td><input type='text' name='ap2_name' size='16' maxlength='16'></td></tr>"
 "<tr><td>Parola AP secundar:</td><td><input type='text' name='ap2_pwd' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
-"<tr><td colspan=2><b>Access Point g&#259;site:</b></td></tr>"
-"<tr><td><input type='text' size='16' maxlength='32' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
-"<tr><td><input type='text' size='16' maxlength='32' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
-"<tr><td><input type='text' size='16' maxlength='32' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
+"<tr><td colspan=2><b>Puncte acces WiFi g&#259;site:</b></td></tr>"
+"<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
+"<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
+"<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td colspan=2 align='center'><input type='submit' value='Salvare'></td></tr>"
 "</form>"
@@ -154,16 +177,16 @@ const char* content_set_cli_mode_fmt =
 "<tr><td>Confirmare parola:</td><td><input type='text' name='u_pwd_2' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td colspan=2><b>Setare conexiune Internet:</b></td></tr>"
-"<tr><td>Nume AP principal:</td><td><input type='text' name='ap1_name' size='16' maxlength='32' value='%s'></td></tr>"
-"<tr><td>Parola AP principal:</td><td><input type='text' name='ap1_pwd' size='16' maxlength='32'></td></tr>"
+"<tr><td>Nume AP principal:</td><td><input type='text' name='ap1_name' size='16' maxlength='16' value='%s'></td></tr>"
+"<tr><td>Parola AP principal:</td><td><input type='text' name='ap1_pwd' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td>Nume AP secundar:</td><td><input type='text' name='ap2_name' size='16' maxlength='16'></td></tr>"
 "<tr><td>Parola AP secundar:</td><td><input type='text' name='ap2_pwd' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
-"<tr><td colspan=2><b>Access Point g&#259;site:</b></td></tr>"
-"<tr><td><input type='text' size='16' maxlength='32' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
-"<tr><td><input type='text' size='16' maxlength='32' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
-"<tr><td><input type='text' size='16' maxlength='32' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
+"<tr><td colspan=2><b>Puncte acces WiFi g&#259;site:</b></td></tr>"
+"<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
+"<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
+"<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td colspan=2 align='center'><input type='submit' value='Salvare'></td></tr>"
 "</form>"
@@ -210,7 +233,7 @@ void handleSetupApMode()
     // 1) cristibcd  Signal: -85 dBm Channel: 6  Encryption: WPA
     // 2) cls-ap Signal: -80 dBm Channel: 11 Encryption: WPA2
     int8_t net1_pwr = -120, net2_pwr = -120, net3_pwr = -120;
-    char net1_ssid[33] = {'\0'}, net2_ssid[33] = {'\0'}, net3_ssid[33] = {'\0'};
+    char net1_ssid[ssid_len + 1] = {'\0'}, net2_ssid[ssid_len + 1] = {'\0'}, net3_ssid[ssid_len + 1] = {'\0'};
     // sort them
     for (uint8_t net = 0; net < nets; ++net)
     {
@@ -237,7 +260,7 @@ void handleSetupApMode()
         strcpy(net3_ssid, WiFi.SSID(net).c_str());
       }
     }
-    char content_set_ap_mode[strlen(content_set_ap_mode_fmt) + (6 * 30) + (2 * 14) + 1];
+    char content_set_ap_mode[strlen(content_set_ap_mode_fmt) + (4 * 14) + (3 * 2) + 1];
     sprintf(content_set_ap_mode, content_set_ap_mode_fmt, net1_ssid, net1_ssid, net1_pwr, net2_ssid, net2_pwr, net3_ssid, net3_pwr);
   	server.send(200, "text/html", content_set_ap_mode);
   }
@@ -254,7 +277,7 @@ void handleSetupCliMode()
     // 1) cristibcd  Signal: -85 dBm Channel: 6  Encryption: WPA
     // 2) cls-ap Signal: -80 dBm Channel: 11 Encryption: WPA2
     int8_t net1_pwr = -120, net2_pwr = -120, net3_pwr = -120;
-    char net1_ssid[33] = {'\0'}, net2_ssid[33] = {'\0'}, net3_ssid[33] = {'\0'};
+    char net1_ssid[ssid_len + 1] = {'\0'}, net2_ssid[ssid_len + 1] = {'\0'}, net3_ssid[ssid_len + 1] = {'\0'};
     // sort them
     for (uint8_t net = 0; net < nets; ++net)
     {
@@ -281,13 +304,13 @@ void handleSetupCliMode()
         strcpy(net3_ssid, WiFi.SSID(net).c_str());
       }
     }
-    char content_set_cli_mode[strlen(content_set_cli_mode_fmt) + (6 * 30) + (2 * 14) + 1];
+    char content_set_cli_mode[strlen(content_set_cli_mode_fmt) + (4 * 14) + (3 * 2) + 1];
     sprintf(content_set_cli_mode, content_set_cli_mode_fmt, net1_ssid, net1_ssid, net1_pwr, net2_ssid, net2_pwr, net3_ssid, net3_pwr);
   	server.send(200, "text/html", content_set_cli_mode);
   }
 }
 
-void eepromReset()
+void eepromReset(bool doCommit = true)
 {
   for(uint16_t addr = EEPROM_START; addr < EEPROM_SIZE; ++addr)
   {
@@ -295,7 +318,8 @@ void eepromReset()
       break;
     EEPROM.write(addr, EEPROM_UNSET);
   }
-  EEPROM.commit();
+  if(doCommit)
+    EEPROM.commit();
 }
 
 uint16_t eepromWrite(uint16_t addr, const char* value)
@@ -324,10 +348,10 @@ const char* content_save_ap_mode_response_fmt =
 "<body>"
 "<h1>Sistemul de iriga&#539;ie</h1>"
 "<p><b>"
-"Salvarea set&#259;rilor pentul modul Acces Point s-a f&#259;cut cu succes; sistemul va reporni cu noile set&#259;ri."
+"Salvarea set&#259;rilor pentul modul 'Punct Acces WiFi' s-a f&#259;cut cu succes; sistemul va reporni cu noile set&#259;ri."
 "</b></p>"
 "<p><b>"
-"Va trebui s&#259; v&#259; reconecta&#539;i folosind noile valori pentru Access Point:"
+"Va trebui s&#259; v&#259; reconecta&#539;i folosind noile valori pentru punctul acces WiFi:"
 "</b></p>"
 "<p><b>"
 "Nume AP:   %s<br>"
@@ -406,7 +430,7 @@ void handleSaveApMode()
 
   if(op_mode != MODE_AP)
   {
-    eepromReset();
+    eepromReset(false);
   }
   uint16_t addr = EEPROM_START;
   op_mode = MODE_AP;
@@ -475,7 +499,7 @@ void handleSaveCliMode()
   strcpy(u_pwd_2, server.arg("u_pwd_2").c_str());
   if((strlen(u_pwd) > 0 || strlen(u_pwd_2) > 0) && strcmp(u_pwd, u_pwd_2) != 0)
   {
-    server.sendHeader("refresh", "5;url=/client_mode");
+    server.sendHeader("refresh", "5;url=/cli_mode");
     server.send(400, "text/html", "<h1>Eroare setare utilizator:</h1><br><h2>Parola si confirmarea parolei nu sunt identice!</h2>");
     return;
   }
@@ -495,7 +519,7 @@ void handleSaveCliMode()
 
   if(op_mode != MODE_CLI)
   {
-    eepromReset();
+    eepromReset(false);
   }
   uint16_t addr = EEPROM_START;
   op_mode = MODE_CLI;
@@ -674,7 +698,7 @@ void setup()
   }
   server.on("/", handleRoot);
   server.on("/ap_mode", handleSetupApMode);
-  server.on("/client_mode", handleSetupCliMode);
+  server.on("/cli_mode", handleSetupCliMode);
   server.on("/save_ap_mode", handleSaveApMode);
   server.on("/save_cli_mode", handleSaveCliMode);
   server.on("/reset", handleReset);

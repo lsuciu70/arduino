@@ -1,16 +1,13 @@
 
 
 Arduino.h
+IPAddress.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
 
-IPAddress.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
-
 ESP8266WiFi.h
-/home/lsuciu/arduino/libraries/ESP8266WiFi/src
-
 WiFiClient.h
+/home/lsuciu/arduino/libraries/ESP8266WiFi/src
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266WiFi/src
 
 Wire.h
@@ -18,6 +15,9 @@ Wire.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/Wire
 
 stdint.h
+stdio.h
+stdlib.h
+string.h
 /home/lsuciu/arduino-ide/hardware/tools/avr/avr/include
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include
 
@@ -26,6 +26,7 @@ stddef.h
 /home/lsuciu/arduino-ide/hardware/tools/avr/lib/gcc/avr/4.9.2/include
 
 common.h
+/home/lsuciu/arduino-ide/hardware/tools/avr/avr/include/avr
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/generic
 
 Esp.h
@@ -35,15 +36,12 @@ ESP8266WebServer.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266WebServer/src
 
 EEPROM.h
-/home/lsuciu/arduino-ide/packages/esp8266/hardware/esp8266/2.3.0/libraries/EEPROM/EEPROM.h
-/home/lsuciu/arduino-ide/packages/arduino/hardware/avr/1.6.15/libraries/EEPROM/src/EEPROM.h
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/EEPROM
 
 
 pgmspace.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
-/home/lsuciu/.arduino15/packages/arduino/tools/avr-gcc/4.9.2-atmel3.5.4-arduino2/avr/include/avr
-/home/lsuciu/arduino-ide/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
-/home/lsuciu/arduino-ide/packages/arduino/tools/avr-gcc/4.9.2-atmel3.5.3-arduino2/avr/include/avr
 /home/lsuciu/arduino-ide/hardware/tools/avr/avr/include/avr
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+
 
 
