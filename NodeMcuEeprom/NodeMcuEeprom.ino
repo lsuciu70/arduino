@@ -204,7 +204,7 @@ void handleRoot()
   {
     // reset guard
     guard = 0;
-    EEPROM.write(EEPROM_START + 1, guard);
+    EEPROM.write(EEPROM_START + 2, guard);
     EEPROM.commit();
     Serial.println("Guard was reset.");
   }
@@ -436,6 +436,7 @@ void handleSaveApMode()
   op_mode = MODE_AP;
   guard = 1;
   EEPROM.write(addr++, op_mode);
+  EEPROM.write(addr++, 0);
   EEPROM.write(addr++, guard);
   EEPROM.write(addr++, 0);
 
@@ -525,6 +526,7 @@ void handleSaveCliMode()
   op_mode = MODE_CLI;
   guard = 1;
   EEPROM.write(addr++, op_mode);
+  EEPROM.write(addr++, 0);
   EEPROM.write(addr++, guard);
   EEPROM.write(addr++, 0);
 
