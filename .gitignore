@@ -75,6 +75,9 @@ libraries/WakaanaA
 libraries/Adafruit_BME280
 libraries/Adafruit_Sensor
 libraries/Adafruit_DHT
+libraries/Adafruit_DHT22/
+libraries/Adafruit_SI1145/
+libraries/Nokia_SC
 
 libraries/LsuLogger/.cproject
 libraries/LsuLogger/.project
