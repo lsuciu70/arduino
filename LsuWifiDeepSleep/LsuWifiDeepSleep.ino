@@ -14,7 +14,7 @@ void setup()
   Serial.println(millis());
   Serial.println(F("setup ..."));
 
-  connectLsuWiFi();
+  LsuWiFi::connect();
 
   Serial.println(F("Wait 10 seconds"));
   delay(10 * SECONDS_AS_NANO);

@@ -28,7 +28,7 @@ bool initialized = false;
 }
 }
 
-namespace LsuWiFiC
+namespace LsuWiFi
 {
 
 /**
