@@ -38,10 +38,13 @@ ESP8266WebServer.h
 EEPROM.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/EEPROM
 
-
 pgmspace.h
 /home/lsuciu/arduino-ide/hardware/tools/avr/avr/include/avr
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+
+SoftwareSerial.h
+/home/lsuciu/arduino-ide/hardware/arduino/avr/libraries/SoftwareSerial/src
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/SoftwareSerial
 
 
 

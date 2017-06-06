@@ -64,7 +64,8 @@ LsuWifiDeepSleep/.settings
 
 libraries/Adafruit_MQTT
 libraries/pubsubclient
-
+libraries/Adafruit_Circuit_Playground/
+libraries/Adafruit_TSL2561/
 libraries/DallasTemperature
 libraries/ESP8266WiFi
 libraries/OneWire

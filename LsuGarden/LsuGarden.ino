@@ -7,19 +7,19 @@
 #define MINUES_A_DAY (24 * 60)
 #define MINUTES_A_WEEK (7 * MINUES_A_DAY)
 
-enum
-{
-  MO = 1, TU, WE, TH, FR, SA, SU
-};
-
 #define OFF HIGH
 #define ON  LOW
+
+enum days : uint8_t
+{
+  MO = 1, TU, WE, TH, FR, SA, SU,
+};
 
 uint8_t out = OFF;
 const uint8_t NB_PINS = 8;
 uint8_t pin[NB_PINS] =
 {
-	D1, D2, D3, D4, D5, D6, D7, D8
+	D1, D2, D3, D4, D5, D6, D7, D8,
 };
 
 // time helper functions
@@ -27,6 +27,10 @@ uint8_t day_of_week();
 uint16_t week_minutes_to_time(uint8_t, uint8_t, uint8_t);
 uint16_t now_to_week_minutes(uint16_t);
 uint16_t now_as_week_minutes();
+
+// "DD hh:mm"
+const uint8_t week_minute_str_len = strlen("DD hh:mm");
+char* week_minute_to_str(char*, uint16_t);
 
 void setup()
 {
@@ -72,18 +76,19 @@ uint16_t now_to_week_minutes(uint16_t week_minutes)
  * Example call for Thursday, 20:45:
  * uint16_t week_minutes = week_minutes_to_time(TH, 20, 45);
  *
+ * Returns 10080 (minutes in a week) on error.
  */
 uint16_t week_minutes_to_time(uint8_t day, uint8_t hour, uint8_t minute)
 {
-  // day should be between 1 and 7
-  if(day == 0 || day > 7)
-    return 0;
+  // day should be between Monday and Sunday
+  if(day < MO || day > SU)
+    return MINUTES_A_WEEK;
   // hour should be between 0 and 23
   if(hour > 23)
-    return 0;
+    return MINUTES_A_WEEK;
   // minute should be between 0 and 59
   if(minute > 59)
-    return 0;
+    return MINUTES_A_WEEK;
   return (day - 1) * MINUES_A_DAY + hour * 60 + minute;
 }
 
@@ -93,4 +98,20 @@ uint16_t week_minutes_to_time(uint8_t day, uint8_t hour, uint8_t minute)
 uint8_t day_of_week()
 {
   return ((weekday() + 5) % 7) + 1;
+}
+
+/**
+ * Fills and returns given buffer with string representation of given week
+ * minute as DD hh:mm.
+ * The buffer must be at least (week_minute_str_len + 1) in length.
+ *
+ * Example call, returns "Lu 20:40":
+ * char *buff[week_minute_str_len + 1]
+ * week_minute_to_str(buff, 1240);
+ *
+ */
+char* week_minute_to_str(char *buff, uint16_t week_minutes)
+{
+
+  return buff;
 }

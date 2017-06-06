@@ -11,6 +11,10 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
+#ifndef DEBUG
+#define DEBUG 1
+#endif
+
 namespace
 {
 
