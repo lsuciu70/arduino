@@ -9,8 +9,8 @@
 
 const uint32_t five_minutes = 5 * 60 * SECONDS_AS_MILLIS;
 
-const uint16_t EEPROM_START =  512;
-const uint16_t EEPROM_SIZE  = 2048;
+const uint16_t EEPROM_START =  128;
+const uint16_t EEPROM_SIZE  = 4096;
 const uint8_t BUFF_SIZE     =   16;
 
 const uint8_t EEPROM_UNSET = 0xFF;

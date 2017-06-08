@@ -108,7 +108,7 @@ time_t getTime()
 }
 }
 
-namespace LsuNtpTimeC
+namespace LsuNtpTime
 {
 /** "DD-MM-YYYY" */
 const byte dateStringLength = 10;

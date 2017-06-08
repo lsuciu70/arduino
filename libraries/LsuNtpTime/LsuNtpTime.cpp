@@ -10,21 +10,13 @@
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 #include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
 
-const int LsuNtpTime::SECOND = 1000;
-
-const byte LsuNtpTime::datetimeStringLength = 19;
-
-const byte LsuNtpTime::dateStringLength = 10;
-
-const byte LsuNtpTime::timeStringLength = 8;
-
 bool LsuNtpTime::timeAvailable = false;
 
 unsigned long LsuNtpTime::startSecond = 0;
 
 bool LsuNtpTime::disconnectAfterSynch = true;
 
-char * LsuNtpTime::UNSET = "time not set";
+const char* LsuNtpTime::UNSET = "time not set";
 
 void LsuNtpTime::start(time_t seconds, bool disconnect)
 {
@@ -41,7 +33,7 @@ void LsuNtpTime::start(time_t seconds, bool disconnect)
   setSyncInterval(seconds);
 }
 
-char * LsuNtpTime::datetimeString(int day_t, int month_t, int year_t,
+const char * LsuNtpTime::datetimeString(int day_t, int month_t, int year_t,
     int hour_t, int minute_t, int second_t)
 {
   if (!timeAvailable)
@@ -52,7 +44,7 @@ char * LsuNtpTime::datetimeString(int day_t, int month_t, int year_t,
   return datetimebuff;
 }
 
-char * LsuNtpTime::dateString(int day_t, int month_t, int year_t)
+const char * LsuNtpTime::dateString(int day_t, int month_t, int year_t)
 {
   if (!timeAvailable)
     return UNSET;
@@ -61,7 +53,7 @@ char * LsuNtpTime::dateString(int day_t, int month_t, int year_t)
   return datebuff;
 }
 
-char * LsuNtpTime::timeString(int hour_t, int minute_t, int second_t)
+const char * LsuNtpTime::timeString(int hour_t, int minute_t, int second_t)
 {
   if (!timeAvailable)
     return UNSET;

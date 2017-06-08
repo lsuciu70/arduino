@@ -23,24 +23,24 @@ public:
   /**
    * One second, 1000 milliseconds.
    */
-  static const int SECOND;
+  static constexpr int SECOND = 1000;
   /**
    * The length of date and time String (DD-MM-YYYY hh:mm:ss): 19
    */
-  static const byte datetimeStringLength;
+  static constexpr byte datetimeStringLength = 19;
   /**
    * The length of date String (DD-MM-YYYY): 10
    */
-  static const byte dateStringLength;
+  static constexpr byte dateStringLength = 10;
   /**
    * The length of time String (hh:mm:ss): 8
    */
-  static const byte timeStringLength;
+  static constexpr byte timeStringLength = 8;
 private:
   static bool timeAvailable;
   static unsigned long startSecond;
   static bool disconnectAfterSynch;
-  static char * UNSET;
+  static const char* UNSET;
 public:
   /**
    * Starts the library, makes synch every given seconds, default one hour.
@@ -51,20 +51,20 @@ public:
   /**
    * Returns the date and time as "DD-MM-YYYY hh:mm:ss"
    */
-  static char * datetimeString(int day_t = day(), int month_t = month(),
+  static const char * datetimeString(int day_t = day(), int month_t = month(),
       int year_t = year(), int hour_t = hour(), int minute_t = minute(),
       int second_t = second());
 
   /**
    * Returns the date as "DD-MM-YYYY"
    */
-  static char * dateString(int day_t = day(), int month_t = month(),
+  static const char * dateString(int day_t = day(), int month_t = month(),
       int year_t = year());
 
   /**
    * Returns the time as "hh:mm:ss"
    */
-  static char * timeString(int hour_t = hour(), int minute_t = minute(),
+  static const char * timeString(int hour_t = hour(), int minute_t = minute(),
       int second_t = second());
 
   static inline bool isTimeAvailable()
