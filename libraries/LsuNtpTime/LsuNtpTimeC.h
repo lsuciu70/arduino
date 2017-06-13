@@ -121,8 +121,7 @@ const byte datetimeStringLength = dateStringLength + 1 + timeStringLength;
 
 /**
  * Starts the NTP time library, and waits for first synch.
- * Sets the sync interval in seconds, default 6 hours, and the WiFi disconcect
- * after sync flag.
+ * Sets the sync interval in seconds, default 6 hours.
  */
 void begin(time_t seconds = (6 * 3600))
 {

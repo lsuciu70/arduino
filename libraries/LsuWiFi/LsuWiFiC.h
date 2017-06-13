@@ -50,7 +50,7 @@ inline bool isConnected()
  * retry_after_timeout - flag indicating if should retry after timeout
  * try_next_ssid - flag indicating to try next index on retry
  */
-bool connect(const uint8_t ssid_idx = 0, const uint16_t timeout = 5000,
+bool connect(const uint8_t ssid_idx = 0, const uint16_t timeout = 10000,
     const bool retry_after_timeout = true, const bool try_next_ssid = true, const uint8_t try_index = 1)
 {
   if (!initialized && (initialized = true))
