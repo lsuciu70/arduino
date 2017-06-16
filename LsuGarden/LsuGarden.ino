@@ -220,11 +220,6 @@ void loop()
   if(!(millis() % 1000))
     runProgramms();
   server.handleClient();
-//  static char datetimebuff[(LsuNtpTime::datetimeStringLength + 1)];
-//  Serial.print(LsuNtpTime::datetimeString(datetimebuff));
-//  Serial.print(" - ");
-//  Serial.println(now_week_minute());
-//  delay(5000);
 }
 
 
@@ -265,7 +260,7 @@ void runProgramms()
 void handleIndex()
 {
   uint16_t now_mow = now_week_minute();
-  uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0;
+  uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0, rspan = 0;
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
     switch(day_from_week_minutes(programms[i].mow))
@@ -293,12 +288,15 @@ void handleIndex()
       "</head>"
       "<body>"
       "<!-- <h1>CLLS Iriga&#x21B;ie</h1> -->"
-      "<h2>";
+      "<table>"
+      "<tr><td colspan='6' align='center'>"
+      "<b>";
   html += days_full[day_from_week_minutes(now_mow)];
   html += ", ";
   html += LsuNtpTime::timeString();
-  html += "</h2>"
-      "<table>"
+  html += "</b>"
+      "</td></tr>"
+      "<tr><td colspan='6' align='center'></td></tr>"
       "<tr>"
       "<th>Ziua</th>"
       "<th>Ora</th>"
@@ -309,6 +307,7 @@ void handleIndex()
       "</tr>";
 
   bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
+  uint8_t day_idx = DAYS_A_WEEK;
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
     html += "<tr>";
@@ -318,80 +317,81 @@ void handleIndex()
       case MO:
         if(mo_ft)
         {
-          html += "<td align='left' rowspan='";
-          html += mo_c;
-          html += "'>";
-          html += days_full[MO];
-          html += "</td>";
+          rspan = mo_c;
+          day_idx = MO;
         }
+        else
+          rspan = 0;
         mo_ft = false;
         break;
       case TU:
         if(tu_ft)
         {
-          html += "<td align='left' rowspan='";
-          html += tu_c;
-          html += "'>";
-          html += days_full[TU];
-          html += "</td>";
+          rspan = tu_c;
+          day_idx = TU;
         }
+        else
+          rspan = 0;
         tu_ft = false;
         break;
       case WE:
         if(we_ft)
         {
-          html += "<td align='left' rowspan='";
-          html += we_c;
-          html += "'>";
-          html += days_full[WE];
-          html += "</td>";
+          rspan = we_c;
+          day_idx = WE;
         }
+        else
+          rspan = 0;
         we_ft = false;
         break;
       case TH:
         if(th_ft)
         {
-          html += "<td align='left' rowspan='";
-          html += th_c;
-          html += "'>";
-          html += days_full[TH];
-          html += "</td>";
+          rspan = th_c;
+          day_idx = TH;
         }
+        else
+          rspan = 0;
         th_ft = false;
         break;
       case FR:
         if(fr_ft)
         {
-          html += "<td align='left' rowspan='";
-          html += fr_c;
-          html += "'>";
-          html += days_full[FR];
-          html += "</td>";
+          rspan = fr_c;
+          day_idx = FR;
         }
+        else
+          rspan = 0;
         fr_ft = false;
         break;
       case SA:
         if(sa_ft)
         {
-          html += "<td align='left' rowspan='";
-          html += sa_c;
-          html += "'>";
-          html += days_full[SA];
-          html += "</td>";
+          rspan = sa_c;
+          day_idx = SA;
         }
+        else
+          rspan = 0;
         sa_ft = false;
         break;
       case SU:
         if(su_ft)
         {
-          html += "<td align='left' rowspan='";
-          html += su_c;
-          html += "'>";
-          html += days_full[SU];
-          html += "</td>";
+          rspan = su_c;
+          day_idx = SU;
         }
+        else
+          rspan = 0;
         su_ft = false;
         break;
+    }
+    if(rspan)
+    {
+      html += "<td align='left' rowspan='";
+      html += rspan;
+      html += "'>";
+      html += days_full[day_idx];
+      html += "</td>";
     }
 
     html += "<td align='center'>";
@@ -507,6 +507,174 @@ void handleIndex_1()
 }
 
 void handleSkip()
+{
+  uint16_t now_mow = now_week_minute();
+  uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0, rspan = 0;
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    switch(day_from_week_minutes(programms[i].mow))
+    {
+      case MO: ++mo_c; break;
+      case TU: ++tu_c; break;
+      case WE: ++we_c; break;
+      case TH: ++th_c; break;
+      case FR: ++fr_c; break;
+      case SA: ++sa_c; break;
+      case SU: ++su_c; break;
+    }
+  }
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> -->"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<!-- <h1>CLLS Iriga&#x21B;ie - Omitere</h1> -->"
+      "<table>"
+      "<tr><td colspan='6' align='center'>"
+      "<b>";
+  html += days_full[day_from_week_minutes(now_mow)];
+  html += ", ";
+  html += LsuNtpTime::timeString();
+  html += "</b>"
+      "</td></tr>"
+      "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr>"
+      "<th>Ziua</th>"
+      "<th>Ora</th>"
+      "<th>Durata</th>"
+      "<th>Zona</th>"
+      "<th>Merge</th>"
+      "<th>Omis</th>"
+      "</tr>";
+
+  bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
+  uint8_t day_idx = DAYS_A_WEEK;
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    html += "<tr>";
+    // day
+    switch(day_from_week_minutes(programms[i].mow))
+    {
+      case MO:
+        if(mo_ft)
+        {
+          rspan = mo_c;
+          day_idx = MO;
+        }
+        else
+          rspan = 0;
+        mo_ft = false;
+        break;
+      case TU:
+        if(tu_ft)
+        {
+          rspan = tu_c;
+          day_idx = TU;
+        }
+        else
+          rspan = 0;
+        tu_ft = false;
+        break;
+      case WE:
+        if(we_ft)
+        {
+          rspan = we_c;
+          day_idx = WE;
+        }
+        else
+          rspan = 0;
+        we_ft = false;
+        break;
+      case TH:
+        if(th_ft)
+        {
+          rspan = th_c;
+          day_idx = TH;
+        }
+        else
+          rspan = 0;
+        th_ft = false;
+        break;
+      case FR:
+        if(fr_ft)
+        {
+          rspan = fr_c;
+          day_idx = FR;
+        }
+        else
+          rspan = 0;
+        fr_ft = false;
+        break;
+      case SA:
+        if(sa_ft)
+        {
+          rspan = sa_c;
+          day_idx = SA;
+        }
+        else
+          rspan = 0;
+        sa_ft = false;
+        break;
+      case SU:
+        if(su_ft)
+        {
+          rspan = su_c;
+          day_idx = SU;
+        }
+        else
+          rspan = 0;
+        su_ft = false;
+        break;
+    }
+    if(rspan)
+    {
+      html += "<td align='left' rowspan='";
+      html += rspan;
+      html += "'>";
+      html += days_full[day_idx];
+      html += "</td>";
+    }
+
+    html += "<td align='center'>";
+    html += to_string_time(programms[i].mow);
+    html += "</td>"
+        "<td align='center'>";
+    html += (int)programms[i].time;
+    html += "</td>"
+        "<td align='center'>";
+    html += zones[programms[i].zone];
+    html += "</td>"
+        "<td align='center'>";
+    html += (programms[i].running ? "da" : "nu");
+
+    html += "</td>"
+        "<td align='center'><input type='checkbox' name='skip_cb_";
+    html += i;
+    html += "' form='skip_save' value='1'";
+    html += (programms[i].skip ? " checked>" : ">");
+
+    html += "</td>"
+        "</tr>";
+  }
+  html += "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='skip_save' id='skip_save'><input type='submit' value='Salvare'></form></td></tr>"
+      "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
+      "</table>"
+      "</body>"
+      "</html>";
+  server.send(200, "text/html", html);
+}
+
+void handleSkip1()
 {
   uint16_t now_mow = now_week_minute();
   String html =
@@ -897,4 +1065,3 @@ void loadDefaultProgramming()
   { week_minute(SU, 21, 30), 4, 30, false, false};
   nb_programms = i;
 }
-
