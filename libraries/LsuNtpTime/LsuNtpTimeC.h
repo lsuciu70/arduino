@@ -19,7 +19,7 @@ namespace
 {
 time_t getTime()
 {
-  if(!(WiFi.status() == WL_CONNECTED))
+  if (!(WiFi.status() == WL_CONNECTED))
   {
     Serial.println(F("NTP ERROR: WiFi not connected."));
     return 0;
@@ -77,7 +77,7 @@ time_t getTime()
     Serial.print(F("NTP ERROR: no correct packet received; pktLen = "));
     Serial.print(pktLen);
     Serial.println(F(", expected 48"));
-    return 0; // no correct packet received
+    return getTime(); // no correct packet received
   }
 
   // Read and discard the first useless bytes
@@ -151,6 +151,19 @@ char* datetimeString(char* datetimebuff, int day_t = day(), int month_t =
 }
 
 /**
+ * Returns the date and time as "DD-MM-YYYY hh:mm:ss".
+ */
+char* datetimeString(int day_t = day(), int month_t = month(), int year_t =
+    year(), int hour_t = hour(), int minute_t = minute(), int second_t =
+    second())
+{
+  static char datetimebuff[datetimeStringLength + 1];
+  sprintf(datetimebuff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t,
+      hour_t, minute_t, second_t);
+  return datetimebuff;
+}
+
+/**
  * Fills and returns the input date buffer as "DD-MM-YYYY"
  * The buffer should be at least (dateStringLength + 1) in size.
  */
@@ -162,11 +175,34 @@ char* dateString(char* datebuff, int day_t = day(), int month_t = month(),
 }
 
 /**
+ * Returns the date as "DD-MM-YYYY"
+ * The buffer should be at least (dateStringLength + 1) in size.
+ */
+char* dateString(int day_t = day(), int month_t = month(), int year_t = year())
+{
+  static char datebuff[dateStringLength + 1];
+  sprintf(datebuff, "%02d-%02d-%04d", day_t, month_t, year_t);
+  return datebuff;
+}
+
+/**
  * Fills and returns the input time buffer as "hh:mm:ss"
  * The buffer should be at least (timeStringLength + 1) in size.
  */
-char* timeString(char* timebuff, int hour_t, int minute_t, int second_t)
+char* timeString(char* timebuff, int hour_t = hour(), int minute_t = minute(),
+    int second_t = second())
 {
+  sprintf(timebuff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
+  return timebuff;
+}
+
+/**
+ * Returns the time as "hh:mm:ss"
+ */
+char* timeString(int hour_t = hour(), int minute_t = minute(), int second_t =
+    second())
+{
+  static char timebuff[timeStringLength + 1];
   sprintf(timebuff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
   return timebuff;
 }

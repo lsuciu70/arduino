@@ -1,3 +1,6 @@
+#define DEBUG 1
+//#define EEPROM_RESET
+
 #include <Arduino.h>
 #include <pins_arduino.h>
 #include <ESP8266WiFi.h>
@@ -7,7 +10,7 @@
 #include <LsuWiFiC.h>
 #include <LsuNtpTimeC.h>
 
-enum days
+enum days_enum
   : uint8_t
   {
     MO = 0, TU, WE, TH, FR, SA, SU, DAYS_A_WEEK,
@@ -31,9 +34,8 @@ const uint8_t MAX_NB_PROGRAMMS = /*168*/(MAX_PROGRAMMS_PER_DAY * 7
 const uint8_t EEPROM_UNSET = 255; // 0xFF
 const uint8_t EEPROM_START = 128;
 const uint8_t EEPROM_ZONE_START = /*128*/EEPROM_START;
-const uint16_t EEPROM_PROG_START = /*298*/EEPROM_ZONE_START + 2
-    + (MAX_NB_ZONES) * (MAX_ZONE_STR_LEN + 1);
-const uint16_t EEPROM_SIZE = 4096;
+const uint16_t EEPROM_PROG_START = /*298*/EEPROM_ZONE_START + 2 + (MAX_NB_ZONES) * (MAX_ZONE_STR_LEN + 1);
+const uint16_t EEPROM_SIZE = 0xe80;
 
 //uint8_t pin[MAX_NB_ZONES] =
 //{ D1, D2, D3, D4, D5, D6, D7, D8, };
@@ -53,7 +55,7 @@ const char* days[DAYS_A_WEEK] =
 { "Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du", };
 
 const char* days_full[DAYS_A_WEEK] =
-{ "Luni", "Marti", "Miercuri", "Joi", "Vi", "Sa", "Du", };
+{ "Luni", "Mar&#x21B;i", "Miercuri", "Joi", "Vineri", "S&#226;mb&#259;t&#259;", "Duminic&#259;", };
 
 typedef struct programm_struct
 {
@@ -67,11 +69,12 @@ typedef struct programm_struct
 // "DD hh:mm"
 const uint8_t week_minute_str_len = strlen("DD hh:mm");
 const char* to_string(uint16_t);
+const char* to_string_time(uint16_t);
 const char* to_string(programm&);
 
 // time helper functions
 uint8_t day_of_week();
-uint8_t day_of_week_minutes(uint16_t);
+uint8_t day_from_week_minutes(uint16_t);
 uint16_t week_minute(uint8_t, uint8_t, uint8_t);
 uint16_t now_to_week_minutes(uint16_t);
 uint16_t now_week_minute();
@@ -79,10 +82,13 @@ uint16_t now_week_minute();
 // EEPROM helper functions
 uint16_t eepromWrite(uint16_t, const char*);
 uint16_t eepromRead(uint16_t, char*);
+bool eepromSaveProgramming();
+uint16_t eepromLoadProgramming();
 
 // programms helper functions
 void sortProgramms();
 void loadDefaultProgramming();
+void runProgramms();
 
 uint8_t nb_zones = 0;
 uint8_t nb_programms = 0;
@@ -95,12 +101,47 @@ programm programms[MAX_NB_PROGRAMMS];
 ESP8266WebServer server(80);
 
 void handleIndex();
+void handleSkip();
+void handleSkipSave();
+
+void eepromPrint(uint16_t start = 0, bool stop_if_unset = false)
+{
+  uint8_t rd;
+  for (uint16_t i = start; i < EEPROM_SIZE; ++i)
+  {
+    rd = EEPROM.read(i);
+    if(stop_if_unset && rd == EEPROM_UNSET)
+      break;
+    Serial.print(i, HEX);
+    Serial.print(" - ");
+    Serial.println((unsigned int)rd, HEX);
+  }
+}
+
+bool eepromReset()
+{
+  for (uint16_t i = EEPROM_START; i < EEPROM_SIZE; ++i)
+  {
+    EEPROM.write(i, (unsigned int)0xFF);
+  }
+  return EEPROM.commit();
+}
+
 
 void setup()
 {
   Serial.begin(115200);
+  Serial.println();
   EEPROM.begin(EEPROM_SIZE);
-  LsuWiFi::connect();
+
+#ifdef EEPROM_RESET
+  eepromReset();
+  // print EEPROM data
+//  eepromPrint();
+#endif
+
+
+  LsuWiFi::connect(2,10000,true,false);
   LsuNtpTime::begin();
 
 //  for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
@@ -113,51 +154,59 @@ void setup()
   // read zone's names
   uint16_t addr = EEPROM_ZONE_START;
   nb_zones = EEPROM.read(addr++);
-  nb_zones %= EEPROM_UNSET;
-  ++addr; // the next one after nb_zones should be 0 or unset.
-  for (uint8_t i; i < nb_zones; ++i)
+  if(nb_zones == EEPROM_UNSET)
+    nb_zones = 0;
+  addr++; // the next one after nb_zones should be 0 or unset.
+  for (uint8_t i = 0; i < nb_zones; ++i)
   {
     addr = eepromRead(addr, zones[i]);
   }
+  if(!nb_zones)
+    nb_zones = MAX_NB_ZONES;
 
   // read programms
-  addr = EEPROM_PROG_START;
-  nb_programms = EEPROM.read(addr);
-  nb_programms %= EEPROM_UNSET;
-  ++addr; // the next one after nb_programms should be 0 or unset.
-  for (uint8_t i; i < nb_programms; ++i)
-  {
-    uint16_t mow;
-    uint8_t zone, time, skip;
-    programms[i].mow = EEPROM.read(addr++) << 8 + EEPROM.read(addr++);
-    programms[i].zone = EEPROM.read(addr++);
-    programms[i].time = EEPROM.read(addr++);
-    programms[i].skip = EEPROM.read(addr++) == 0 ? false : true;
-    programms[i].running = false;
-  }
+  eepromLoadProgramming();
+#if DEBUG >= 2
+  Serial.println();
+  eepromPrint(EEPROM_PROG_START, true);
+#endif
   if (!nb_programms)
     loadDefaultProgramming();
-  Serial.println(nb_programms);
-  if (nb_programms)
+  if (!nb_programms)
     curr_programm = 0;
   // get
   uint16_t now_mow = now_week_minute();
-  Serial.println(to_string(now_mow));
+#if DEBUG
+  Serial.println();
+  Serial.print("now_mow: ");Serial.println(to_string(now_mow));
+#endif
   // sort programms
   sortProgramms();
 
+#if DEBUG
+  Serial.print("nb_programms: ");Serial.println(nb_programms);
+#endif
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
-    Serial.println(to_string(programms[i]));
+#if DEBUG
+    Serial.print((unsigned short)i);Serial.print(": ");Serial.println(to_string(programms[i]));
+#endif
     if (now_mow < programms[i].mow)
+    {
       // OK
       continue;
+    }
     curr_programm = i;
   }
-  Serial.println(curr_programm);
+#if DEBUG
+  Serial.print("curr_programm: ");Serial.println(curr_programm);
+  Serial.println();
+#endif
 
   // HTTP
   server.on("/", handleIndex);
+  server.on("/skip", handleSkip);
+  server.on("/skip_save", handleSkipSave);
   server.begin();
   Serial.println("Web server started");
 }
@@ -168,6 +217,8 @@ void setup()
 
 void loop()
 {
+  if(!(millis() % 1000))
+    runProgramms();
   server.handleClient();
 //  static char datetimebuff[(LsuNtpTime::datetimeStringLength + 1)];
 //  Serial.print(LsuNtpTime::datetimeString(datetimebuff));
@@ -182,11 +233,199 @@ void loop()
 
 
 
+void runProgramms()
+{
+  uint16_t now_mow = now_week_minute();
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    if (now_mow < programms[i].mow)
+    {
+      // OK
+      continue;
+    }
+    curr_programm = i;
+  }
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    // start / stop
+#if DEBUG
+    bool was_running = programms[i].running;
+#endif
+    programms[i].running = (i == curr_programm && (programms[i].mow + programms[i].time) > now_mow && !programms[i].skip);
+//    digitalWrite(pin[programms[i].zone], (programms[i].running ? ON : OFF));
+#if DEBUG
+    if(was_running != programms[i].running)
+    {
+      Serial.print(to_string(programms[i]));Serial.print(" - ");Serial.println((programms[i].running ? "start" : "stop"));
+    }
+#endif
+  }
+}
 
 void handleIndex()
 {
   uint16_t now_mow = now_week_minute();
-  String index =
+  uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0;
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    switch(day_from_week_minutes(programms[i].mow))
+    {
+      case MO: ++mo_c; break;
+      case TU: ++tu_c; break;
+      case WE: ++we_c; break;
+      case TH: ++th_c; break;
+      case FR: ++fr_c; break;
+      case SA: ++sa_c; break;
+      case SU: ++su_c; break;
+    }
+  }
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<!-- <title>CLLS Iriga&#x21B;ie</title> -->"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<!-- <h1>CLLS Iriga&#x21B;ie</h1> -->"
+      "<h2>";
+  html += days_full[day_from_week_minutes(now_mow)];
+  html += ", ";
+  html += LsuNtpTime::timeString();
+  html += "</h2>"
+      "<table>"
+      "<tr>"
+      "<th>Ziua</th>"
+      "<th>Ora</th>"
+      "<th>Durata</th>"
+      "<th>Zona</th>"
+      "<th>Merge</th>"
+      "<th>Omis</th>"
+      "</tr>";
+
+  bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    html += "<tr>";
+    // day
+    switch(day_from_week_minutes(programms[i].mow))
+    {
+      case MO:
+        if(mo_ft)
+        {
+          html += "<td align='left' rowspan='";
+          html += mo_c;
+          html += "'>";
+          html += days_full[MO];
+          html += "</td>";
+        }
+        mo_ft = false;
+        break;
+      case TU:
+        if(tu_ft)
+        {
+          html += "<td align='left' rowspan='";
+          html += tu_c;
+          html += "'>";
+          html += days_full[TU];
+          html += "</td>";
+        }
+        tu_ft = false;
+        break;
+      case WE:
+        if(we_ft)
+        {
+          html += "<td align='left' rowspan='";
+          html += we_c;
+          html += "'>";
+          html += days_full[WE];
+          html += "</td>";
+        }
+        we_ft = false;
+        break;
+      case TH:
+        if(th_ft)
+        {
+          html += "<td align='left' rowspan='";
+          html += th_c;
+          html += "'>";
+          html += days_full[TH];
+          html += "</td>";
+        }
+        th_ft = false;
+        break;
+      case FR:
+        if(fr_ft)
+        {
+          html += "<td align='left' rowspan='";
+          html += fr_c;
+          html += "'>";
+          html += days_full[FR];
+          html += "</td>";
+        }
+        fr_ft = false;
+        break;
+      case SA:
+        if(sa_ft)
+        {
+          html += "<td align='left' rowspan='";
+          html += sa_c;
+          html += "'>";
+          html += days_full[SA];
+          html += "</td>";
+        }
+        sa_ft = false;
+        break;
+      case SU:
+        if(su_ft)
+        {
+          html += "<td align='left' rowspan='";
+          html += su_c;
+          html += "'>";
+          html += days_full[SU];
+          html += "</td>";
+        }
+        su_ft = false;
+        break;
+    }
+
+    html += "<td align='center'>";
+    html += to_string_time(programms[i].mow);
+    html += "</td>"
+        "<td align='center'>";
+    html += (int)programms[i].time;
+    html += "</td>"
+        "<td align='center'>";
+    html += zones[programms[i].zone];
+    html += "</td>"
+        "<td align='center'>";
+    html += (programms[i].running ? "da" : "nu");
+    html += "</td>"
+        "<td align='center'>";
+    html += (programms[i].skip ? "da" : "nu");
+    html += "</td>"
+        "</tr>";
+  }
+  html += "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='skip'><input type='submit' value='Omitere'></form></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='onetime'><input type='submit' value='Pornire rapid&#259;'></form></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='programming_1'><input type='submit' value='Programare'></form></td></tr>"
+      "</table>"
+      "</body>"
+      "</html>";
+  server.sendHeader("Refresh", "10");
+  server.send(200, "text/html", html);
+}
+
+void handleIndex_1()
+{
+  uint16_t now_mow = now_week_minute();
+  String html =
       "<!DOCTYPE html>"
       "<html>"
       "<head>"
@@ -201,70 +440,246 @@ void handleIndex()
       "<body>"
       "<!-- <h1>CLLS Iriga&#x21B;ie</h1> -->"
       "<table>"
-      "<form method='post' action='skip.html'>"
       "<tr>"
       "<th>Curent</th>"
       "<th>Data</th>"
       "<th>Zona</th>"
       "<th>Durata</th>"
-      "<th>Omis</th>"
       "<th>Merge</th>"
+      "<th>Omis</th>"
       "</tr>";
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
-    index += "<tr>";
-    if((i == 0 && now_mow < programms[i].mow) // before first
+    html += "<tr>";
+    // current is right after now -> before current
+    if((i == 0 && now_mow < programms[i].mow)
         || (now_mow >= programms[i - 1].mow + programms[i - 1].time && now_mow < programms[i].mow)) // in between
     {
-      index += "<td align='center'>";
-      index += to_string(now_mow);
-      index += "</td>"
+      html += "<td align='center'>";
+      html += to_string(now_mow);
+      html += "</td>"
           "<td colspan='5'></td>"
           "</tr>"
           "<tr>"
           "<td align='center'>";
-      index += "</td>";
+      html += "</td>";
     }
-    else if (now_mow >= programms[i].mow && now_mow < programms[i].mow + programms[i].time) // inline
+    // current is now -> inline w/ current
+    else if (now_mow >= programms[i].mow && now_mow < programms[i].mow + programms[i].time)
     {
-      index += "<td align='center'>";
-      index += to_string(now_mow);
-      index += "</td>";
+      html += "<td align='center'>";
+      html += to_string(now_mow);
+      html += "</td>";
     }
+    // current is sometine else -> none
     else
     {
-      index += "<td align='center'>";
-      index += "</td>";
+      html += "<td align='center'>";
+      html += "</td>";
 
     }
-    index += "<td align='center'>";
-    index += to_string(programms[i].mow);
-    index += "</td>"
+    html += "<td align='center'>";
+    html += to_string(programms[i].mow);
+    html += "</td>"
         "<td align='center'>";
-    index += zones[programms[i].zone];
-    index += "</td>"
+    html += zones[programms[i].zone];
+    html += "</td>"
         "<td align='center'>";
-    index += (int)programms[i].time;
-    index += "</td>"
+    html += (int)programms[i].time;
+    html += "</td>"
         "<td align='center'>";
-    index += (programms[i].skip ? "da" : "nu");
-    index += "</td>"
+    html += (programms[i].running ? "da" : "nu");
+    html += "</td>"
         "<td align='center'>";
-    index += (programms[i].running ? "da" : "nu");
-    index += "</td>"
+    html += (programms[i].skip ? "da" : "nu");
+    html += "</td>"
         "</tr>";
   }
-  index += "<tr><td colspan='6' align='center'></td></tr>"
-      "<tr><td colspan='6' align='center'><input type='submit' value='Omitere'></td></tr>"
-      "</form>"
-      "<form method='post' action='programming_1.html'>"
-      "<tr><td colspan='6' align='center'><input type='submit' value='Programare'></td></tr>"
-      "<form>"
+  html += "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='skip'><input type='submit' value='Omitere'></form></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='onetime'><input type='submit' value='Pornire rapid&#259;'></form></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='programming_1'><input type='submit' value='Programare'></form></td></tr>"
       "</table>"
       "</body>"
       "</html>";
   server.sendHeader("Refresh", "10");
-  server.send(200, "text/html", index);
+  server.send(200, "text/html", html);
+}
+
+void handleSkip()
+{
+  uint16_t now_mow = now_week_minute();
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> -->"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "input { text-align: right; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<!-- <h1>CLLS Iriga&#x21B;ie - Omitere</h1> -->"
+      "<table>"
+      "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
+      "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr>"
+      "<th>Curent</th>"
+      "<th>Data</th>"
+      "<th>Zona</th>"
+      "<th>Durata</th>"
+      "<th>Merge</th>"
+      "<th>Omis</th>"
+      "</tr>";
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    html += "<tr>";
+    // current is right after now -> before current
+    if((i == 0 && now_mow < programms[i].mow)
+        || (now_mow >= programms[i - 1].mow + programms[i - 1].time && now_mow < programms[i].mow)) // in between
+    {
+      html += "<td align='center'>";
+      html += to_string(now_mow);
+      html += "</td>"
+          "<td colspan='5'></td>"
+          "</tr>"
+          "<tr>"
+          "<td align='center'>";
+      html += "</td>";
+    }
+    // current is now -> inline w/ current
+    else if (now_mow >= programms[i].mow && now_mow < programms[i].mow + programms[i].time)
+    {
+      html += "<td align='center'>";
+      html += to_string(now_mow);
+      html += "</td>";
+    }
+    // current is sometine else -> none
+    else
+    {
+      html += "<td align='center'>";
+      html += "</td>";
+
+    }
+    html += "<td align='center'>";
+    html += to_string(programms[i].mow);
+    html += "</td>"
+        "<td align='center'>";
+    html += zones[programms[i].zone];
+    html += "</td>"
+        "<td align='center'>";
+    html += (programms[i].running ? "da" : "nu");
+    html += "</td>"
+        "<td align='center'>";
+    html += (int)programms[i].time;
+    html += "</td>"
+        "<td align='center'><input type='checkbox' name='skip_cb_";
+    html += i;
+    html += "' form='skip_save' value='1'";
+    html += (programms[i].skip ? " checked>" : ">");
+    html += "</td>"
+        "</tr>";
+  }
+  html += "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr><td colspan='6' align='center'><form method='post' action='skip_save' id='skip_save'><input type='submit' value='Salvare'></form></td></tr>"
+      "</table>"
+      "</body>"
+      "</html>";
+  server.send(200, "text/html", html);
+}
+
+void printHttpReceivedArgs()
+{
+  uint8_t argCnt = server.args();
+  Serial.print("argCnt = ");
+  Serial.println(argCnt);
+  for(int8_t i = 0; i < argCnt; ++i)
+  {
+    Serial.print(server.argName(i));
+    Serial.print(" = ");
+    Serial.println(server.arg(i));
+  }
+  Serial.println();
+}
+
+void handleSkipSave()
+{
+#if DEBUG
+  printHttpReceivedArgs();
+#endif
+  bool save = false, skip;
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    if((skip = server.arg(String("skip_cb_") + i).length() != 0) != programms[i].skip)
+    {
+      programms[i].skip = skip;
+      save = true;
+    }
+  }
+  if(save)
+  {
+    if(eepromSaveProgramming())
+    {
+      // reload
+      eepromLoadProgramming();
+      for (uint8_t i = 0; i < nb_programms; ++i)
+      {
+        Serial.println(to_string(programms[i]));
+      }
+
+      server.sendHeader("refresh", "3;url=/");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> --></head><body><!-- <h1>CLLS Iriga&#x21B;ie - Omitere</h1> --><h2>Salvare reusita</h2></body></html>");
+    }
+    else
+    {
+      server.sendHeader("refresh", "3;url=/");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> --></head><body><!-- <h1>CLLS Iriga&#x21B;ie - Omitere</h1> --><h2 style='color:red'>Eroare salvare</h2></body></html>");
+    }
+  }
+  else
+  {
+    handleIndex();
+  }
+}
+
+bool eepromSaveProgramming()
+{
+  uint16_t addr = EEPROM_PROG_START;
+  EEPROM.write(addr++, nb_programms);
+  EEPROM.write(addr++, 0);
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    EEPROM.write(addr++, ((programms[i].mow >> 8) & 0xFF));
+    EEPROM.write(addr++, (programms[i].mow & 0xFF));
+    EEPROM.write(addr++, programms[i].zone);
+    EEPROM.write(addr++, programms[i].time);
+    EEPROM.write(addr++, ((programms[i].skip) ? 1 : 0));
+  }
+  return EEPROM.commit();
+}
+
+uint16_t eepromLoadProgramming()
+{
+  // read programms
+  uint16_t addr = EEPROM_PROG_START;
+  nb_programms = EEPROM.read(addr++);
+
+  if(nb_programms == EEPROM_UNSET)
+    nb_programms = 0;
+  addr++; // the next one after nb_programms should be 0 or unset.
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    programms[i].mow = (EEPROM.read(addr++) << 8) | EEPROM.read(addr++);
+    programms[i].zone = EEPROM.read(addr++);
+    programms[i].time = EEPROM.read(addr++);
+    programms[i].skip = EEPROM.read(addr++) == 0 ? false : true;
+    programms[i].running = false;
+  }
+  return nb_programms;
 }
 
 uint16_t now_week_minute()
@@ -317,7 +732,7 @@ uint8_t day_of_week()
  * Returns the day number from the given week minutes, 0 for Monday, 6 for
  * Sunday.
  */
-uint8_t day_of_week_minutes(uint16_t week_minutes)
+uint8_t day_from_week_minutes(uint16_t week_minutes)
 {
   return (week_minutes / (MINUTES_A_HOUR * HOURS_A_DAY)) % DAYS_A_WEEK;
 }
@@ -327,11 +742,22 @@ uint8_t day_of_week_minutes(uint16_t week_minutes)
  */
 const char* to_string(uint16_t week_minutes)
 {
-  static char buff[week_minute_str_len + 1];
-  sprintf(buff, "%s %d:%02d (%d)", days[day_of_week_minutes(week_minutes)],
+  static char wm_buff[week_minute_str_len + 1];
+  sprintf(wm_buff, "%s %d:%02d", days[day_from_week_minutes(week_minutes)],
       ((week_minutes / MINUTES_A_HOUR) % HOURS_A_DAY),
-      (week_minutes % MINUTES_A_HOUR), week_minutes);
-  return buff;
+      (week_minutes % MINUTES_A_HOUR));
+  return wm_buff;
+}
+
+/**
+ * Returns a string representation of given week minute as "DD hh:mm".
+ */
+const char* to_string_time(uint16_t week_minutes)
+{
+  static char wm_buff[week_minute_str_len - 2];
+  sprintf(wm_buff, "%d:%02d", ((week_minutes / MINUTES_A_HOUR) % HOURS_A_DAY),
+      (week_minutes % MINUTES_A_HOUR));
+  return wm_buff;
 }
 
 /**
@@ -339,10 +765,10 @@ const char* to_string(uint16_t week_minutes)
  */
 const char* to_string(programm& p)
 {
-  static char buff[40];
-  snprintf(buff, 39, "%s: %s - %d", zones[p.zone % nb_zones], to_string(p.mow),
+  static char pg_buff[MAX_ZONE_STR_LEN + week_minute_str_len + 9];
+  sprintf(pg_buff, "%s: %s - %d", zones[p.zone % nb_zones], to_string(p.mow),
       p.time);
-  return buff;
+  return pg_buff;
 }
 
 /**
@@ -378,13 +804,16 @@ uint16_t eepromRead(uint16_t addr, char* value)
 
 void sortProgramms()
 {
-  for (uint8_t i; i < nb_programms - 1; ++i)
+  for (uint8_t i = 0; i < nb_programms - 1; ++i)
   {
     for (uint8_t j = i + 1; j < nb_programms; ++j)
     {
-      if (programms[i].mow < programms[j].mow)
+      if (programms[i].mow <= programms[j].mow)
         // OK
         continue;
+#if DEBUG
+      Serial.println(String("swap: ") + programms[i].mow + " <-> " + programms[j].mow);
+#endif
       // swap
       uint16_t mow = programms[i].mow;
       uint8_t zone = programms[i].zone;
@@ -411,37 +840,37 @@ void loadDefaultProgramming()
   uint8_t i = 0;
   // zona 5, MO 21:30, 30
   programms[i++] =
-  { week_minute(MO, 19, 30), 4, 30, false, false};
+  { week_minute(MO, 21, 30), 4, 30, false, false};
   // zona 1, TU, 20:40, 10
   programms[i++] =
-  { week_minute(MO, 19, 40), 0, 10, false, false};
+  { week_minute(TU, 20, 40), 0, 10, false, false};
   // zone 2, TU, 20:50, 15
   programms[i++] =
-  { week_minute(MO, 19, 50), 1, 15, false, false};
+  { week_minute(TU, 20, 50), 1, 15, false, false};
   // zona 3, TU, 21:05, 15
   programms[i++] =
-  { week_minute(TU, 9, 00), 2, 12, false, false};
+  { week_minute(TU, 21, 5), 2, 15, false, false};
   // zona 4, TU, 21:20, 10
   programms[i++] =
   { week_minute(TU, 21, 20), 3, 10, false, false};
   // zona 5, TU, 21:30, 30
   programms[i++] =
   { week_minute(TU, 21, 30), 4, 30, false, false};
-  // zona 5, WE, 21:30, 30
+  // zona 5, WE 21:30, 30
   programms[i++] =
   { week_minute(WE, 21, 30), 4, 30, false, false};
   // zona 1, TH, 20:40, 10
   programms[i++] =
-  { week_minute(TU, 20, 40), 0, 10, false, false};
+  { week_minute(TH, 20, 30), 0, 10, false, false};
   // zone 2, TH, 20:50, 15
   programms[i++] =
-  { week_minute(TU, 20, 50), 1, 15, false, false};
+  { week_minute(TH, 20, 50), 1, 15, false, false};
   // zona 3, TH, 21:05, 15
   programms[i++] =
-  { week_minute(TU, 21, 5), 2, 15, false, false};
+  { week_minute(TH, 21, 5), 2, 15, false, false};
   // zona 4, TH, 21:20, 10
   programms[i++] =
-  { week_minute(TU, 21, 20), 3, 10, false, false};
+  { week_minute(TH, 21, 20), 3, 10, false, false};
   // zona 5, TH, 21:30, 30
   programms[i++] =
   { week_minute(TH, 21, 30), 4, 30, false, false};
