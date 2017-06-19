@@ -15,6 +15,10 @@
 
 #include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
 
+#ifndef IB_IOT
+#define IB_IOT 0
+#endif
+
 namespace
 {
 time_t getTime()
@@ -48,8 +52,12 @@ time_t getTime()
     Serial.println(F("NTP ERROR: there are no sockets available to use."));
     return 0;
   }
-
+#if IB_IOT
+  static char timeServer[] = "135.247.167.11";  // the NTP server
+#else
   static char timeServer[] = "ro.pool.ntp.org";  // the NTP server
+#endif
+
   static long ntpFirstFourBytes = 0xEC0600E3; // the NTP request header
 
   udp.flush(); // Clear received data from possible stray received packets

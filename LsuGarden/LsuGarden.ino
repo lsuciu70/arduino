@@ -1,4 +1,5 @@
 #define DEBUG 1
+#define IB_IOT 1
 //#define EEPROM_RESET
 
 #include <Arduino.h>
@@ -84,11 +85,15 @@ uint16_t eepromWrite(uint16_t, const char*);
 uint16_t eepromRead(uint16_t, char*);
 bool eepromSaveProgramming();
 uint16_t eepromLoadProgramming();
+void eepromPrint(uint16_t start = 0, bool stop_if_unset = false);
+bool eepromReset();
 
 // programms helper functions
 void sortProgramms();
 void loadDefaultProgramming();
 void runProgramms();
+
+void printHttpReceivedArgs();
 
 uint8_t nb_zones = 0;
 uint8_t nb_programms = 0;
@@ -103,29 +108,11 @@ ESP8266WebServer server(80);
 void handleIndex();
 void handleSkip();
 void handleSkipSave();
+void handleOnetime();
+void handleOnetimeSave();
 
-void eepromPrint(uint16_t start = 0, bool stop_if_unset = false)
-{
-  uint8_t rd;
-  for (uint16_t i = start; i < EEPROM_SIZE; ++i)
-  {
-    rd = EEPROM.read(i);
-    if(stop_if_unset && rd == EEPROM_UNSET)
-      break;
-    Serial.print(i, HEX);
-    Serial.print(" - ");
-    Serial.println((unsigned int)rd, HEX);
-  }
-}
 
-bool eepromReset()
-{
-  for (uint16_t i = EEPROM_START; i < EEPROM_SIZE; ++i)
-  {
-    EEPROM.write(i, (unsigned int)0xFF);
-  }
-  return EEPROM.commit();
-}
+
 
 
 void setup()
@@ -136,12 +123,13 @@ void setup()
 
 #ifdef EEPROM_RESET
   eepromReset();
-  // print EEPROM data
-//  eepromPrint();
 #endif
 
-
-  LsuWiFi::connect(2,10000,true,false);
+#if IB_IOT
+  LsuWiFi::connect(3, 10000, true, false);
+#else
+  LsuWiFi::connect();
+#endif
   LsuNtpTime::begin();
 
 //  for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
@@ -173,7 +161,7 @@ void setup()
   if (!nb_programms)
     loadDefaultProgramming();
   if (!nb_programms)
-    curr_programm = 0;
+    curr_programm = nb_programms;
   // get
   uint16_t now_mow = now_week_minute();
 #if DEBUG
@@ -198,6 +186,8 @@ void setup()
     }
     curr_programm = i;
   }
+  if(curr_programm == MAX_NB_PROGRAMMS)
+    curr_programm = nb_programms;
 #if DEBUG
   Serial.print("curr_programm: ");Serial.println(curr_programm);
   Serial.println();
@@ -207,6 +197,8 @@ void setup()
   server.on("/", handleIndex);
   server.on("/skip", handleSkip);
   server.on("/skip_save", handleSkipSave);
+  server.on("/onetime", handleOnetime);
+  server.on("/onetime_save", handleOnetimeSave);
   server.begin();
   Serial.println("Web server started");
 }
@@ -240,6 +232,8 @@ void runProgramms()
     }
     curr_programm = i;
   }
+  if(curr_programm == MAX_NB_PROGRAMMS)
+    curr_programm = nb_programms;
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
     // start / stop
@@ -296,7 +290,7 @@ void handleIndex()
   html += LsuNtpTime::timeString();
   html += "</b>"
       "</td></tr>"
-      "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr><td colspan='6'></td></tr>"
       "<tr>"
       "<th>Ziua</th>"
       "<th>Ora</th>"
@@ -411,7 +405,7 @@ void handleIndex()
     html += "</td>"
         "</tr>";
   }
-  html += "<tr><td colspan='6' align='center'></td></tr>"
+  html += "<tr><td colspan='6'></td></tr>"
       "<tr><td colspan='6' align='center'><form method='post' action='skip'><input type='submit' value='Omitere'></form></td></tr>"
       "<tr><td colspan='6' align='center'><form method='post' action='onetime'><input type='submit' value='Pornire rapid&#259;'></form></td></tr>"
       "<tr><td colspan='6' align='center'><form method='post' action='programming_1'><input type='submit' value='Programare'></form></td></tr>"
@@ -422,7 +416,7 @@ void handleIndex()
   server.send(200, "text/html", html);
 }
 
-void handleIndex_1()
+void handleOnetime()
 {
   uint16_t now_mow = now_week_minute();
   String html =
@@ -430,80 +424,85 @@ void handleIndex_1()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#x21B;ie</title> -->"
+      "<!-- <title>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</title> -->"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
       "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "input { text-align: center; }"
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h1>CLLS Iriga&#x21B;ie</h1> -->"
+      "<!-- <h1>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</h1> -->"
       "<table>"
+      "<tr><td colspan='2' align='center'>"
+      "<b>";
+  html += days_full[day_from_week_minutes(now_mow)];
+  html += ", ";
+  html += LsuNtpTime::timeString();
+  html += "</b>"
+      "</td></tr>"
+      "<tr><td colspan='2'></td></tr>"
       "<tr>"
-      "<th>Curent</th>"
-      "<th>Data</th>"
-      "<th>Zona</th>"
-      "<th>Durata</th>"
-      "<th>Merge</th>"
-      "<th>Omis</th>"
-      "</tr>";
-  for (uint8_t i = 0; i < nb_programms; ++i)
-  {
-    html += "<tr>";
-    // current is right after now -> before current
-    if((i == 0 && now_mow < programms[i].mow)
-        || (now_mow >= programms[i - 1].mow + programms[i - 1].time && now_mow < programms[i].mow)) // in between
-    {
-      html += "<td align='center'>";
-      html += to_string(now_mow);
-      html += "</td>"
-          "<td colspan='5'></td>"
-          "</tr>"
-          "<tr>"
-          "<td align='center'>";
-      html += "</td>";
-    }
-    // current is now -> inline w/ current
-    else if (now_mow >= programms[i].mow && now_mow < programms[i].mow + programms[i].time)
-    {
-      html += "<td align='center'>";
-      html += to_string(now_mow);
-      html += "</td>";
-    }
-    // current is sometine else -> none
-    else
-    {
-      html += "<td align='center'>";
-      html += "</td>";
+      "<td align='center'>Ora pornire</td>"
+      "<td align='center'><input type='text' size='3' maxlength='2' name='h' form='onetime_save' value='";
+  html += hour();
+  html += "'>:<input type='text' size='3' maxlength='2' name='m' form='onetime_save' value='";
+  html += minute();
+  html += "'></td>"
+      "</tr>"
+      "<tr><td colspan='2'></td></tr>"
 
+      "<tr><td align='center'>Zona</td><td align='center'>Durata</td></tr>";
+  for (uint8_t i = 0; i < nb_zones; ++i)
+  {
+    html += "<tr><td align='center'><select name='z_";
+    html += i;
+    html += "' form='onetime_save'><option value='-'>-</option>";
+    for (uint8_t j = 0; j < nb_zones; ++j)
+    {
+      html += "<option value='"; html += j; html += "'>"; html += zones[j]; html += "</option>";
     }
-    html += "<td align='center'>";
-    html += to_string(programms[i].mow);
-    html += "</td>"
-        "<td align='center'>";
-    html += zones[programms[i].zone];
-    html += "</td>"
-        "<td align='center'>";
-    html += (int)programms[i].time;
-    html += "</td>"
-        "<td align='center'>";
-    html += (programms[i].running ? "da" : "nu");
-    html += "</td>"
-        "<td align='center'>";
-    html += (programms[i].skip ? "da" : "nu");
-    html += "</td>"
-        "</tr>";
+    html += "</select></td>"
+        "<td align='center'><input type='text' size='4' maxlength='3' name='d_";
+    html += i;
+    html += "' form='onetime_save' value='15'></td>"
+        "</tr>"
+        ;
   }
-  html += "<tr><td colspan='6' align='center'></td></tr>"
-      "<tr><td colspan='6' align='center'><form method='post' action='skip'><input type='submit' value='Omitere'></form></td></tr>"
-      "<tr><td colspan='6' align='center'><form method='post' action='onetime'><input type='submit' value='Pornire rapid&#259;'></form></td></tr>"
-      "<tr><td colspan='6' align='center'><form method='post' action='programming_1'><input type='submit' value='Programare'></form></td></tr>"
+  html += "<tr><td colspan='2'></td></tr>"
+      "<tr><td colspan='2' align='center'><form method='post' action='onetime_save' id='onetime_save'><input type='submit' value='Salvare'></form></td></tr>"
+      "<tr><td colspan='2'></td></tr>"
+      "<tr><td colspan='2' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
       "</table>"
       "</body>"
       "</html>";
-  server.sendHeader("Refresh", "10");
+/*
+*/
   server.send(200, "text/html", html);
+}
+
+void handleOnetimeSave()
+{
+#if DEBUG
+  printHttpReceivedArgs();
+#endif
+/*
+argCnt = 12
+h = 17
+m = 47
+z_0 = 0
+d_0 = 10
+z_1 = 2
+d_1 = 20
+z_2 = 1
+d_2 = 15
+z_3 = 4
+d_3 = 30
+z_4 = 3
+d_4 = 25
+*/
+    handleIndex();
 }
 
 void handleSkip()
@@ -545,7 +544,7 @@ void handleSkip()
   html += LsuNtpTime::timeString();
   html += "</b>"
       "</td></tr>"
-      "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr><td colspan='6'></td></tr>"
       "<tr>"
       "<th>Ziua</th>"
       "<th>Ora</th>"
@@ -664,114 +663,14 @@ void handleSkip()
     html += "</td>"
         "</tr>";
   }
-  html += "<tr><td colspan='6' align='center'></td></tr>"
+  html += "<tr><td colspan='6'></td></tr>"
       "<tr><td colspan='6' align='center'><form method='post' action='skip_save' id='skip_save'><input type='submit' value='Salvare'></form></td></tr>"
-      "<tr><td colspan='6' align='center'></td></tr>"
+      "<tr><td colspan='6'></td></tr>"
       "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
       "</table>"
       "</body>"
       "</html>";
   server.send(200, "text/html", html);
-}
-
-void handleSkip1()
-{
-  uint16_t now_mow = now_week_minute();
-  String html =
-      "<!DOCTYPE html>"
-      "<html>"
-      "<head>"
-      "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> -->"
-      "<style type='text/css'>"
-      "table { border-collapse:collapse; border-style:solid; }"
-      "th { padding: 15px; border-style:solid; border-width:thin; }"
-      "td { padding: 5px; border-style:solid; border-width:thin; }"
-      "input { text-align: right; }"
-      "</style>"
-      "</head>"
-      "<body>"
-      "<!-- <h1>CLLS Iriga&#x21B;ie - Omitere</h1> -->"
-      "<table>"
-      "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
-      "<tr><td colspan='6' align='center'></td></tr>"
-      "<tr>"
-      "<th>Curent</th>"
-      "<th>Data</th>"
-      "<th>Zona</th>"
-      "<th>Durata</th>"
-      "<th>Merge</th>"
-      "<th>Omis</th>"
-      "</tr>";
-  for (uint8_t i = 0; i < nb_programms; ++i)
-  {
-    html += "<tr>";
-    // current is right after now -> before current
-    if((i == 0 && now_mow < programms[i].mow)
-        || (now_mow >= programms[i - 1].mow + programms[i - 1].time && now_mow < programms[i].mow)) // in between
-    {
-      html += "<td align='center'>";
-      html += to_string(now_mow);
-      html += "</td>"
-          "<td colspan='5'></td>"
-          "</tr>"
-          "<tr>"
-          "<td align='center'>";
-      html += "</td>";
-    }
-    // current is now -> inline w/ current
-    else if (now_mow >= programms[i].mow && now_mow < programms[i].mow + programms[i].time)
-    {
-      html += "<td align='center'>";
-      html += to_string(now_mow);
-      html += "</td>";
-    }
-    // current is sometine else -> none
-    else
-    {
-      html += "<td align='center'>";
-      html += "</td>";
-
-    }
-    html += "<td align='center'>";
-    html += to_string(programms[i].mow);
-    html += "</td>"
-        "<td align='center'>";
-    html += zones[programms[i].zone];
-    html += "</td>"
-        "<td align='center'>";
-    html += (programms[i].running ? "da" : "nu");
-    html += "</td>"
-        "<td align='center'>";
-    html += (int)programms[i].time;
-    html += "</td>"
-        "<td align='center'><input type='checkbox' name='skip_cb_";
-    html += i;
-    html += "' form='skip_save' value='1'";
-    html += (programms[i].skip ? " checked>" : ">");
-    html += "</td>"
-        "</tr>";
-  }
-  html += "<tr><td colspan='6' align='center'></td></tr>"
-      "<tr><td colspan='6' align='center'><form method='post' action='skip_save' id='skip_save'><input type='submit' value='Salvare'></form></td></tr>"
-      "</table>"
-      "</body>"
-      "</html>";
-  server.send(200, "text/html", html);
-}
-
-void printHttpReceivedArgs()
-{
-  uint8_t argCnt = server.args();
-  Serial.print("argCnt = ");
-  Serial.println(argCnt);
-  for(int8_t i = 0; i < argCnt; ++i)
-  {
-    Serial.print(server.argName(i));
-    Serial.print(" = ");
-    Serial.println(server.arg(i));
-  }
-  Serial.println();
 }
 
 void handleSkipSave()
@@ -812,6 +711,20 @@ void handleSkipSave()
   {
     handleIndex();
   }
+}
+
+void printHttpReceivedArgs()
+{
+  uint8_t argCnt = server.args();
+  Serial.print("argCnt = ");
+  Serial.println(argCnt);
+  for(int8_t i = 0; i < argCnt; ++i)
+  {
+    Serial.print(server.argName(i));
+    Serial.print(" = ");
+    Serial.println(server.arg(i));
+  }
+  Serial.println();
 }
 
 bool eepromSaveProgramming()
@@ -937,6 +850,29 @@ const char* to_string(programm& p)
   sprintf(pg_buff, "%s: %s - %d", zones[p.zone % nb_zones], to_string(p.mow),
       p.time);
   return pg_buff;
+}
+
+void eepromPrint(uint16_t start, bool stop_if_unset)
+{
+  uint8_t rd;
+  for (uint16_t i = start; i < EEPROM_SIZE; ++i)
+  {
+    rd = EEPROM.read(i);
+    if(stop_if_unset && rd == EEPROM_UNSET)
+      break;
+    Serial.print(i, HEX);
+    Serial.print(" - ");
+    Serial.println((unsigned int)rd, HEX);
+  }
+}
+
+bool eepromReset()
+{
+  for (uint16_t i = EEPROM_START; i < EEPROM_SIZE; ++i)
+  {
+    EEPROM.write(i, EEPROM_UNSET);
+  }
+  return EEPROM.commit();
 }
 
 /**
