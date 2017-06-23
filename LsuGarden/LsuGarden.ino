@@ -1,4 +1,4 @@
-#define DEBUG 1
+#define DEBUG 2
 #define IB_IOT 1
 //#define EEPROM_RESET
 
@@ -38,19 +38,10 @@ const uint8_t EEPROM_ZONE_START = /*128*/EEPROM_START;
 const uint16_t EEPROM_PROG_START = /*298*/EEPROM_ZONE_START + 2 + (MAX_NB_ZONES) * (MAX_ZONE_STR_LEN + 1);
 const uint16_t EEPROM_SIZE = 0xe80;
 
-//uint8_t pin[MAX_NB_ZONES] =
-//{ D1, D2, D3, D4, D5, D6, D7, D8, };
+uint8_t pin[MAX_NB_ZONES] =
+{ D1, D2, D3, D4, D5, D6, D7, D8, };
 
-char zones[MAX_NB_ZONES][MAX_ZONE_STR_LEN + 1] =
-    {
-      "Zona 1",
-      "Zona 2",
-      "Zona 3",
-      "Zona 4",
-      "Zona 5",
-      "Zona 6",
-      "Zona 7",
-      "Zona 8", };
+char zones[MAX_NB_ZONES][MAX_ZONE_STR_LEN + 1];
 
 const char* days[DAYS_A_WEEK] =
 { "Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du", };
@@ -76,6 +67,8 @@ const char* to_string(programm&);
 // time helper functions
 uint8_t day_of_week();
 uint8_t day_from_week_minutes(uint16_t);
+uint8_t hour_from_week_minutes(uint16_t);
+uint8_t minute_from_week_minutes(uint16_t);
 uint16_t week_minute(uint8_t, uint8_t, uint8_t);
 uint16_t now_to_week_minutes(uint16_t);
 uint16_t now_week_minute();
@@ -83,8 +76,10 @@ uint16_t now_week_minute();
 // EEPROM helper functions
 uint16_t eepromWrite(uint16_t, const char*);
 uint16_t eepromRead(uint16_t, char*);
-bool eepromSaveProgramming();
 uint16_t eepromLoadProgramming();
+bool eepromSaveProgramming(programm*, uint8_t);
+uint16_t eepromLoadZones();
+bool eepromSaveZones();
 void eepromPrint(uint16_t start = 0, bool stop_if_unset = false);
 bool eepromReset();
 
@@ -93,14 +88,20 @@ void sortProgramms();
 void loadDefaultProgramming();
 void runProgramms();
 
+bool nb_zone_dirty = false;
+void loadDefaultZones();
+
 void printHttpReceivedArgs();
 
 uint8_t nb_zones = 0;
 uint8_t nb_programms = 0;
-
-uint8_t curr_programm = MAX_NB_PROGRAMMS;
+uint8_t nb_programms_ps = 0;
+uint8_t nb_ot_programms = 0;
 
 programm programms[MAX_NB_PROGRAMMS];
+programm programms_ps[MAX_NB_PROGRAMMS];
+
+programm ot_programms[MAX_NB_ZONES];
 
 // HTTP
 ESP8266WebServer server(80);
@@ -110,6 +111,27 @@ void handleSkip();
 void handleSkipSave();
 void handleOnetime();
 void handleOnetimeSave();
+void handleProgramming1();
+void handleProgramming1Save();
+void handleProgramming2();
+void handleProgramming2Save();
+void handleProgramming3(uint8_t);
+void handleProgramming3Save(uint8_t);
+void handleProgramming31();
+void handleProgramming32();
+void handleProgramming33();
+void handleProgramming34();
+void handleProgramming35();
+void handleProgramming36();
+void handleProgramming37();
+void handleProgramming31Save();
+void handleProgramming32Save();
+void handleProgramming33Save();
+void handleProgramming34Save();
+void handleProgramming35Save();
+void handleProgramming36Save();
+void handleProgramming37Save();
+
 
 
 
@@ -132,65 +154,43 @@ void setup()
 #endif
   LsuNtpTime::begin();
 
-//  for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
-//  {
-//    pinMode(pin[i], OUTPUT);
-//    digitalWrite(pin[i], OFF);
-//  }
+  for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
+  {
+    pinMode(pin[i], OUTPUT);
+    digitalWrite(pin[i], OFF);
+  }
 
   // read EEPROM
   // read zone's names
-  uint16_t addr = EEPROM_ZONE_START;
-  nb_zones = EEPROM.read(addr++);
-  if(nb_zones == EEPROM_UNSET)
-    nb_zones = 0;
-  addr++; // the next one after nb_zones should be 0 or unset.
-  for (uint8_t i = 0; i < nb_zones; ++i)
-  {
-    addr = eepromRead(addr, zones[i]);
-  }
+  eepromLoadZones();
+#if DEBUG >= 2
+  Serial.println("\nEEPROM zones:");
+  eepromPrint(EEPROM_ZONE_START, true);
+#endif
   if(!nb_zones)
-    nb_zones = MAX_NB_ZONES;
+    loadDefaultZones();
 
   // read programms
   eepromLoadProgramming();
 #if DEBUG >= 2
-  Serial.println();
+  Serial.println("\nEEPROM programms:");
   eepromPrint(EEPROM_PROG_START, true);
 #endif
-  if (!nb_programms)
-    loadDefaultProgramming();
-  if (!nb_programms)
-    curr_programm = nb_programms;
-  // get
-  uint16_t now_mow = now_week_minute();
-#if DEBUG
-  Serial.println();
-  Serial.print("now_mow: ");Serial.println(to_string(now_mow));
-#endif
+
+//  if (!nb_programms)
+//    loadDefaultProgramming();
+
   // sort programms
   sortProgramms();
 
 #if DEBUG
+  Serial.println();
+  Serial.print("now_mow: ");Serial.println(to_string(now_week_minute()));
   Serial.print("nb_programms: ");Serial.println(nb_programms);
-#endif
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
-#if DEBUG
     Serial.print((unsigned short)i);Serial.print(": ");Serial.println(to_string(programms[i]));
-#endif
-    if (now_mow < programms[i].mow)
-    {
-      // OK
-      continue;
-    }
-    curr_programm = i;
   }
-  if(curr_programm == MAX_NB_PROGRAMMS)
-    curr_programm = nb_programms;
-#if DEBUG
-  Serial.print("curr_programm: ");Serial.println(curr_programm);
-  Serial.println();
 #endif
 
   // HTTP
@@ -199,6 +199,24 @@ void setup()
   server.on("/skip_save", handleSkipSave);
   server.on("/onetime", handleOnetime);
   server.on("/onetime_save", handleOnetimeSave);
+  server.on("/programming_1", handleProgramming1);
+  server.on("/programming_1_save", handleProgramming1Save);
+  server.on("/programming_2", handleProgramming2);
+  server.on("/programming_2_save", handleProgramming2Save);
+  server.on("/programming_31",      handleProgramming31);
+  server.on("/programming_31_save", handleProgramming31Save);
+  server.on("/programming_32",      handleProgramming32);
+  server.on("/programming_32_save", handleProgramming32Save);
+  server.on("/programming_33",      handleProgramming33);
+  server.on("/programming_33_save", handleProgramming33Save);
+  server.on("/programming_34",      handleProgramming34);
+  server.on("/programming_34_save", handleProgramming34Save);
+  server.on("/programming_35",      handleProgramming35);
+  server.on("/programming_35_save", handleProgramming35Save);
+  server.on("/programming_36",      handleProgramming36);
+  server.on("/programming_36_save", handleProgramming36Save);
+  server.on("/programming_37",      handleProgramming37);
+  server.on("/programming_37_save", handleProgramming37Save);
   server.begin();
   Serial.println("Web server started");
 }
@@ -223,30 +241,82 @@ void loop()
 void runProgramms()
 {
   uint16_t now_mow = now_week_minute();
-  for (uint8_t i = 0; i < nb_programms; ++i)
+  uint8_t run_prog;
+  // one time
+  if(nb_ot_programms)
   {
-    if (now_mow < programms[i].mow)
+    bool future_run = false;
+    run_prog = nb_ot_programms;
+    for (uint8_t i = 0; i < nb_ot_programms; ++i)
     {
-      // OK
-      continue;
+      if(now_mow >= ot_programms[i].mow && now_mow < (ot_programms[i].mow + ot_programms[i].time))
+        run_prog = i;
+      future_run = future_run || now_mow < ot_programms[i].mow;
     }
-    curr_programm = i;
-  }
-  if(curr_programm == MAX_NB_PROGRAMMS)
-    curr_programm = nb_programms;
-  for (uint8_t i = 0; i < nb_programms; ++i)
-  {
-    // start / stop
+    for (uint8_t i = 0; i < nb_ot_programms; ++i)
+    {
+      // stop everything except the one should run
+      if(i == run_prog)
+        continue;
+      if(ot_programms[i].running)
+      {
+        ot_programms[i].running = false;
+        digitalWrite(pin[ot_programms[i].zone], OFF);
 #if DEBUG
-    bool was_running = programms[i].running;
+        Serial.print(to_string(ot_programms[i]));Serial.println(" - stop");
 #endif
-    programms[i].running = (i == curr_programm && (programms[i].mow + programms[i].time) > now_mow && !programms[i].skip);
-//    digitalWrite(pin[programms[i].zone], (programms[i].running ? ON : OFF));
-#if DEBUG
-    if(was_running != programms[i].running)
-    {
-      Serial.print(to_string(programms[i]));Serial.print(" - ");Serial.println((programms[i].running ? "start" : "stop"));
+      }
     }
+    if(run_prog < nb_ot_programms)
+    {
+      // start it if not already started
+      if(!ot_programms[run_prog].running)
+      {
+        ot_programms[run_prog].running = true;
+        digitalWrite(pin[ot_programms[run_prog].zone], ON);
+#if DEBUG
+        Serial.print(to_string(ot_programms[run_prog]));Serial.println(" - start");
+#endif
+      }
+    }
+    else if(!future_run)
+    {
+      // no one should run
+      nb_ot_programms = 0;
+    }
+    return;
+  }
+  // end one time
+
+
+  // weekly schedule
+  run_prog = nb_programms;
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    if(now_mow >= programms[i].mow && now_mow < (programms[i].mow + programms[i].time) && !programms[i].skip)
+      run_prog = i;
+  }
+  // stop everything except the one should run
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    if(i == run_prog)
+      continue;
+    if(programms[i].running)
+    {
+      programms[i].running = false;
+      digitalWrite(pin[programms[i].zone], OFF);
+#if DEBUG
+      Serial.print(to_string(programms[i]));Serial.println(" - stop");
+#endif
+    }
+  }
+  if(run_prog < nb_programms)
+  {
+    // start it if not already started
+    programms[run_prog].running = true;
+    digitalWrite(pin[programms[run_prog].zone], ON);
+#if DEBUG
+    Serial.print(to_string(programms[run_prog]));Serial.println(" - start");
 #endif
   }
 }
@@ -255,6 +325,8 @@ void handleIndex()
 {
   uint16_t now_mow = now_week_minute();
   uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0, rspan = 0;
+  bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
+  uint8_t day_idx = DAYS_A_WEEK;
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
     switch(day_from_week_minutes(programms[i].mow))
@@ -281,7 +353,7 @@ void handleIndex()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h1>CLLS Iriga&#x21B;ie</h1> -->"
+      "<!-- <h2>CLLS Iriga&#x21B;ie</h2> -->"
       "<table>"
       "<tr><td colspan='6' align='center'>"
       "<b>";
@@ -289,9 +361,55 @@ void handleIndex()
   html += ", ";
   html += LsuNtpTime::timeString();
   html += "</b>"
-      "</td></tr>"
-      "<tr><td colspan='6'></td></tr>"
-      "<tr>"
+      "</td></tr>";
+  html += "<tr><td colspan='6'></td></tr>";
+  // one time programms
+  if(nb_ot_programms)
+  {
+    html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>";
+    html += "<tr>"
+          "<th>Ziua</th>"
+          "<th>Ora</th>"
+          "<th>Durata</th>"
+          "<th>Zona</th>"
+          "<th>Merge</th>"
+          "<th>Omis</th>"
+          "</tr>";
+    day_idx = day_of_week();
+    rspan = nb_ot_programms;
+    html += "<tr>";
+    if(rspan)
+    {
+      html += "<td align='left' rowspan='";
+      html += rspan;
+      html += "'>";
+      html += days_full[day_idx];
+      html += "</td>";
+    }
+    for (uint8_t i = 0; i < nb_ot_programms; ++i)
+    {
+
+      html += "<td align='center'>";
+      html += to_string_time(ot_programms[i].mow);
+      html += "</td>"
+          "<td align='center'>";
+      html += (int)ot_programms[i].time;
+      html += "</td>"
+          "<td align='center'>";
+      html += zones[ot_programms[i].zone];
+      html += "</td>"
+          "<td align='center'>";
+      html += (ot_programms[i].running ? "da" : "nu");
+      html += "</td>"
+          "<td align='center'>";
+      html += (ot_programms[i].skip ? "da" : "nu");
+      html += "</td>"
+          "</tr>";
+    }
+    html += "<tr><td colspan='6'></td></tr>";
+  }
+  html += "<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>";
+  html += "<tr>"
       "<th>Ziua</th>"
       "<th>Ora</th>"
       "<th>Durata</th>"
@@ -300,11 +418,8 @@ void handleIndex()
       "<th>Omis</th>"
       "</tr>";
 
-  bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
-  uint8_t day_idx = DAYS_A_WEEK;
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
-    html += "<tr>";
     // day
     switch(day_from_week_minutes(programms[i].mow))
     {
@@ -379,6 +494,7 @@ void handleIndex()
         su_ft = false;
         break;
     }
+    html += "<tr>";
     if(rspan)
     {
       html += "<td align='left' rowspan='";
@@ -416,95 +532,6 @@ void handleIndex()
   server.send(200, "text/html", html);
 }
 
-void handleOnetime()
-{
-  uint16_t now_mow = now_week_minute();
-  String html =
-      "<!DOCTYPE html>"
-      "<html>"
-      "<head>"
-      "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</title> -->"
-      "<style type='text/css'>"
-      "table { border-collapse:collapse; border-style:solid; }"
-      "th { padding: 15px; border-style:solid; border-width:thin; }"
-      "td { padding: 5px; border-style:solid; border-width:thin; }"
-      "input { text-align: center; }"
-      "</style>"
-      "</head>"
-      "<body>"
-      "<!-- <h1>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</h1> -->"
-      "<table>"
-      "<tr><td colspan='2' align='center'>"
-      "<b>";
-  html += days_full[day_from_week_minutes(now_mow)];
-  html += ", ";
-  html += LsuNtpTime::timeString();
-  html += "</b>"
-      "</td></tr>"
-      "<tr><td colspan='2'></td></tr>"
-      "<tr>"
-      "<td align='center'>Ora pornire</td>"
-      "<td align='center'><input type='text' size='3' maxlength='2' name='h' form='onetime_save' value='";
-  html += hour();
-  html += "'>:<input type='text' size='3' maxlength='2' name='m' form='onetime_save' value='";
-  html += minute();
-  html += "'></td>"
-      "</tr>"
-      "<tr><td colspan='2'></td></tr>"
-
-      "<tr><td align='center'>Zona</td><td align='center'>Durata</td></tr>";
-  for (uint8_t i = 0; i < nb_zones; ++i)
-  {
-    html += "<tr><td align='center'><select name='z_";
-    html += i;
-    html += "' form='onetime_save'><option value='-'>-</option>";
-    for (uint8_t j = 0; j < nb_zones; ++j)
-    {
-      html += "<option value='"; html += j; html += "'>"; html += zones[j]; html += "</option>";
-    }
-    html += "</select></td>"
-        "<td align='center'><input type='text' size='4' maxlength='3' name='d_";
-    html += i;
-    html += "' form='onetime_save' value='15'></td>"
-        "</tr>"
-        ;
-  }
-  html += "<tr><td colspan='2'></td></tr>"
-      "<tr><td colspan='2' align='center'><form method='post' action='onetime_save' id='onetime_save'><input type='submit' value='Salvare'></form></td></tr>"
-      "<tr><td colspan='2'></td></tr>"
-      "<tr><td colspan='2' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
-      "</table>"
-      "</body>"
-      "</html>";
-/*
-*/
-  server.send(200, "text/html", html);
-}
-
-void handleOnetimeSave()
-{
-#if DEBUG
-  printHttpReceivedArgs();
-#endif
-/*
-argCnt = 12
-h = 17
-m = 47
-z_0 = 0
-d_0 = 10
-z_1 = 2
-d_1 = 20
-z_2 = 1
-d_2 = 15
-z_3 = 4
-d_3 = 30
-z_4 = 3
-d_4 = 25
-*/
-    handleIndex();
-}
-
 void handleSkip()
 {
   uint16_t now_mow = now_week_minute();
@@ -535,7 +562,7 @@ void handleSkip()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h1>CLLS Iriga&#x21B;ie - Omitere</h1> -->"
+      "<!-- <h2>CLLS Iriga&#x21B;ie - Omitere</h2> -->"
       "<table>"
       "<tr><td colspan='6' align='center'>"
       "<b>";
@@ -689,22 +716,23 @@ void handleSkipSave()
   }
   if(save)
   {
-    if(eepromSaveProgramming())
+    if(eepromSaveProgramming(programms, nb_programms))
     {
       // reload
       eepromLoadProgramming();
+#if DEBUG
       for (uint8_t i = 0; i < nb_programms; ++i)
       {
         Serial.println(to_string(programms[i]));
       }
-
-      server.sendHeader("refresh", "3;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> --></head><body><!-- <h1>CLLS Iriga&#x21B;ie - Omitere</h1> --><h2>Salvare reusita</h2></body></html>");
+#endif
+      server.sendHeader("refresh", "1;url=/");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Omitere</h2> --><h3>Salvare reusita</h3></body></html>");
     }
     else
     {
       server.sendHeader("refresh", "3;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> --></head><body><!-- <h1>CLLS Iriga&#x21B;ie - Omitere</h1> --><h2 style='color:red'>Eroare salvare</h2></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Omitere</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Omitere</h2> --><h3 style='color:red'>Eroare salvare</h3></body></html>");
     }
   }
   else
@@ -712,6 +740,518 @@ void handleSkipSave()
     handleIndex();
   }
 }
+
+void handleOnetime()
+{
+  uint16_t now_mow = now_week_minute();
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<!-- <title>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</title> -->"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "input { text-align: center; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<!-- <h2>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</h2> -->"
+      "<table>"
+      "<tr><td colspan='2' align='center'>"
+      "<b>";
+  html += days_full[day_from_week_minutes(now_mow)];
+  html += ", ";
+  html += LsuNtpTime::timeString();
+  html += "</b>"
+      "</td></tr>"
+      "<tr><td colspan='2'></td></tr>"
+      "<tr>"
+      "<td align='center'>Ora pornire</td>"
+      "<td align='center'><input type='text' size='3' maxlength='2' name='h' form='onetime_save' value='";
+  html += hour();
+  html += "'>:<input type='text' size='3' maxlength='2' name='m' form='onetime_save' value='";
+  html += minute();
+  html += "'></td>"
+      "</tr>"
+      "<tr><td colspan='2'></td></tr>";
+  html += "<tr><td align='center'>Zona</td><td align='center'>Durata</td></tr>";
+  for (uint8_t i = 0; i < nb_zones; ++i)
+  {
+    html += "<tr><td align='center'><select name='z_";
+    html += i;
+    html += "' form='onetime_save'><option value='";
+    html += nb_zones;
+    html += "'>-</option>";
+    for (uint8_t j = 0; j < nb_zones; ++j)
+    {
+      html += "<option value='"; html += j; html += "'>"; html += zones[j]; html += "</option>";
+    }
+    html += "</select></td>"
+        "<td align='center'><input type='text' size='4' maxlength='3' name='d_";
+    html += i;
+    html += "' form='onetime_save' value='15'></td>"
+        "</tr>"
+        ;
+  }
+  html += "<tr><td colspan='2'></td></tr>"
+      "<tr><td colspan='2' align='center'><form method='post' action='onetime_save' id='onetime_save'><input type='submit' value='Salvare'></form></td></tr>"
+      "<tr><td colspan='2'></td></tr>"
+      "<tr><td colspan='2' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
+      "</table>"
+      "</body>"
+      "</html>";
+  server.send(200, "text/html", html);
+}
+
+void handleOnetimeSave()
+{
+#if DEBUG
+  printHttpReceivedArgs();
+#endif
+  uint8_t z, d, h, m;
+  String arg_str;
+  bool hm_ok = (arg_str = server.arg("h")).length() > 0 &&
+      (h = arg_str.toInt()) &&
+      h < 24 &&
+      (arg_str = server.arg("m")).length() > 0 &&
+      (m = arg_str.toInt()) &&
+      m < 60;
+  uint16_t mow = 0;
+  if(hm_ok)
+    mow = week_minute(day_of_week(), h, m);
+  // stop all that may run
+  for (uint8_t i = 0; i < nb_ot_programms; ++i)
+  {
+    digitalWrite(pin[ot_programms[i].zone], OFF);
+  }
+  nb_ot_programms = 0;
+  uint8_t j = 0;
+  for (uint8_t i = 0; i < nb_zones; ++i)
+  {
+    if((arg_str = server.arg(String("z_") + i)).length() != 0 &&
+        (z = arg_str.toInt()) < nb_zones)
+    {
+      if((arg_str = server.arg(String("d_") + i)).length() == 0 ||
+          (d = arg_str.toInt()) > MAX_DURATION)
+      {
+        server.sendHeader("refresh", "3;url=/");
+        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</h2> --><h3 style='color:red'>Eroare, durat&#259; eronat&#259; pentru ") + zones[i] + "</h3></body></html>");
+        return;
+      }
+      // start time not OK
+      if(!hm_ok)
+      {
+        server.sendHeader("refresh", "3;url=/");
+        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</h2> --><h3 style='color:red'>Eroare, timpul de pornire eronat: ") + h + ":" + m + " [hh:mm]</h3></body></html>");
+        return;
+      }
+      // save
+      ot_programms[j++] = { mow, z, d, false, false};
+#if DEBUG
+      Serial.print("save ot: ");Serial.println(to_string(ot_programms[j - 1]));
+#endif
+      mow += d;
+    }
+  }
+#if DEBUG
+      Serial.print("nb_ot_programms: ");Serial.println(j);
+#endif
+  if(nb_ot_programms != j)
+  {
+    nb_ot_programms = j;
+    server.sendHeader("refresh", "3;url=/");
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Pornire rapid&#259;</h2> --><h3>Salvare reusita</h3></body></html>");
+    return;
+  }
+  server.sendHeader("refresh", "1;url=/");
+  server.send(200, "text/html", "<!DOCTYPE html><html></html>");
+}
+
+void handleProgramming1()
+{
+  // initialize the number
+  nb_programms_ps = 0;
+  nb_zone_dirty = false;
+  uint16_t now_mow = now_week_minute();
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<!-- <title>CLLS Iriga&#x21B;ie - Programare 1</title> -->"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "input { text-align: center; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<!-- <h2>CLLS Iriga&#x21B;ie - Programare</h2> -->"
+      "<h3>Pasul 1 - Num&#259;rul de zone (maxim 8)</h3>"
+      "<table>";
+
+  html += "<tr><th>Num&#259;rul de zone</th><td><input type='text' size='2' maxlength='1' name='nb_zones' form='programming_1_save'";
+  if(nb_zones)
+  {
+    html += " value='";
+    html += nb_zones;
+    html += "'";
+  }
+  html += "></td></tr>"
+      "<tr><td colspan='2'></td></tr>"
+      "<tr><td colspan='2' align='center'><form method='post' action='programming_1_save' id='programming_1_save'><input type='submit' value='&#206;nainte'></form></td></tr>"
+      "<tr><td colspan='2'></td></tr>"
+      "<tr><td colspan='2' align='center'><form method='post' action='.'><input type='submit' value='&#206;napoi'></form></td></tr>"
+      "</table>"
+      "</body>"
+      "</html>";
+  server.send(200, "text/html", html);
+}
+
+void handleProgramming1Save()
+{
+#if DEBUG
+  printHttpReceivedArgs();
+#endif
+  uint8_t nb_zones_n = 0;
+  String arg_str;
+  if((arg_str = server.arg("nb_zones")).length() > 0)
+    nb_zones_n = arg_str.toInt();
+  if(nb_zones_n && nb_zones_n <= MAX_NB_ZONES)
+  {
+    if(nb_zones != nb_zones_n)
+    {
+      uint8_t tmp = nb_zones;
+      nb_zones = nb_zones_n;
+      if(eepromSaveZones() && nb_zones == eepromLoadZones())
+      {
+        nb_zone_dirty = false;
+        server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0; url=/programming_2' /></head></html>");
+        return;
+      }
+      nb_zones = tmp;
+      server.sendHeader("refresh", "3;url=/programming_2");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Programare 2</h2> --><h3 style='color:red'>Eroare salvare, se va folosi num&#259;rul de zone ini&#x21B;</h3></body></html>");
+      return;
+
+    }
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0; url=/programming_2' /></head></html>");
+    return;
+  }
+  else
+  {
+    server.sendHeader("refresh", "3;url=/programming_1");
+    server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Programare 1</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Programare 1</h2> --><h3 style='color:red'>Eroare, numar de zone eronat: ") + nb_zones_n + "</h3></body></html>");
+    return;
+  }
+}
+
+void handleProgramming2()
+{
+  uint16_t now_mow = now_week_minute();
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<!-- <title>CLLS Iriga&#x21B;ie - Programare 2</title> -->"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "input { text-align: center; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<!-- <h2>CLLS Iriga&#x21B;ie - Programare</h2> -->"
+      "<h3>Pasul 2 - Numele zonelor (maxim 20 caractere)</h3>"
+      "<table>";
+
+  for(uint8_t i = 0; i < nb_zones; ++i)
+  {
+    html += "<tr><td align='center'><b>Zona ";
+    html += (i + 1);
+    html += "</b></td><td><input type='text' size='20' maxlength='20' form='programming_2_save' name='z_";
+    html += i;
+    html += "' value='";
+    html += zones[i];
+    html += "'></td></tr>";
+  }
+
+  html += "<tr><td colspan='2'></td></tr>"
+      "<tr><td colspan='2' align='center'><form method='post' action='programming_2_save' id='programming_2_save'><input type='submit' value='&#206;nainte'></form></td></tr>"
+      "<tr><td colspan='2'></td></tr>"
+      "<tr><td colspan='2' align='center'><form method='post' action='programming_1'><input type='submit' value='&#206;napoi'></form></td></tr>"
+      "</table>"
+      "</body>"
+      "</html>";
+
+  server.send(200, "text/html", html);
+}
+
+void handleProgramming2Save()
+{
+#if DEBUG
+  printHttpReceivedArgs();
+#endif
+  String arg_str;
+  bool one_saved;
+  for (uint8_t i = 0; i < nb_zones; ++i)
+  {
+    if((arg_str = server.arg(String("z_") + i)).length() != 0 &&
+        strcmp(zones[i], arg_str.c_str()))
+    {
+      one_saved = true;
+      strncpy(&zones[i][0], arg_str.c_str(), MAX_ZONE_STR_LEN);
+    }
+  }
+  if(one_saved && !(eepromSaveZones() && nb_zones == eepromLoadZones()))
+  {
+    server.sendHeader("refresh", "3;url=/programming_31");
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Programare 2</h2> --><h3 style='color:red'>Eroare salvare, se vor folosi numele implicite</h3></body></html>");
+    return;
+  }
+  server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0; url=/programming_31' /></head></html>");
+}
+
+void handleProgramming3(uint8_t day_t)
+{
+  uint16_t now_mow = now_week_minute();
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<!-- <title>CLLS Iriga&#x21B;ie - Programare 3</title> -->"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "input { text-align: center; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<!-- <h2>CLLS Iriga&#x21B;ie - Programare</h2> -->"
+      "<h3>Pasul 3 - ";
+  html += days_full[day_t];
+  html += "</h3>"
+      "<table>"
+      "<tr>"
+      "<th align='center' rowspan='2'>Zona</th>"
+      "<th align='center'>Interval 1</th>"
+      "<th align='center'>Interval 2</th>"
+      "<th align='center'>Interval 3</th>"
+      "</tr>"
+      "<tr>"
+      "<td align='center' colspan='";
+  html += MAX_PROGRAMMS_PER_DAY;
+  html += "'>[hh:mm durata]</td>"
+      "</tr>";
+  for (uint8_t i = 0; i < nb_zones; ++i)
+  {
+    html += "<tr><th align='center'>";
+    html += zones[i];
+    html += "<input type='hidden' name='z_"; html += day_t; html += "_"; html += i; html += "' value='"; html += i; html += "' form='programming_3_save'>";
+    html += "</th>";
+    uint8_t h[MAX_PROGRAMMS_PER_DAY], m[MAX_PROGRAMMS_PER_DAY], d[MAX_PROGRAMMS_PER_DAY];
+    bool is_set[MAX_PROGRAMMS_PER_DAY];
+    uint8_t idx = 0;
+    for(uint8_t k = 0; k < MAX_PROGRAMMS_PER_DAY; ++k)
+    {
+      is_set[k] = false;
+    }
+    for (uint8_t k = 0; k < nb_programms; ++k)
+    {
+      if(day_t == day_from_week_minutes(programms[k].mow) &&
+          i == programms[k].zone)
+      {
+        h[idx] = hour_from_week_minutes(programms[k].mow);
+        m[idx] = minute_from_week_minutes(programms[k].mow);
+        d[idx] = programms[k].time;
+        is_set[idx] = true;
+        ++idx;
+      }
+    }
+    for(uint8_t j = 0; j < MAX_PROGRAMMS_PER_DAY; ++j)
+    {
+      html += "<td align='center'>";
+      if(is_set[j])
+      {
+        html += "<input type='text' size='4' maxlength='3' name='h_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programming_3_save' value='";;
+        html += (int) h[j];
+        html += "'>";
+        html += ":";
+        html += "<input type='text' size='4' maxlength='3' name='m_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programming_3_save' value='";;
+        html += (int) m[j];
+        html += "'>";
+        html += "<input type='text' size='4' maxlength='3' name='d_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programming_3_save' value='";;
+        html += (int) d[j];
+        html += "'>";
+      }
+      else
+      {
+        html += "<input type='text' size='4' maxlength='3' name='h_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programming_3_save'>";
+        html += ":";
+        html += "<input type='text' size='4' maxlength='3' name='m_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programming_3_save'>";
+        html += "<input type='text' size='4' maxlength='3' name='d_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programming_3_save'>";
+      }
+      html += "</td>";
+    }
+    html += "</tr>";
+  }
+  html += "<tr><td colspan='4'></td></tr>"
+      "<tr><td colspan='";
+  html += (MAX_PROGRAMMS_PER_DAY + 1);
+  html += "' align='center'><form method='post' action='programming_3"; html += (day_t + 1); html += "_save' id='programming_3_save'><input type='submit' value='&#206;nainte'></form></td></tr>"
+      "<tr><td colspan='";
+  html += (MAX_PROGRAMMS_PER_DAY + 1);
+  html += "'></td></tr>"
+      "<tr><td colspan='";
+  html += (MAX_PROGRAMMS_PER_DAY + 1);
+  html += "' align='center'><form method='post' action='programming_";
+      if(day_t)
+      {
+        html += "3";
+        html += day_t;
+      }
+      else
+        html += "2";
+      html += "'><input type='submit' value='&#206;napoi'></form></td></tr>"
+      "</table>"
+      "</body>"
+      "</html>";
+
+  server.send(200, "text/html", html);
+}
+
+void handleProgramming3Save(uint8_t day_t)
+{
+#if DEBUG
+  printHttpReceivedArgs();
+#endif
+
+  uint8_t z, h, m, d;
+  String arg_str;
+  for (uint8_t i = 0; i < nb_zones; ++i)
+  {
+    if((arg_str = server.arg(String("z_") + day_t + "_" + i)).length() <= 0)
+      continue;
+    z = arg_str.toInt();
+    for(uint8_t j = 0; j < MAX_PROGRAMMS_PER_DAY; ++j)
+    {
+      if((arg_str = server.arg(String("h_") + day_t + "_" + i + "_" + j)).length() <= 0)
+        continue;
+      h = arg_str.toInt();
+      if((arg_str = server.arg(String("m_") + day_t + "_" + i + "_" + j)).length() <= 0)
+        continue;
+      m = arg_str.toInt();
+      if((arg_str = server.arg(String("d_") + day_t + "_" + i + "_" + j)).length() <= 0)
+        continue;
+      d = arg_str.toInt();
+      programms_ps[nb_programms_ps] =
+        { week_minute(day_t, h, m), z, d, false, false};
+      nb_programms_ps += 1;
+    }
+  }
+
+  if(day_t < SU) // Sunday is the last one ;-)
+  {
+    server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0; url=/programming_3") + (day_t + 2) + "' /></head></html>");
+  }
+  else
+  {
+    if(eepromSaveProgramming(programms_ps, nb_programms_ps))
+    {
+      server.sendHeader("refresh", "1;url=/");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Programare 3</h2> --><h3>Salvare reusita</h3></body></html>");
+      eepromLoadProgramming();
+    }
+    else
+    {
+      server.sendHeader("refresh", "3;url=/");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Programare 3</h2> --><h3 style='color:red'>Eroare salvare</h3></body></html>");
+
+    }
+  }
+}
+
+void handleProgramming31()
+{
+  return handleProgramming3(MO);
+}
+
+void handleProgramming32()
+{
+  return handleProgramming3(TU);
+}
+
+void handleProgramming33()
+{
+  return handleProgramming3(WE);
+}
+
+void handleProgramming34()
+{
+  return handleProgramming3(TH);
+}
+
+void handleProgramming35()
+{
+  return handleProgramming3(FR);
+}
+
+void handleProgramming36()
+{
+  return handleProgramming3(SA);
+}
+
+void handleProgramming37()
+{
+  return handleProgramming3(SU);
+}
+
+
+void handleProgramming31Save()
+{
+  return handleProgramming3Save(MO);
+}
+
+void handleProgramming32Save()
+{
+  return handleProgramming3Save(TU);
+}
+
+void handleProgramming33Save()
+{
+  return handleProgramming3Save(WE);
+}
+
+void handleProgramming34Save()
+{
+  return handleProgramming3Save(TH);
+}
+
+void handleProgramming35Save()
+{
+  return handleProgramming3Save(FR);
+}
+
+void handleProgramming36Save()
+{
+  return handleProgramming3Save(SA);
+}
+
+void handleProgramming37Save()
+{
+  return handleProgramming3Save(SU);
+}
+
+
+
 
 void printHttpReceivedArgs()
 {
@@ -727,20 +1267,25 @@ void printHttpReceivedArgs()
   Serial.println();
 }
 
-bool eepromSaveProgramming()
+bool eepromSaveProgramming(programm* programms_t, uint8_t nb_programms_t)
 {
   uint16_t addr = EEPROM_PROG_START;
-  EEPROM.write(addr++, nb_programms);
+  EEPROM.write(addr++, nb_programms_t);
   EEPROM.write(addr++, 0);
-  for (uint8_t i = 0; i < nb_programms; ++i)
+  for (uint8_t i = 0; i < nb_programms_t; ++i)
   {
-    EEPROM.write(addr++, ((programms[i].mow >> 8) & 0xFF));
-    EEPROM.write(addr++, (programms[i].mow & 0xFF));
-    EEPROM.write(addr++, programms[i].zone);
-    EEPROM.write(addr++, programms[i].time);
-    EEPROM.write(addr++, ((programms[i].skip) ? 1 : 0));
+    EEPROM.write(addr++, ((programms_t[i].mow >> 8) & 0xFF));
+    EEPROM.write(addr++, (programms_t[i].mow & 0xFF));
+    EEPROM.write(addr++, programms_t[i].zone);
+    EEPROM.write(addr++, programms_t[i].time);
+    EEPROM.write(addr++, ((programms_t[i].skip) ? 1 : 0));
   }
-  return EEPROM.commit();
+  if(EEPROM.commit())
+  {
+    nb_programms = nb_programms_t;
+    return true;
+  }
+  return false;
 }
 
 uint16_t eepromLoadProgramming()
@@ -761,6 +1306,33 @@ uint16_t eepromLoadProgramming()
     programms[i].running = false;
   }
   return nb_programms;
+}
+
+uint16_t eepromLoadZones()
+{
+  // read zone's names
+  uint16_t addr = EEPROM_ZONE_START;
+  nb_zones = EEPROM.read(addr++);
+  if(nb_zones == EEPROM_UNSET)
+    nb_zones = 0;
+  addr++; // the next one after nb_zones should be 0 or unset.
+  for (uint8_t i = 0; i < nb_zones; ++i)
+  {
+    addr = eepromRead(addr, zones[i]);
+  }
+  return nb_zones;
+}
+
+bool eepromSaveZones()
+{
+  uint16_t addr = EEPROM_ZONE_START;
+  EEPROM.write(addr++, nb_zones);
+  EEPROM.write(addr++, 0);
+  for (uint8_t i = 0; i < nb_zones; ++i)
+  {
+    addr = eepromWrite(addr, zones[i]);
+  }
+  return EEPROM.commit();
 }
 
 uint16_t now_week_minute()
@@ -802,7 +1374,7 @@ uint16_t week_minute(uint8_t day, uint8_t hour, uint8_t minute)
 }
 
 /**
- * Returns day of week; Monday is 0, Sunday is 6.
+ * Returns today's day of week; Monday is 0, Sunday is 6.
  */
 uint8_t day_of_week()
 {
@@ -816,6 +1388,22 @@ uint8_t day_of_week()
 uint8_t day_from_week_minutes(uint16_t week_minutes)
 {
   return (week_minutes / (MINUTES_A_HOUR * HOURS_A_DAY)) % DAYS_A_WEEK;
+}
+
+/**
+ * Returns the hour from the given week minutes, 0 to 23.
+ */
+uint8_t hour_from_week_minutes(uint16_t week_minutes)
+{
+  return (week_minutes / MINUTES_A_HOUR) % HOURS_A_DAY;
+}
+
+/**
+ * Returns the minutes from the given week minutes, 0 to 59.
+ */
+uint8_t minute_from_week_minutes(uint16_t week_minutes)
+{
+  return week_minutes % MINUTES_A_HOUR;
 }
 
 /**
@@ -884,7 +1472,7 @@ uint16_t eepromWrite(uint16_t addr, const char* value)
 {
   uint8_t i = 0;
   char c;
-  while ((c = *(value + (i++))))
+  while((c = *(value + (i++))))
     EEPROM.write(addr++, c);
   EEPROM.write(addr++, 0);
   return addr;
@@ -1000,4 +1588,15 @@ void loadDefaultProgramming()
   programms[i++] =
   { week_minute(SU, 21, 30), 4, 30, false, false};
   nb_programms = i;
+}
+
+void loadDefaultZones()
+{
+  String zone;
+  for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
+  {
+    zone = String("Zona ") + (i + 1);
+    strcpy(&zones[i][0], zone.c_str());
+  }
+  nb_zones = MAX_NB_ZONES;
 }
