@@ -26,11 +26,11 @@ const uint16_t MINUTES_A_DAY = (HOURS_A_DAY * MINUTES_A_HOUR);
 const uint16_t MINUTES_A_WEEK = (DAYS_A_WEEK * MINUTES_A_DAY);
 
 const uint8_t MAX_NB_ZONES = 8; // 8 realys -> max 8 zones
-const uint8_t MAX_PROGRAMMS_PER_DAY = 3; // 3 times a day
+const uint8_t MAX_PROGRAMMS_PER_DAY_AND_ZONE = 3; // 3 times a day
+const uint8_t MAX_PROGRAMMS_PER_DAY = /*24*/(MAX_PROGRAMMS_PER_DAY_AND_ZONE * MAX_NB_ZONES); // 3 times a day, 8 zones
 const uint8_t MAX_ZONE_STR_LEN = 20; // 20 chars in zone name
 const uint8_t MAX_DURATION = 240; // minutes
-const uint8_t MAX_NB_PROGRAMMS = /*168*/(MAX_PROGRAMMS_PER_DAY * 7
-    * MAX_NB_ZONES); // 3 times a day, 7 days, each zone
+const uint8_t MAX_NB_PROGRAMMS = /*168*/(MAX_PROGRAMMS_PER_DAY * 7); // all zones, 7 days
 
 const uint8_t EEPROM_UNSET = 255; // 0xFF
 const uint8_t EEPROM_START = 128;
@@ -76,16 +76,19 @@ uint16_t now_week_minute();
 // EEPROM helper functions
 uint16_t eepromWrite(uint16_t, const char*);
 uint16_t eepromRead(uint16_t, char*);
-uint16_t eepromLoadProgramming();
-bool eepromSaveProgramming(programm*, uint8_t);
+
+uint16_t eepromLoadProgramms();
+bool eepromSaveProgramms(programm*, uint8_t);
 uint16_t eepromLoadZones();
 bool eepromSaveZones();
 void eepromPrint(uint16_t start = 0, bool stop_if_unset = false);
 bool eepromReset();
 
 // programms helper functions
-void sortProgramms();
-void loadDefaultProgramming();
+void swapProgramms(programm*, programm*);
+void sortProgramms(programm*, uint8_t);
+void sortProgrammsByZone(programm*, uint8_t);
+void loadDefaultProgramms();
 void runProgramms();
 
 bool nb_zone_dirty = false;
@@ -96,6 +99,7 @@ void printHttpReceivedArgs();
 uint8_t nb_zones = 0;
 uint8_t nb_programms = 0;
 uint8_t nb_programms_ps = 0;
+
 uint8_t nb_ot_programms = 0;
 
 programm programms[MAX_NB_PROGRAMMS];
@@ -107,6 +111,7 @@ programm ot_programms[MAX_NB_ZONES];
 ESP8266WebServer server(80);
 
 void handleIndex();
+void handleIndex2();
 void handleSkip();
 void handleSkipSave();
 void handleOnetime();
@@ -115,7 +120,7 @@ void handleProgramming1();
 void handleProgramming1Save();
 void handleProgramming2();
 void handleProgramming2Save();
-void handleProgramming3(uint8_t);
+void handleProgramming3(uint8_t, bool copy_previous = false);
 void handleProgramming3Save(uint8_t);
 void handleProgramming31();
 void handleProgramming32();
@@ -131,6 +136,13 @@ void handleProgramming34Save();
 void handleProgramming35Save();
 void handleProgramming36Save();
 void handleProgramming37Save();
+void handleProgramming31Load();
+void handleProgramming32Load();
+void handleProgramming33Load();
+void handleProgramming34Load();
+void handleProgramming35Load();
+void handleProgramming36Load();
+void handleProgramming37Load();
 
 
 
@@ -147,11 +159,7 @@ void setup()
   eepromReset();
 #endif
 
-#if IB_IOT
-  LsuWiFi::connect(3, 10000, true, false);
-#else
-  LsuWiFi::connect();
-#endif
+  LsuWiFi::connect(2, 10000, true, false);
   LsuNtpTime::begin();
 
   for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
@@ -171,17 +179,19 @@ void setup()
     loadDefaultZones();
 
   // read programms
-  eepromLoadProgramming();
+  eepromLoadProgramms();
 #if DEBUG >= 2
   Serial.println("\nEEPROM programms:");
   eepromPrint(EEPROM_PROG_START, true);
 #endif
 
-//  if (!nb_programms)
-//    loadDefaultProgramming();
+  if (!nb_programms)
+  {
+    loadDefaultProgramms();
+    // sort them
+    sortProgramms(programms, nb_programms);
+  }
 
-  // sort programms
-  sortProgramms();
 
 #if DEBUG
   Serial.println();
@@ -195,6 +205,7 @@ void setup()
 
   // HTTP
   server.on("/", handleIndex);
+  server.on("/index2", handleIndex2);
   server.on("/skip", handleSkip);
   server.on("/skip_save", handleSkipSave);
   server.on("/onetime", handleOnetime);
@@ -203,20 +214,27 @@ void setup()
   server.on("/programming_1_save", handleProgramming1Save);
   server.on("/programming_2", handleProgramming2);
   server.on("/programming_2_save", handleProgramming2Save);
-  server.on("/programming_31",      handleProgramming31);
-  server.on("/programming_31_save", handleProgramming31Save);
-  server.on("/programming_32",      handleProgramming32);
-  server.on("/programming_32_save", handleProgramming32Save);
-  server.on("/programming_33",      handleProgramming33);
-  server.on("/programming_33_save", handleProgramming33Save);
-  server.on("/programming_34",      handleProgramming34);
-  server.on("/programming_34_save", handleProgramming34Save);
-  server.on("/programming_35",      handleProgramming35);
-  server.on("/programming_35_save", handleProgramming35Save);
-  server.on("/programming_36",      handleProgramming36);
-  server.on("/programming_36_save", handleProgramming36Save);
-  server.on("/programming_37",      handleProgramming37);
-  server.on("/programming_37_save", handleProgramming37Save);
+  server.on("/programming_31",           handleProgramming31);
+  server.on("/programming_31_load_prev", handleProgramming31Load);
+  server.on("/programming_31_save",      handleProgramming31Save);
+  server.on("/programming_32",           handleProgramming32);
+  server.on("/programming_32_load_prev", handleProgramming32Load);
+  server.on("/programming_32_save",      handleProgramming32Save);
+  server.on("/programming_33",           handleProgramming33);
+  server.on("/programming_33_load_prev", handleProgramming33Load);
+  server.on("/programming_33_save",      handleProgramming33Save);
+  server.on("/programming_34",           handleProgramming34);
+  server.on("/programming_34_load_prev", handleProgramming34Load);
+  server.on("/programming_34_save",      handleProgramming34Save);
+  server.on("/programming_35",           handleProgramming35);
+  server.on("/programming_35_load_prev", handleProgramming35Load);
+  server.on("/programming_35_save",      handleProgramming35Save);
+  server.on("/programming_36",           handleProgramming36);
+  server.on("/programming_36_load_prev", handleProgramming36Load);
+  server.on("/programming_36_save",      handleProgramming36Save);
+  server.on("/programming_37",           handleProgramming37);
+  server.on("/programming_37_load_prev", handleProgramming37Load);
+  server.on("/programming_37_save",      handleProgramming37Save);
   server.begin();
   Serial.println("Web server started");
 }
@@ -227,7 +245,8 @@ void setup()
 
 void loop()
 {
-  if(!(millis() % 1000))
+  LsuWiFi::connect(2, 10000, true, false);
+  if((millis() % 5000) == 0) // every 5 seconds
     runProgramms();
   server.handleClient();
 }
@@ -321,6 +340,143 @@ void runProgramms()
   }
 }
 
+void handleIndex2()
+{
+  uint16_t now_mow = now_week_minute();
+  uint8_t z_c[MAX_NB_ZONES];
+  bool z_ft[MAX_NB_ZONES];
+  for (uint8_t j = 0; j < MAX_NB_ZONES; ++j)
+  {
+    z_c[j] = 0;
+    z_ft[j] = true;
+  }
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    z_c[programms[i].zone] += 1;
+  }
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<!-- <title>CLLS Iriga&#x21B;ie</title> -->"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<!-- <h2>CLLS Iriga&#x21B;ie</h2> -->"
+      "<table>"
+      "<tr><td colspan='6' align='center'>"
+      "<b>";
+  html += days_full[day_from_week_minutes(now_mow)];
+  html += ", ";
+  html += LsuNtpTime::timeString();
+  html += "</b>"
+      "</td></tr>";
+  html += "<tr><td colspan='6'></td></tr>";
+  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
+  html += "<tr><td colspan='6'></td></tr>";
+  // one time programms
+  if(nb_ot_programms)
+  {
+    sortProgrammsByZone(ot_programms, nb_ot_programms);
+    html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>";
+    html += "<tr>"
+          "<th>Zona</th>"
+          "<th>Ziua</th>"
+          "<th>Ora</th>"
+          "<th>Durata</th>"
+          "<th>Merge</th>"
+          "<th>Omis</th>"
+          "</tr>";
+    for (uint8_t i = 0; i < nb_ot_programms; ++i)
+    {
+      html += "<tr>";
+      html += "<td align='center'>";
+      html += zones[ot_programms[i].zone];
+      html += "</td>";
+      html += "<td align='left'>";
+      html += days_full[day_from_week_minutes(ot_programms[i].mow)];
+      html += "</td>";
+      html += "<td align='center'>";
+      html += to_string_time(ot_programms[i].mow);
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (int)ot_programms[i].time;
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (ot_programms[i].running ? "da" : "nu");
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (ot_programms[i].skip ? "da" : "nu");
+      html += "</td>";
+      html += "</tr>";
+    }
+    html += "<tr><td colspan='6'></td></tr>";
+  }
+  // done - one time programms
+
+  // weekly programming
+  html += "<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>";
+  html += "<tr>"
+      "<th>Zona</th>"
+      "<th>Ziua</th>"
+      "<th>Ora</th>"
+      "<th>Durata</th>"
+      "<th>Merge</th>"
+      "<th>Omis</th>"
+      "</tr>";
+
+  for (uint8_t j = 0; j < MAX_NB_ZONES; ++j)
+  {
+    if(!z_c[j])
+      continue;
+    for (uint8_t i = 0; i < nb_programms; ++i)
+    {
+      if(j != programms[i].zone)
+        continue;
+      html += "<tr>";
+      if(z_ft[j])
+      {
+        html += "<td align='center' rowspan='";
+        html += z_c[j];
+        html += "'>";
+        html += zones[j];
+        html += "</td>";
+        z_ft[j] = false;
+      }
+      html += "<td align='left'>";
+      html += days_full[day_from_week_minutes(programms[i].mow)];
+      html += "</td>";
+      html += "<td align='center'>";
+      html += to_string_time(programms[i].mow);
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (int)programms[i].time;
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (programms[i].running ? "da" : "nu");
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (programms[i].skip ? "da" : "nu");
+      html += "</td>";
+      html += "</tr>";
+    }
+  }
+  // done - weekly programming
+
+  html += "<tr><td colspan='6'></td></tr>";
+  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
+  html += "</table>"
+      "</body>"
+      "</html>";
+  server.sendHeader("Refresh", "10");
+  server.send(200, "text/html", html);
+}
+
 void handleIndex()
 {
   uint16_t now_mow = now_week_minute();
@@ -363,9 +519,12 @@ void handleIndex()
   html += "</b>"
       "</td></tr>";
   html += "<tr><td colspan='6'></td></tr>";
+  html += "<tr><td colspan='6' align='center'><form method='post' action='index2' name='index2'><input type='submit' value='Vizualizare pe zone'></form></td></tr>";
+  html += "<tr><td colspan='6'></td></tr>";
   // one time programms
   if(nb_ot_programms)
   {
+    sortProgramms(ot_programms, nb_ot_programms);
     html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>";
     html += "<tr>"
           "<th>Ziua</th>"
@@ -521,11 +680,11 @@ void handleIndex()
     html += "</td>"
         "</tr>";
   }
-  html += "<tr><td colspan='6'></td></tr>"
-      "<tr><td colspan='6' align='center'><form method='post' action='skip'><input type='submit' value='Omitere'></form></td></tr>"
+  html += "<tr><td colspan='6'></td></tr>";
+  html += "<tr><td colspan='6' align='center'><form method='post' action='skip'><input type='submit' value='Omitere'></form></td></tr>"
       "<tr><td colspan='6' align='center'><form method='post' action='onetime'><input type='submit' value='Pornire rapid&#259;'></form></td></tr>"
-      "<tr><td colspan='6' align='center'><form method='post' action='programming_1'><input type='submit' value='Programare'></form></td></tr>"
-      "</table>"
+      "<tr><td colspan='6' align='center'><form method='post' action='programming_1'><input type='submit' value='Programare'></form></td></tr>";
+  html += "</table>"
       "</body>"
       "</html>";
   server.sendHeader("Refresh", "10");
@@ -716,10 +875,10 @@ void handleSkipSave()
   }
   if(save)
   {
-    if(eepromSaveProgramming(programms, nb_programms))
+    if(eepromSaveProgramms(programms, nb_programms))
     {
       // reload
-      eepromLoadProgramming();
+      eepromLoadProgramms();
 #if DEBUG
       for (uint8_t i = 0; i < nb_programms; ++i)
       {
@@ -1018,7 +1177,7 @@ void handleProgramming2Save()
   server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0; url=/programming_31' /></head></html>");
 }
 
-void handleProgramming3(uint8_t day_t)
+void handleProgramming3(uint8_t day_t, bool copy_previous)
 {
   uint16_t now_mow = now_week_minute();
   String html =
@@ -1048,7 +1207,7 @@ void handleProgramming3(uint8_t day_t)
       "</tr>"
       "<tr>"
       "<td align='center' colspan='";
-  html += MAX_PROGRAMMS_PER_DAY;
+  html += MAX_PROGRAMMS_PER_DAY_AND_ZONE;
   html += "'>[hh:mm durata]</td>"
       "</tr>";
   for (uint8_t i = 0; i < nb_zones; ++i)
@@ -1057,26 +1216,61 @@ void handleProgramming3(uint8_t day_t)
     html += zones[i];
     html += "<input type='hidden' name='z_"; html += day_t; html += "_"; html += i; html += "' value='"; html += i; html += "' form='programming_3_save'>";
     html += "</th>";
-    uint8_t h[MAX_PROGRAMMS_PER_DAY], m[MAX_PROGRAMMS_PER_DAY], d[MAX_PROGRAMMS_PER_DAY];
-    bool is_set[MAX_PROGRAMMS_PER_DAY];
+
+    // get saved programms values
+    uint8_t nb_p = 0;
+    programm* progs = 0;
+    uint8_t day_cp = day_t;
+    if(copy_previous)
+      day_cp = (day_t + 6) % 7; // previous day
+    uint8_t h[MAX_PROGRAMMS_PER_DAY_AND_ZONE], m[MAX_PROGRAMMS_PER_DAY_AND_ZONE], d[MAX_PROGRAMMS_PER_DAY_AND_ZONE];
+    bool is_set[MAX_PROGRAMMS_PER_DAY_AND_ZONE];
+    bool one_set = false;
     uint8_t idx = 0;
-    for(uint8_t k = 0; k < MAX_PROGRAMMS_PER_DAY; ++k)
+    for(uint8_t k = 0; k < MAX_PROGRAMMS_PER_DAY_AND_ZONE; ++k)
     {
       is_set[k] = false;
     }
-    for (uint8_t k = 0; k < nb_programms; ++k)
+    if(nb_programms_ps)
     {
-      if(day_t == day_from_week_minutes(programms[k].mow) &&
-          i == programms[k].zone)
+      // try already input
+      nb_p = nb_programms_ps;
+      progs = &programms_ps[0];
+      for (uint8_t k = 0; k < nb_p; ++k)
       {
-        h[idx] = hour_from_week_minutes(programms[k].mow);
-        m[idx] = minute_from_week_minutes(programms[k].mow);
-        d[idx] = programms[k].time;
-        is_set[idx] = true;
-        ++idx;
+        if(day_cp == day_from_week_minutes(progs[k].mow) &&
+            i == progs[k].zone)
+        {
+          h[idx] = hour_from_week_minutes(progs[k].mow);
+          m[idx] = minute_from_week_minutes(progs[k].mow);
+          d[idx] = progs[k].time;
+          is_set[idx] = true;
+          one_set = true;
+          ++idx;
+        }
       }
     }
-    for(uint8_t j = 0; j < MAX_PROGRAMMS_PER_DAY; ++j)
+    if(!one_set)
+    {
+      // try saved (old) ones
+      nb_p = nb_programms;
+      progs = &programms[0];
+      for (uint8_t k = 0; k < nb_p; ++k)
+      {
+        if(day_cp == day_from_week_minutes(progs[k].mow) &&
+            i == progs[k].zone)
+        {
+          h[idx] = hour_from_week_minutes(progs[k].mow);
+          m[idx] = minute_from_week_minutes(progs[k].mow);
+          d[idx] = progs[k].time;
+          is_set[idx] = true;
+          ++idx;
+        }
+      }
+    }
+    // done
+
+    for(uint8_t j = 0; j < MAX_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
     {
       html += "<td align='center'>";
       if(is_set[j])
@@ -1103,25 +1297,33 @@ void handleProgramming3(uint8_t day_t)
     }
     html += "</tr>";
   }
-  html += "<tr><td colspan='4'></td></tr>"
-      "<tr><td colspan='";
-  html += (MAX_PROGRAMMS_PER_DAY + 1);
-  html += "' align='center'><form method='post' action='programming_3"; html += (day_t + 1); html += "_save' id='programming_3_save'><input type='submit' value='&#206;nainte'></form></td></tr>"
-      "<tr><td colspan='";
-  html += (MAX_PROGRAMMS_PER_DAY + 1);
-  html += "'></td></tr>"
-      "<tr><td colspan='";
-  html += (MAX_PROGRAMMS_PER_DAY + 1);
+  html += "<tr><td colspan='4'></td></tr>";
+
+  html += "<tr><td colspan='";
+  html += (MAX_PROGRAMMS_PER_DAY_AND_ZONE + 1);
+  html += "' align='center'><form method='post' action='programming_3"; html += (day_t + 1); html += "_load_prev' id='programming_3_load_prev'><input type='submit' value='Valori ziua precedent&#259;'></form></td></tr>";
+
+  html += "<tr><td colspan='";
+  html += (MAX_PROGRAMMS_PER_DAY_AND_ZONE + 1);
+  html += "' align='center'><form method='post' action='programming_3"; html += (day_t + 1); html += "_save' id='programming_3_save'><input type='submit' value='&#206;nainte'></form></td></tr>";
+
+  html += "<tr><td colspan='";
+  html += (MAX_PROGRAMMS_PER_DAY_AND_ZONE + 1);
+  html += "'></td></tr>";
+
+  html += "<tr><td colspan='";
+  html += (MAX_PROGRAMMS_PER_DAY_AND_ZONE + 1);
   html += "' align='center'><form method='post' action='programming_";
-      if(day_t)
-      {
-        html += "3";
-        html += day_t;
-      }
-      else
-        html += "2";
-      html += "'><input type='submit' value='&#206;napoi'></form></td></tr>"
-      "</table>"
+  if(day_t)
+  {
+    html += "3";
+    html += day_t;
+  }
+  else
+    html += "2";
+  html += "'><input type='submit' value='&#206;napoi'></form></td></tr>";
+
+  html += "</table>"
       "</body>"
       "</html>";
 
@@ -1134,14 +1336,30 @@ void handleProgramming3Save(uint8_t day_t)
   printHttpReceivedArgs();
 #endif
 
+  // clear the day
+  for (uint8_t k = 0; k < nb_programms_ps; )
+  {
+    if(day_t == day_from_week_minutes(programms_ps[k].mow))
+    {
+      // move it to the end (if not already the last one)
+      if(k < (nb_programms_ps - 1))
+        swapProgramms(&programms_ps[k], &programms_ps[nb_programms_ps - 1]);
+      // remove it
+      --nb_programms_ps;
+    }
+    else
+      ++k;
+  }
+
   uint8_t z, h, m, d;
+  uint8_t npd = 0;
   String arg_str;
   for (uint8_t i = 0; i < nb_zones; ++i)
   {
     if((arg_str = server.arg(String("z_") + day_t + "_" + i)).length() <= 0)
       continue;
     z = arg_str.toInt();
-    for(uint8_t j = 0; j < MAX_PROGRAMMS_PER_DAY; ++j)
+    for(uint8_t j = 0; j < MAX_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
     {
       if((arg_str = server.arg(String("h_") + day_t + "_" + i + "_" + j)).length() <= 0)
         continue;
@@ -1152,9 +1370,10 @@ void handleProgramming3Save(uint8_t day_t)
       if((arg_str = server.arg(String("d_") + day_t + "_" + i + "_" + j)).length() <= 0)
         continue;
       d = arg_str.toInt();
+
       programms_ps[nb_programms_ps] =
         { week_minute(day_t, h, m), z, d, false, false};
-      nb_programms_ps += 1;
+      ++nb_programms_ps;
     }
   }
 
@@ -1164,11 +1383,11 @@ void handleProgramming3Save(uint8_t day_t)
   }
   else
   {
-    if(eepromSaveProgramming(programms_ps, nb_programms_ps))
+    if(eepromSaveProgramms(programms_ps, nb_programms_ps))
     {
       server.sendHeader("refresh", "1;url=/");
       server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#x21B;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#x21B;ie - Programare 3</h2> --><h3>Salvare reusita</h3></body></html>");
-      eepromLoadProgramming();
+      eepromLoadProgramms();
     }
     else
     {
@@ -1251,6 +1470,41 @@ void handleProgramming37Save()
 }
 
 
+void handleProgramming31Load()
+{
+  return handleProgramming3(MO, true);
+}
+
+void handleProgramming32Load()
+{
+  return handleProgramming3(TU, true);
+}
+
+void handleProgramming33Load()
+{
+  return handleProgramming3(WE, true);
+}
+
+void handleProgramming34Load()
+{
+  return handleProgramming3(TH, true);
+}
+
+void handleProgramming35Load()
+{
+  return handleProgramming3(FR, true);
+}
+
+void handleProgramming36Load()
+{
+  return handleProgramming3(SA, true);
+}
+
+void handleProgramming37Load()
+{
+  return handleProgramming3(SU, true);
+}
+
 
 
 void printHttpReceivedArgs()
@@ -1267,8 +1521,10 @@ void printHttpReceivedArgs()
   Serial.println();
 }
 
-bool eepromSaveProgramming(programm* programms_t, uint8_t nb_programms_t)
+bool eepromSaveProgramms(programm* programms_t, uint8_t nb_programms_t)
 {
+  // sort before save
+  sortProgramms(programms_t, nb_programms_t);
   uint16_t addr = EEPROM_PROG_START;
   EEPROM.write(addr++, nb_programms_t);
   EEPROM.write(addr++, 0);
@@ -1288,7 +1544,7 @@ bool eepromSaveProgramming(programm* programms_t, uint8_t nb_programms_t)
   return false;
 }
 
-uint16_t eepromLoadProgramming()
+uint16_t eepromLoadProgramms()
 {
   // read programms
   uint16_t addr = EEPROM_PROG_START;
@@ -1494,41 +1750,61 @@ uint16_t eepromRead(uint16_t addr, char* value)
   return addr;
 }
 
-void sortProgramms()
+void swapProgramms(programm* p1, programm* p2)
 {
-  for (uint8_t i = 0; i < nb_programms - 1; ++i)
+  if(!p1 || !p2)
+    return;
+  uint16_t mow = p1->mow;
+  uint8_t zone = p1->zone;
+  uint8_t time = p1->time;
+  bool skip = p1->skip;
+  bool running = p1->running;
+  p1->mow = p2->mow;
+  p1->zone = p2->zone;
+  p1->time = p2->time;
+  p1->skip = p2->skip;
+  p1->running = p2->running;
+  p2->mow = mow;
+  p2->zone = zone;
+  p2->time = time;
+  p2->skip = skip;
+  p2->running = running;
+
+}
+
+void sortProgramms(programm* programms_t, uint8_t nb_programms_t)
+{
+  for (uint8_t i = 0; i < nb_programms_t - 1; ++i)
   {
-    for (uint8_t j = i + 1; j < nb_programms; ++j)
+    for (uint8_t j = i + 1; j < nb_programms_t; ++j)
     {
-      if (programms[i].mow <= programms[j].mow)
+      if (programms_t[i].mow <= programms_t[j].mow)
         // OK
         continue;
-#if DEBUG
-      Serial.println(String("swap: ") + programms[i].mow + " <-> " + programms[j].mow);
-#endif
       // swap
-      uint16_t mow = programms[i].mow;
-      uint8_t zone = programms[i].zone;
-      uint8_t time = programms[i].time;
-      bool skip = programms[i].skip;
-      bool running = programms[i].running;
-      programms[i].mow = programms[j].mow;
-      programms[i].zone = programms[j].zone;
-      programms[i].time = programms[j].time;
-      programms[i].skip = programms[j].skip;
-      programms[i].running = programms[j].running;
-      programms[j].mow = mow;
-      programms[j].zone = zone;
-      programms[j].time = time;
-      programms[j].skip = skip;
-      programms[j].running = running;
+      swapProgramms(&programms_t[i], &programms_t[j]);
     }
   }
 }
 
-void loadDefaultProgramming()
+void sortProgrammsByZone(programm* programms_t, uint8_t nb_programms_t)
 {
-  nb_zones = 5;
+  for (uint8_t i = 0; i < nb_programms_t - 1; ++i)
+  {
+    for (uint8_t j = i + 1; j < nb_programms_t; ++j)
+    {
+      if (programms_t[i].zone <= programms_t[j].zone)
+        // OK
+        continue;
+      // swap
+      swapProgramms(&programms_t[i], &programms_t[j]);
+    }
+  }
+}
+
+void loadDefaultProgramms()
+{
+//  nb_zones = 5;
   uint8_t i = 0;
   // zona 5, MO 21:30, 30
   programms[i++] =

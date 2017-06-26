@@ -15,29 +15,18 @@
 #define DEBUG 1
 #endif
 
-#ifndef IB_IOT
-#define IB_IOT 0
-#endif
-
 
 namespace
 {
 
 namespace
 {
-#if IB_IOT
-const uint8_t SSID_SIZE = 4;
-const char* SSID_t[SSID_SIZE] =
-{ "cls-router", "cls-ap", "lsu-tpr", "ib-iot" };
-const char* PASSWD_t[SSID_SIZE] =
-{ "r4cD7TPG", "r4cD7TPG", "r4cD7TPG", "r4cD7TPG" };
-#else
+
 const uint8_t SSID_SIZE = 3;
 const char* SSID_t[SSID_SIZE] =
 { "cls-router", "cls-ap", "lsu-tpr" };
 const char* PASSWD_t[SSID_SIZE] =
 { "r4cD7TPG", "r4cD7TPG", "r4cD7TPG" };
-#endif
 
 bool initialized = false;
 }
