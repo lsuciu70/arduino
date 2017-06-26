@@ -1,6 +1,6 @@
 #define DEBUG 2
 #define IB_IOT 1
-//#define EEPROM_RESET
+// #define EEPROM_RESET
 
 #include <Arduino.h>
 #include <pins_arduino.h>
@@ -33,9 +33,9 @@ const uint8_t MAX_DURATION = 240; // minutes
 const uint8_t MAX_NB_PROGRAMMS = /*168*/(MAX_PROGRAMMS_PER_DAY * 7); // all zones, 7 days
 
 const uint8_t EEPROM_UNSET = 255; // 0xFF
-const uint8_t EEPROM_START = 128;
-const uint8_t EEPROM_ZONE_START = /*128*/EEPROM_START;
-const uint16_t EEPROM_PROG_START = /*298*/EEPROM_ZONE_START + 2 + (MAX_NB_ZONES) * (MAX_ZONE_STR_LEN + 1);
+const uint8_t EEPROM_START = 512; // | 128
+const uint8_t EEPROM_ZONE_START = /*512 | 128*/EEPROM_START;
+const uint16_t EEPROM_PROG_START = /*682 | 298*/EEPROM_ZONE_START + 2 + (MAX_NB_ZONES) * (MAX_ZONE_STR_LEN + 1);
 const uint16_t EEPROM_SIZE = 0xe80;
 
 uint8_t pin[MAX_NB_ZONES] =
@@ -185,12 +185,12 @@ void setup()
   eepromPrint(EEPROM_PROG_START, true);
 #endif
 
-  if (!nb_programms)
-  {
-    loadDefaultProgramms();
-    // sort them
-    sortProgramms(programms, nb_programms);
-  }
+//  if (!nb_programms)
+//  {
+//    loadDefaultProgramms();
+//    // sort them
+//    sortProgramms(programms, nb_programms);
+//  }
 
 
 #if DEBUG

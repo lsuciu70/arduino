@@ -1,0 +1,127 @@
+<html>
+<head>
+<!-- <title>Iriga&#539;ie</title> -->
+<style>
+table {
+	border-collapse: collapse;
+	border-top: 2px solid black;
+	border-bottom: 2px solid black;
+}
+
+th, td {
+	padding: 8px;
+	border-bottom: 1px solid black;
+}
+</style>
+</head>
+<body>
+	<!-- <h1>Sistemul de iriga&#539;ie</h1> -->
+	<h2>Setare mod lucru 'Punct Acces WiFi'</h2>
+	<table>
+		<tr>
+			<td colspan=2><b>Setare sistem:</b></td>
+		</tr>
+		<tr>
+			<td>Nume AP:</td>
+			<td><input type='text' name='ap0_name' form='save_ap_mode'
+				size='6' maxlength='6' value='default-ap'></td>
+		</tr>
+		<tr>
+			<td>Parola AP:</td>
+			<td><input type='text' name='ap0_pwd_1' form='save_ap_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td>Confirmare parola:</td>
+			<td><input type='text' name='ap0_pwd_2' form='save_ap_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td>Nume utilizator:</td>
+			<td><input type='text' name='u_name' form='save_ap_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td>Parola utilizator:</td>
+			<td><input type='text' name='u_pwd_1' form='save_ap_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td>Confirmare parola:</td>
+			<td><input type='text' name='u_pwd_2' form='save_ap_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td colspan=2><b>Setare conexiune Internet:</b></td>
+		</tr>
+		<tr>
+			<td>Nume AP principal:</td>
+			<td><input type='text' name='ap1_name' form='save_ap_mode'
+				size='16' maxlength='16' value='lsu-tpr'></td>
+		</tr>
+		<tr>
+			<td>Parola AP principal:</td>
+			<td><input type='text' name='ap1_pwd' form='save_ap_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td>Nume AP secundar:</td>
+			<td><input type='text' name='ap2_name' form='save_ap_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td>Parola AP secundar:</td>
+			<td><input type='text' name='ap2_pwd' form='save_ap_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td colspan=2><b>Puncte acces WiFi g&#259;site:</b></td>
+		</tr>
+		<tr>
+			<td><input type='text' size='16' maxlength='16' value='lsu-tpr'
+				disabled='disabled'></td>
+			<td><input type='text' size='5' maxlength='5' value='-38'
+				disabled='disabled'> [dBm]</td>
+		</tr>
+		<tr>
+			<td><input type='text' size='16' maxlength='16' value='ET'
+				disabled='disabled'></td>
+			<td><input type='text' size='5' maxlength='5' value='-68'
+				disabled='disabled'> [dBm]</td>
+		</tr>
+		<tr>
+			<td><input type='text' size='16' maxlength='16'
+				value='ALU MOBILE INTRANET' disabled='disabled'></td>
+			<td><input type='text' size='5' maxlength='5' value='-68'
+				disabled='disabled'> [dBm]</td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td colspan=2 align='center'><form name='save_ap_mode'
+					method='post' action='save_ap_mode' id='save_ap_mode'>
+					<input type='submit' value='Salvare'>
+				</form></td>
+		</tr>
+		<tr>
+			<td colspan=2 align='center'><form name='cancel_ap_mode'
+					method='get' action='.'>
+					<input type='submit' value='&#206;napoi'>
+				</form></td>
+		</tr>
+	</table>
+</body>
+</html>

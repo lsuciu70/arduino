@@ -1,0 +1,120 @@
+<html>
+<head>
+<!-- <title>Iriga&#539;ie</title> -->
+<style>
+table {
+	border-collapse: collapse;
+	border-top: 2px solid black;
+	border-bottom: 2px solid black;
+}
+
+th, td {
+	padding: 8px;
+	border-bottom: 1px solid black;
+}
+</style>
+</head>
+<body>
+	<!-- <h1>Sistemul de iriga&#539;ie</h1> -->
+	<h2>Setare mod lucru 'WiFi Client'</h2>
+	<table>
+		<tr>
+			<td colspan=2><b>Setare sistem:</b></td>
+		</tr>
+		<tr>
+			<td>Nume sistem:</td>
+			<td><input type='text' name='host_name' size='8' maxlength='8'
+				value='irigatie'></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td>Nume utilizator:</td>
+			<td><input type='text' name='u_name' form='save_cli_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td>Parola utilizator:</td>
+			<td><input type='text' name='u_pwd_1' form='save_cli_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td>Confirmare parola:</td>
+			<td><input type='text' name='u_pwd_2' form='save_cli_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td colspan=2><b>Setare conexiune Internet:</b></td>
+		</tr>
+		<tr>
+			<td>Nume AP principal:</td>
+			<td><input type='text' name='ap1_name' form='save_cli_mode'
+				size='16' maxlength='16' value='lsu-tpr'></td>
+		</tr>
+		<tr>
+			<td>Parola AP principal:</td>
+			<td><input type='text' name='ap1_pwd' form='save_cli_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td>Nume AP secundar:</td>
+			<td><input type='text' name='ap2_name' form='save_cli_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td>Parola AP secundar:</td>
+			<td><input type='text' name='ap2_pwd' form='save_cli_mode'
+				size='16' maxlength='16'></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td colspan=2><b>Puncte acces WiFi g&#259;site:</b></td>
+		</tr>
+		<tr>
+			<td><input type='text' size='16' maxlength='16' value='lsu-tpr'
+				disabled='disabled'></td>
+			<td><input type='text' size='5' maxlength='5' value='-41'
+				disabled='disabled'> [dBm]</td>
+		</tr>
+		<tr>
+			<td><input type='text' size='16' maxlength='16'
+				value='ALU VPN INTRANET' disabled='disabled'></td>
+			<td><input type='text' size='5' maxlength='5' value='-69'
+				disabled='disabled'> [dBm]</td>
+		</tr>
+		<tr>
+			<td><input type='text' size='16' maxlength='16' value='IoT'
+				disabled='disabled'></td>
+			<td><input type='text' size='5' maxlength='5' value='-69'
+				disabled='disabled'> [dBm]</td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td colspan=2 align='center'><form name='save_cli_mode'
+					method='post' action='save_cli_mode' id='save_cli_mode'>
+					<input type='submit' value='Salvare'>
+				</form></td>
+		</tr>
+		<tr>
+			<td colspan=2></td>
+		</tr>
+		<tr>
+			<td colspan=2 align='center'><form name='cancel_cli_mode'
+					method='get' action='.'>
+					<input type='submit' value='&#206;napoi'>
+				</form></td>
+		</tr>
+	</table>
+</body>
+</html>
