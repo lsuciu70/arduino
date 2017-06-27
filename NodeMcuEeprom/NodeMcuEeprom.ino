@@ -7,40 +7,45 @@
 #define SECONDS_AS_PICO (1000000)
 #define SECONDS_AS_MILLIS (1000)
 
-const uint32_t five_minutes = 5 * 60 * SECONDS_AS_MILLIS;
-
-const uint16_t EEPROM_START =  128;
-const uint16_t EEPROM_SIZE  = 4096;
-const uint8_t BUFF_SIZE     =   16;
-
-const uint8_t EEPROM_UNSET = 0xFF;
+#define FIVE_MINUTES (5 * 60 * SECONDS_AS_MILLIS)
 
 /* Memory mapping */
 /*
-op_mode  ->   0 (EEPROM_START)
-0        ->   1
-guard    ->   2
-0        ->   3
-u_name   ->   4
-0        ->  20 (  4 + 16)
-u_pwd    ->  21
-0        ->  37 ( 21 + 16)
-ap1_name ->  38
-0        ->  54 ( 38 + 16)
-ap1_pwd  ->  55
-0        ->  71 ( 55 + 16)
-ap2_name ->  72
-0        ->  88 ( 72 + 16)
-ap2_pwd  ->  89
-0        -> 105 ( 89 + 16)
-ap0_name -> 106               // host_name
-0        -> 122 (106 + 16)    // 0
-ap0_pwd  -> 123               // -
-0        -> 139 (123 + 16)    // -
+op_mode  ->  80 (EEPROM_START)
+0        ->  81
+guard    ->  82
+0        ->  83
+u_name   ->  84
+0        -> 100 (84 + 16)
+u_pwd    -> 101
+0        -> 117 (101 + 16)
+ap1_name -> 118
+0        -> 134 (118 + 16)
+ap1_pwd  -> 135
+0        -> 151 (135 + 16)
+ap2_name -> 152
+0        -> 168 (152 + 16)
+ap2_pwd  -> 169
+0        -> 185 (169 + 16)
+ap0_name -> 186               // host_name
+0        -> 202 (186 + 16)    // 0
+ap0_pwd  -> 203               // -
+0        -> 219 (203 + 16)    // -
+FREE     -> 220
 */
-const uint8_t ssid_len = 16;
-const uint8_t usr_pwd_len = 16;
-const uint8_t host_len = 8;
+
+#define EEPROM_START    80
+#define EEPROM_SIZE   4096
+#define BUFF_SIZE       16
+#define EEPROM_UNSET   255
+
+#define MAX_SSID_LEN    16
+#define MAX_USR_PWD_LEN 16
+#define MAX_HOST_LEN     8
+
+#define DEFAULT_AP_SSID "default-ap"
+#define DEFAULT_AP_PWD  "admin_1234"
+#define DEFAULT_USR_PWD "admin"
 
 enum : uint8_t
 {
@@ -53,23 +58,19 @@ uint8_t op_mode;
 
 uint8_t guard;
 
-const char* ap_ssid = "ap-ir";
-const char* ap_pwd = "admin_1234";
 
-const char* user_pwd = "admin";
+char ap0_name[MAX_SSID_LEN + 1];
+char ap0_pwd[MAX_USR_PWD_LEN + 1];
 
-char ap0_name[ssid_len + 1];
-char ap0_pwd[usr_pwd_len + 1];
+char host_name[MAX_HOST_LEN + 1];
 
-char host_name[host_len + 1];
+char u_name[MAX_USR_PWD_LEN + 1];
+char u_pwd[MAX_USR_PWD_LEN + 1];
 
-char u_name[usr_pwd_len + 1];
-char u_pwd[usr_pwd_len + 1];
-
-char ap1_name[ssid_len + 1];
-char ap1_pwd[usr_pwd_len + 1];
-char ap2_name[ssid_len + 1];
-char ap2_pwd[usr_pwd_len + 1];
+char ap1_name[MAX_SSID_LEN + 1];
+char ap1_pwd[MAX_USR_PWD_LEN + 1];
+char ap2_name[MAX_SSID_LEN + 1];
+char ap2_pwd[MAX_USR_PWD_LEN + 1];
 
 ESP8266WebServer server(80);
 
@@ -126,7 +127,7 @@ const char* content_set_ap_mode_fmt =
 "<table>"
 "<form name='save_ap_mode' method='POST' action='save_ap_mode'>"
 "<tr><td colspan=2><b>Setare sistem:</b></td></tr>"
-"<tr><td>Nume AP:</td><td><input type='text' name='ap0_name' size='6' maxlength='6' value='ap-ir'></td></tr>"
+"<tr><td>Nume AP:</td><td><input type='text' name='ap0_name' size='6' maxlength='6' value='"DEFAULT_AP_SSID"'></td></tr>"
 "<tr><td>Parola AP:</td><td><input type='text' name='ap0_pwd_1' size='16' maxlength='16'></td></tr>"
 "<tr><td>Confirmare parola:</td><td><input type='text' name='ap0_pwd_2' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
@@ -233,7 +234,7 @@ void handleSetupApMode()
     // 1) cristibcd  Signal: -85 dBm Channel: 6  Encryption: WPA
     // 2) cls-ap Signal: -80 dBm Channel: 11 Encryption: WPA2
     int8_t net1_pwr = -120, net2_pwr = -120, net3_pwr = -120;
-    char net1_ssid[ssid_len + 1] = {'\0'}, net2_ssid[ssid_len + 1] = {'\0'}, net3_ssid[ssid_len + 1] = {'\0'};
+    char net1_ssid[MAX_SSID_LEN + 1] = {'\0'}, net2_ssid[MAX_SSID_LEN + 1] = {'\0'}, net3_ssid[MAX_SSID_LEN + 1] = {'\0'};
     // sort them
     for (uint8_t net = 0; net < nets; ++net)
     {
@@ -277,7 +278,7 @@ void handleSetupCliMode()
     // 1) cristibcd  Signal: -85 dBm Channel: 6  Encryption: WPA
     // 2) cls-ap Signal: -80 dBm Channel: 11 Encryption: WPA2
     int8_t net1_pwr = -120, net2_pwr = -120, net3_pwr = -120;
-    char net1_ssid[ssid_len + 1] = {'\0'}, net2_ssid[ssid_len + 1] = {'\0'}, net3_ssid[ssid_len + 1] = {'\0'};
+    char net1_ssid[MAX_SSID_LEN + 1] = {'\0'}, net2_ssid[MAX_SSID_LEN + 1] = {'\0'}, net3_ssid[MAX_SSID_LEN + 1] = {'\0'};
     // sort them
     for (uint8_t net = 0; net < nets; ++net)
     {
@@ -365,7 +366,7 @@ const char* content_save_ap_mode_response_fmt =
 "Parola:     %s"
 "</b></p>"
 "<p style='color:red'><b>"
-"!!! Asigura&#539;i-v&#259; ca le-a&#539;i notat &#238;ntr-un loc sigur; f&#259;r&#259; ele nu v&#259; ve&#539;i mai putea conecta la sistem !!!"
+"!!! Asigura&#539;i-v&#259; ca le-a&#539;i notat &#238;ntr-un loc sigur; f&#259;r&#259; ele nu v&#259; ve&#539;i putea conecta la sistem !!!"
 "</b></p>"
 "<p style='color:red'><b>"
 "!!! Dac&#259; nu v&#259; conecta&#539;i &#238;n urm&#259;toarele 5 minute sistemul va reveni la set&#259;rile ini&#539;iale. !!!"
@@ -396,37 +397,37 @@ void handleSaveApMode()
 
   // fetch the input
   strcpy(ap0_pwd, server.arg("ap0_pwd_1").c_str());
-  char ap0_pwd_2[usr_pwd_len + 1];
+  char ap0_pwd_2[MAX_USR_PWD_LEN + 1];
   strcpy(ap0_pwd_2, server.arg("ap0_pwd_2").c_str());
   if((strlen(ap0_pwd) > 0 || strlen(ap0_pwd_2) > 0) && strcmp(ap0_pwd, ap0_pwd_2) != 0)
   {
     server.sendHeader("refresh", "5;url=/ap_mode");
-    server.send(400, "text/html", "<h1>Eroare setare Acces Point:</h1><br><h2>Parola si confirmarea parolei nu sunt identice!</h2>");
+    server.send(400, "text/html", "<h1>Eroare setare Acces Point:</h1><br><h2>Parola &#x218;i confirmarea parolei nu sunt identice!</h2>");
     return;
   }
 
   strcpy(u_pwd, server.arg("u_pwd_1").c_str());
-  char u_pwd_2[usr_pwd_len + 1];
+  char u_pwd_2[MAX_USR_PWD_LEN + 1];
   strcpy(u_pwd_2, server.arg("u_pwd_2").c_str());
   if((strlen(u_pwd) > 0 || strlen(u_pwd_2) > 0) && strcmp(u_pwd, u_pwd_2) != 0)
   {
     server.sendHeader("refresh", "5;url=/ap_mode");
-    server.send(400, "text/html", "<h1>Eroare setare utilizator:</h1><br><h2>Parola si confirmarea parolei nu sunt identice!</h2>");
+    server.send(400, "text/html", "<h1>Eroare setare utilizator:</h1><br><h2>Parola &#x218;i confirmarea parolei nu sunt identice!</h2>");
     return;
   }
 
-  strncpy(ap0_name, server.arg("ap0_name").c_str(), ssid_len);
-  ap0_name[ssid_len] = '\0';
-  strncpy(u_name, server.arg("u_name").c_str(), usr_pwd_len);
-  u_name[usr_pwd_len] = '\0';
-  strncpy(ap1_name, server.arg("ap1_name").c_str(), ssid_len);
-  ap1_name[ssid_len] = '\0';
-  strncpy(ap1_pwd, server.arg("ap1_pwd").c_str(), usr_pwd_len);
-  ap1_pwd[usr_pwd_len] = '\0';
-  strncpy(ap2_name, server.arg("ap2_name").c_str(), ssid_len);
-  ap2_name[ssid_len] = '\0';
-  strncpy(ap2_pwd, server.arg("ap2_pwd").c_str(), usr_pwd_len);
-  ap2_pwd[usr_pwd_len] = '\0';
+  strncpy(ap0_name, server.arg("ap0_name").c_str(), MAX_SSID_LEN);
+  ap0_name[MAX_SSID_LEN] = '\0';
+  strncpy(u_name, server.arg("u_name").c_str(), MAX_USR_PWD_LEN);
+  u_name[MAX_USR_PWD_LEN] = '\0';
+  strncpy(ap1_name, server.arg("ap1_name").c_str(), MAX_SSID_LEN);
+  ap1_name[MAX_SSID_LEN] = '\0';
+  strncpy(ap1_pwd, server.arg("ap1_pwd").c_str(), MAX_USR_PWD_LEN);
+  ap1_pwd[MAX_USR_PWD_LEN] = '\0';
+  strncpy(ap2_name, server.arg("ap2_name").c_str(), MAX_SSID_LEN);
+  ap2_name[MAX_SSID_LEN] = '\0';
+  strncpy(ap2_pwd, server.arg("ap2_pwd").c_str(), MAX_USR_PWD_LEN);
+  ap2_pwd[MAX_USR_PWD_LEN] = '\0';
 
   if(op_mode != MODE_AP)
   {
@@ -465,7 +466,7 @@ void handleSaveApMode()
   Serial.print("; value: ");
   Serial.println((int) EEPROM.read(addr++));
   addr += 1;
-  char value[ssid_len];
+  char value[MAX_SSID_LEN];
   for(int8_t i = 0; i < argCnt; ++i)
   {
   	Serial.print("Start address: ");
@@ -475,7 +476,7 @@ void handleSaveApMode()
     Serial.println(value);
   }
 
-  char content_save_ap_mode_response[strlen(content_save_ap_mode_response_fmt) + ssid_len + usr_pwd_len - 3];
+  char content_save_ap_mode_response[strlen(content_save_ap_mode_response_fmt) + MAX_SSID_LEN + MAX_USR_PWD_LEN - 3];
   sprintf(content_save_ap_mode_response, content_save_ap_mode_response_fmt, ap0_name, ap0_pwd, u_name, u_pwd);
   server.send(200, "text/html", content_save_ap_mode_response);
   ESP.deepSleep(SECONDS_AS_PICO);
@@ -496,27 +497,27 @@ void handleSaveCliMode()
 
   // fetch the input
   strcpy(u_pwd, server.arg("u_pwd_1").c_str());
-  char u_pwd_2[usr_pwd_len + 1];
+  char u_pwd_2[MAX_USR_PWD_LEN + 1];
   strcpy(u_pwd_2, server.arg("u_pwd_2").c_str());
   if((strlen(u_pwd) > 0 || strlen(u_pwd_2) > 0) && strcmp(u_pwd, u_pwd_2) != 0)
   {
     server.sendHeader("refresh", "5;url=/cli_mode");
-    server.send(400, "text/html", "<h1>Eroare setare utilizator:</h1><br><h2>Parola si confirmarea parolei nu sunt identice!</h2>");
+    server.send(400, "text/html", "<h1>Eroare setare utilizator:</h1><br><h2>Parola &#x218;i confirmarea parolei nu sunt identice!</h2>");
     return;
   }
 
-  strncpy(host_name, server.arg("host_name").c_str(), ssid_len);
-  host_name[ssid_len] = '\0';
-  strncpy(u_name, server.arg("u_name").c_str(), usr_pwd_len);
-  u_name[usr_pwd_len] = '\0';
-  strncpy(ap1_name, server.arg("ap1_name").c_str(), ssid_len);
-  ap1_name[ssid_len] = '\0';
-  strncpy(ap1_pwd, server.arg("ap1_pwd").c_str(), usr_pwd_len);
-  ap1_pwd[usr_pwd_len] = '\0';
-  strncpy(ap2_name, server.arg("ap2_name").c_str(), ssid_len);
-  ap2_name[ssid_len] = '\0';
-  strncpy(ap2_pwd, server.arg("ap2_pwd").c_str(), usr_pwd_len);
-  ap2_pwd[usr_pwd_len] = '\0';
+  strncpy(host_name, server.arg("host_name").c_str(), MAX_SSID_LEN);
+  host_name[MAX_SSID_LEN] = '\0';
+  strncpy(u_name, server.arg("u_name").c_str(), MAX_USR_PWD_LEN);
+  u_name[MAX_USR_PWD_LEN] = '\0';
+  strncpy(ap1_name, server.arg("ap1_name").c_str(), MAX_SSID_LEN);
+  ap1_name[MAX_SSID_LEN] = '\0';
+  strncpy(ap1_pwd, server.arg("ap1_pwd").c_str(), MAX_USR_PWD_LEN);
+  ap1_pwd[MAX_USR_PWD_LEN] = '\0';
+  strncpy(ap2_name, server.arg("ap2_name").c_str(), MAX_SSID_LEN);
+  ap2_name[MAX_SSID_LEN] = '\0';
+  strncpy(ap2_pwd, server.arg("ap2_pwd").c_str(), MAX_USR_PWD_LEN);
+  ap2_pwd[MAX_USR_PWD_LEN] = '\0';
 
   if(op_mode != MODE_CLI)
   {
@@ -554,7 +555,7 @@ void handleSaveCliMode()
   Serial.print("; value: ");
   Serial.println((int) EEPROM.read(addr++));
   addr += 1;
-  char value[ssid_len];
+  char value[MAX_SSID_LEN];
   for(int8_t i = 0; i < argCnt; ++i)
   {
     Serial.print("Start address: ");
@@ -590,15 +591,15 @@ String content_reset_response =
 "Pentru conectare folosi&#539;i:"
 "</b></p>"
 "<p><b>"
-"Nume AP:   ap-ir<br>"
-"Parola AP: admin_1234"
+"Nume AP:   "DEFAULT_AP_SSID"<br>"
+"Parola AP: "DEFAULT_AP_PWD""
 "</b></p>"
 "<p><b>"
 "Pentru sistem folosi&#539;i:"
 "</b></p>"
 "<p><b>"
-"Utilizator: admin<br>"
-"Parola:     admin"
+"Utilizator: "DEFAULT_USR_PWD"<br>"
+"Parola:     "DEFAULT_USR_PWD""
 "</b></p>"
 "<p>"
 "Dup&#259; reconectare deschide&#539;i pagina principal&#259; butonul de mai jos."
@@ -656,10 +657,10 @@ void setup()
   {
     if(op_mode == MODE_UNSET)
     {
-      strcpy(u_name, user_pwd);
-      strcpy(u_pwd, user_pwd);
-      strcpy(ap0_name, ap_ssid);
-      strcpy(ap0_pwd, ap_pwd);
+      strcpy(u_name, DEFAULT_USR_PWD);
+      strcpy(u_pwd, DEFAULT_USR_PWD);
+      strcpy(ap0_name, DEFAULT_AP_SSID);
+      strcpy(ap0_pwd, DEFAULT_AP_PWD);
     }
     else if(op_mode == MODE_AP)
     {
@@ -710,7 +711,7 @@ void setup()
 
 void loop()
 {
-  if(guard && (millis() > five_minutes))
+  if(guard && (millis() > FIVE_MINUTES))
   {
     Serial.println("Guard reset!");
     eepromReset();
