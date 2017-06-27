@@ -53,9 +53,10 @@ uint8_t op_mode;
 
 uint8_t guard;
 
-#define AP_SSID  "default-ap"
-#define AP_PWD   "admin_1234"
-#define ADMIN_UP "admin"
+const char* ap_ssid = "ap-ir";
+const char* ap_pwd = "admin_1234";
+
+const char* user_pwd = "admin";
 
 char ap0_name[ssid_len + 1];
 char ap0_pwd[usr_pwd_len + 1];
@@ -86,53 +87,26 @@ ESP8266WebServer server(80);
 
 String content_root =
 "<html>"
-"<head><!-- <title>Iriga&#539;ie</title> --></head>"
+"<head><title>Iriga&#539;ie</title></head>"
 "<body>"
-"<!-- <h1>Sistemul de iriga&#539;ie</h1> -->"
+"<h1>Sistemul de iriga&#539;ie</h1>"
 "<h2>Ac&#539;iuni:</h2>"
 "<table>"
-"<tr><td><form name='programming' method='post' action='programming'><input type='submit' value='Programare' style='width:100%'></form></td></tr>"
-"<tr><td><form name='reset' method='post' action='reset'><input type='submit' value='Resetare' style='width:100%'></form></td></tr>"
+"<tr><td><form name='programming' method='POST' action='programming'><input type='submit' value='Programare' style='width:100%'></form></td></tr>"
+"<tr><td><form name='reset' method='POST' action='reset'><input type='submit' value='Resetare' style='width:100%'></form></td></tr>"
 "</table>"
 "</body>"
 "</html>";
 
 String content_settings =
 "<html>"
-"<head><!-- <title>Iriga&#539;ie</title> --></head>"
+"<head><title>Iriga&#539;ie</title></head>"
 "<body>"
-"<!-- <h1>Sistemul de iriga&#539;ie</h1> -->"
-"<h2>Setare administrator:</h2>"
+"<h1>Sistemul de iriga&#539;ie</h1>"
+"<h2>Setare mod lucru:</h2>"
 "<table>"
-"<tr><td><form name='user' method='post' action='user'><input type='submit' value='Administrator' style='width:100%'></form></td></tr>"
-"</table>"
-"<h2>Setare mod lucru WiFi:</h2>"
-"<table>"
-"<tr><td><form name='ap_mode' method='post' action='ap_mode'><input type='submit' value='Punct Acces WiFi' style='width:100%'></form></td></tr>"
-"<tr><td><form name='cli_mode' method='post' action='cli_mode'><input type='submit' value='Client WiFi' style='width:100%'></form></td></tr>"
-"</table>"
-"</body>"
-"</html>";
-
-const char* content_set_user_fmt =
-"<html>"
-"<head>"
-"<!-- <title>Iriga&#539;ie</title> -->"
-"<style>"
-"table {border-collapse: collapse;border-top: 2px solid black;border-bottom: 2px solid black;}"
-"th, td {padding: 8px;border-bottom: 1px solid black;}"
-"</style>"
-"</head>"
-"<body>"
-"<!-- <h1>Sistemul de iriga&#539;ie</h1> -->"
-"<h2>Setare Administrator</h2>"
-"<table>"
-"<tr><td>Nume administrator:</td><td><input type='text' name='u_name' form='save_user' size='16' maxlength='16' value='"ADMIN_UP"'></td></tr>"
-"<tr><td>Parola administrator:</td><td><input type='text' name='u_pwd_1' form='save_user' size='16' maxlength='16'></td></tr>"
-"<tr><td>Confirmare parola:</td><td><input type='text' name='u_pwd_2' form='save_user' size='16' maxlength='16'></td></tr>"
-"<tr><td colspan=2></td></tr>"
-"<tr><td colspan=2 align='center'><form name='save_user' method='post' action='save_user' id='save_user'><input type='submit' value='Salvare'></form></td></tr>"
-"<tr><td colspan=2 align='center'><form name='cancel_ap_mode' method='get' action='.'><input type='submit' value='&#206;napoi'></form></td></tr>"
+"<tr><td><form name='ap_mode' method='POST' action='ap_mode'><input type='submit' value='Punct Acces WiFi' style='width:100%'></form></td></tr>"
+"<tr><td><form name='cli_mode' method='POST' action='cli_mode'><input type='submit' value='Client WiFi' style='width:100%'></form></td></tr>"
 "</table>"
 "</body>"
 "</html>";
@@ -140,35 +114,43 @@ const char* content_set_user_fmt =
 const char* content_set_ap_mode_fmt =
 "<html>"
 "<head>"
-"<!-- <title>Iriga&#539;ie</title> -->"
+"<title>Iriga&#539;ie</title>"
 "<style>"
 "table {border-collapse: collapse;border-top: 2px solid black;border-bottom: 2px solid black;}"
 "th, td {padding: 8px;border-bottom: 1px solid black;}"
 "</style>"
 "</head>"
 "<body>"
-"<!-- <h1>Sistemul de iriga&#539;ie</h1> -->"
+"<h1>Sistemul de iriga&#539;ie</h1>"
 "<h2>Setare mod lucru 'Punct Acces WiFi'</h2>"
 "<table>"
+"<form name='save_ap_mode' method='POST' action='save_ap_mode'>"
 "<tr><td colspan=2><b>Setare sistem:</b></td></tr>"
-"<tr><td>Nume AP:</td><td><input type='text' name='ap0_name' form='save_ap_mode' size='6' maxlength='6' value='"AP_SSID"'></td></tr>"
-"<tr><td>Parola AP:</td><td><input type='text' name='ap0_pwd_1' form='save_ap_mode' size='16' maxlength='16'></td></tr>"
-"<tr><td>Confirmare parola:</td><td><input type='text' name='ap0_pwd_2' form='save_ap_mode' size='16' maxlength='16'></td></tr>"
+"<tr><td>Nume AP:</td><td><input type='text' name='ap0_name' size='6' maxlength='6' value='ap-ir'></td></tr>"
+"<tr><td>Parola AP:</td><td><input type='text' name='ap0_pwd_1' size='16' maxlength='16'></td></tr>"
+"<tr><td>Confirmare parola:</td><td><input type='text' name='ap0_pwd_2' size='16' maxlength='16'></td></tr>"
+"<tr><td colspan=2></td></tr>"
+"<tr><td>Nume utilizator:</td><td><input type='text' name='u_name' size='16' maxlength='16'></td></tr>"
+"<tr><td>Parola utilizator:</td><td><input type='text' name='u_pwd_1' size='16' maxlength='16'></td></tr>"
+"<tr><td>Confirmare parola:</td><td><input type='text' name='u_pwd_2' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td colspan=2><b>Setare conexiune Internet:</b></td></tr>"
-"<tr><td>Nume AP principal:</td><td><input type='text' name='ap1_name' form='save_ap_mode' size='16' maxlength='16' value='%s'></td></tr>"
-"<tr><td>Parola AP principal:</td><td><input type='text' name='ap1_pwd' form='save_ap_mode' size='16' maxlength='16'></td></tr>"
+"<tr><td>Nume AP principal:</td><td><input type='text' name='ap1_name' size='16' maxlength='16' value='%s'></td></tr>"
+"<tr><td>Parola AP principal:</td><td><input type='text' name='ap1_pwd' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
-"<tr><td>Nume AP secundar:</td><td><input type='text' name='ap2_name' form='save_ap_mode' size='16' maxlength='16'></td></tr>"
-"<tr><td>Parola AP secundar:</td><td><input type='text' name='ap2_pwd' form='save_ap_mode' size='16' maxlength='16'></td></tr>"
+"<tr><td>Nume AP secundar:</td><td><input type='text' name='ap2_name' size='16' maxlength='16'></td></tr>"
+"<tr><td>Parola AP secundar:</td><td><input type='text' name='ap2_pwd' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td colspan=2><b>Puncte acces WiFi g&#259;site:</b></td></tr>"
 "<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
 "<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
 "<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
 "<tr><td colspan=2></td></tr>"
-"<tr><td colspan=2 align='center'><form name='save_ap_mode' method='post' action='save_ap_mode' id='save_ap_mode'><input type='submit' value='Salvare'></form></td></tr>"
-"<tr><td colspan=2 align='center'><form name='cancel_ap_mode' method='get' action='.'><input type='submit' value='&#206;napoi'></form></td></tr>"
+"<tr><td colspan=2 align='center'><input type='submit' value='Salvare'></td></tr>"
+"</form>"
+"<form name='cancel_ap_mode' method='GET' action='.'>"
+"<tr><td colspan=2 align='center'><input type='submit' value='&#206;napoi'></td></tr>"
+"</form>"
 "</table>"
 "</body>"
 "</html>";
@@ -176,34 +158,42 @@ const char* content_set_ap_mode_fmt =
 const char* content_set_cli_mode_fmt =
 "<html>"
 "<head>"
-"<!-- <title>Iriga&#539;ie</title> -->"
+"<title>Iriga&#539;ie</title>"
 "<style>"
 "table {border-collapse: collapse;border-top: 2px solid black;border-bottom: 2px solid black;}"
 "th, td {padding: 8px;border-bottom: 1px solid black;}"
 "</style>"
 "</head>"
 "<body>"
-"<!-- <h1>Sistemul de iriga&#539;ie</h1> -->"
+"<h1>Sistemul de iriga&#539;ie</h1>"
 "<h2>Setare mod lucru 'WiFi Client'</h2>"
 "<table>"
+"<form name='save_cli_mode' method='POST' action='save_cli_mode'>"
 "<tr><td colspan=2><b>Setare sistem:</b></td></tr>"
 "<tr><td>Nume sistem:</td><td><input type='text' name='host_name' size='8' maxlength='8' value='irigatie'></td></tr>"
 "<tr><td colspan=2></td></tr>"
-"<tr><td colspan=2><b>Setare conexiune Internet:</b></td></tr>"
-"<tr><td>Nume AP principal:</td><td><input type='text' name='ap1_name' form='save_cli_mode' size='16' maxlength='16' value='%s'></td></tr>"
-"<tr><td>Parola AP principal:</td><td><input type='text' name='ap1_pwd' form='save_cli_mode' size='16' maxlength='16'></td></tr>"
+"<tr><td>Nume utilizator:</td><td><input type='text' name='u_name' size='16' maxlength='16'></td></tr>"
+"<tr><td>Parola utilizator:</td><td><input type='text' name='u_pwd_1' size='16' maxlength='16'></td></tr>"
+"<tr><td>Confirmare parola:</td><td><input type='text' name='u_pwd_2' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
-"<tr><td>Nume AP secundar:</td><td><input type='text' name='ap2_name' form='save_cli_mode' size='16' maxlength='16'></td></tr>"
-"<tr><td>Parola AP secundar:</td><td><input type='text' name='ap2_pwd' form='save_cli_mode' size='16' maxlength='16'></td></tr>"
+"<tr><td colspan=2><b>Setare conexiune Internet:</b></td></tr>"
+"<tr><td>Nume AP principal:</td><td><input type='text' name='ap1_name' size='16' maxlength='16' value='%s'></td></tr>"
+"<tr><td>Parola AP principal:</td><td><input type='text' name='ap1_pwd' size='16' maxlength='16'></td></tr>"
+"<tr><td colspan=2></td></tr>"
+"<tr><td>Nume AP secundar:</td><td><input type='text' name='ap2_name' size='16' maxlength='16'></td></tr>"
+"<tr><td>Parola AP secundar:</td><td><input type='text' name='ap2_pwd' size='16' maxlength='16'></td></tr>"
 "<tr><td colspan=2></td></tr>"
 "<tr><td colspan=2><b>Puncte acces WiFi g&#259;site:</b></td></tr>"
 "<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
 "<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
 "<tr><td><input type='text' size='16' maxlength='16' value='%s' disabled='disabled'></td><td><input type='text' size='5' maxlength='5' value='%d' disabled='disabled'> [dBm]</td></tr>"
 "<tr><td colspan=2></td></tr>"
-"<tr><td colspan=2 align='center'><form name='save_cli_mode' method='post' action='save_cli_mode' id='save_cli_mode'><input type='submit' value='Salvare'></form></td></tr>"
+"<tr><td colspan=2 align='center'><input type='submit' value='Salvare'></td></tr>"
+"</form>"
+"<form name='cancel_cli_mode' method='GET' action='.'>"
 "<tr><td colspan=2></td></tr>"
-"<tr><td colspan=2 align='center'><form name='cancel_cli_mode' method='get' action='.'><input type='submit' value='&#206;napoi'></form></td></tr>"
+"<tr><td colspan=2 align='center'><input type='submit' value='&#206;napoi'></td></tr>"
+"</form>"
 "</table>"
 "</body>"
 "</html>";
@@ -230,16 +220,6 @@ void handleRoot()
         server.send(200, "text/html", content_root);
       break;
   }
-}
-
-void handleUser()
-{
-
-}
-
-void handleSaveUser()
-{
-
 }
 
 void handleSetupApMode()
@@ -394,7 +374,7 @@ const char* content_save_ap_mode_response_fmt =
 "Dup&#259; reconectare deschide&#539;i pagina principal&#259; butonul de mai jos."
 "</p>"
 "<p>"
-"<form name='save_ap_response' method='get' action='.'>"
+"<form name='save_ap_response' method='GET' action='.'>"
 "<input type='submit' value='Pagina principal&#259;'>"
 "</form>"
 "</p>"
@@ -610,23 +590,21 @@ String content_reset_response =
 "Pentru conectare folosi&#539;i:"
 "</b></p>"
 "<p><b>"
-"Nume AP:   "AP_SSID
-"<br>"
-"Parola AP: "AP_PWD
+"Nume AP:   ap-ir<br>"
+"Parola AP: admin_1234"
 "</b></p>"
 "<p><b>"
 "Pentru sistem folosi&#539;i:"
 "</b></p>"
 "<p><b>"
-"Utilizator: "ADMIN_UP
-"<br>"
-"Parola:     "ADMIN_UP
+"Utilizator: admin<br>"
+"Parola:     admin"
 "</b></p>"
 "<p>"
 "Dup&#259; reconectare deschide&#539;i pagina principal&#259; butonul de mai jos."
 "</p>"
 "<p>"
-"<form name='reset_response' method='get' action='.'>"
+"<form name='reset_response' method='GET' action='.'>"
 "<input type='submit' value='Pagina principal&#259;'>"
 "</form>"
 "</p>"
@@ -678,10 +656,10 @@ void setup()
   {
     if(op_mode == MODE_UNSET)
     {
-      strcpy(u_name, ADMIN_UP);
-      strcpy(u_pwd, ADMIN_UP);
-      strcpy(ap0_name, AP_SSID);
-      strcpy(ap0_pwd, AP_PWD);
+      strcpy(u_name, user_pwd);
+      strcpy(u_pwd, user_pwd);
+      strcpy(ap0_name, ap_ssid);
+      strcpy(ap0_pwd, ap_pwd);
     }
     else if(op_mode == MODE_AP)
     {
@@ -721,8 +699,6 @@ void setup()
     Serial.println(WiFi.softAPIP());
   }
   server.on("/", handleRoot);
-  server.on("/user", handleUser);
-  server.on("/save_user", handleSaveUser);
   server.on("/ap_mode", handleSetupApMode);
   server.on("/cli_mode", handleSetupCliMode);
   server.on("/save_ap_mode", handleSaveApMode);
