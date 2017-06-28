@@ -14,39 +14,39 @@
 enum days_enum
   : uint8_t
   {
-    MO = 0, TU, WE, TH, FR, SA, SU, DAYS_A_WEEK,
+    MO = 0, TU, WE, TH, FR, SA, SU,
 };
 
 #define OFF HIGH
 #define ON  LOW
 
-const uint8_t HOURS_A_DAY = 24;
-const uint8_t MINUTES_A_HOUR = 60;
-const uint16_t MINUTES_A_DAY = (HOURS_A_DAY * MINUTES_A_HOUR);
-const uint16_t MINUTES_A_WEEK = (DAYS_A_WEEK * MINUTES_A_DAY);
+#define DAYS_PER_WEEK     7
+#define HOURS_PER_DAY    24
+#define MINUTES_PER_HOUR 60
+#define MINUTES_PER_DAY  (HOURS_PER_DAY * MINUTES_PER_HOUR)
+#define MINUTES_PER_WEEK (DAYS_PER_WEEK * MINUTES_PER_DAY)
 
-const uint8_t MAX_NB_ZONES = 8; // 8 realys -> max 8 zones
-const uint8_t MAX_PROGRAMMS_PER_DAY_AND_ZONE = 3; // 3 times a day
-const uint8_t MAX_PROGRAMMS_PER_DAY = /*24*/(MAX_PROGRAMMS_PER_DAY_AND_ZONE * MAX_NB_ZONES); // 3 times a day, 8 zones
-const uint8_t MAX_ZONE_STR_LEN = 20; // 20 chars in zone name
-const uint8_t MAX_DURATION = 240; // minutes
-const uint8_t MAX_NB_PROGRAMMS = /*168*/(MAX_PROGRAMMS_PER_DAY * 7); // all zones, 7 days
+#define MAX_NB_ZONES                       8 // 8 realys -> max 8 zones
+#define MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE  3 // 3 times a day
+#define MAX_NB_PROGRAMMS_PER_DAY       /* 24 */ (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE * MAX_NB_ZONES) // 3 times a day, 8 zones
+#define MAX_NB_PROGRAMMS_PER_WEEK     /* 168 */ (MAX_NB_PROGRAMMS_PER_DAY * DAYS_PER_WEEK) // all zones, 7 days
 
-const uint8_t EEPROM_UNSET = 255; // 0xFF
-const uint8_t EEPROM_START = 512; // | 128
-const uint8_t EEPROM_ZONE_START = /*512 | 128*/EEPROM_START;
-const uint16_t EEPROM_PROG_START = /*682 | 298*/EEPROM_ZONE_START + 2 + (MAX_NB_ZONES) * (MAX_ZONE_STR_LEN + 1);
-const uint16_t EEPROM_SIZE = 0xe80;
+#define MAX_ZONE_STR_LEN               20 // 20 chars in zone name
+#define MAX_DURATION                  240 // minutes
+
+#define EEPROM_UNSET          255
+#define EEPROM_START          256
+#define EEPROM_ZONE_START /*  256 */ EEPROM_START
+#define EEPROM_PROG_START /*  426 */ (EEPROM_ZONE_START + 2 + MAX_NB_ZONES * (MAX_ZONE_STR_LEN + 1))
+#define EEPROM_SIZE          4096
 
 uint8_t pin[MAX_NB_ZONES] =
 { D1, D2, D3, D4, D5, D6, D7, D8, };
 
-char zones[MAX_NB_ZONES][MAX_ZONE_STR_LEN + 1];
-
-const char* days[DAYS_A_WEEK] =
+const char* days[DAYS_PER_WEEK] =
 { "Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du", };
 
-const char* days_full[DAYS_A_WEEK] =
+const char* days_full[DAYS_PER_WEEK] =
 { "Luni", "Mar&#539;i", "Miercuri", "Joi", "Vineri", "S&#226;mb&#259;t&#259;", "Duminic&#259;", };
 
 typedef struct programm_struct
@@ -88,6 +88,7 @@ bool eepromReset();
 void swapProgramms(programm*, programm*);
 void sortProgramms(programm*, uint8_t);
 void sortProgrammsByZone(programm*, uint8_t);
+
 void loadDefaultProgramms();
 void runProgramms();
 
@@ -97,14 +98,15 @@ void loadDefaultZones();
 void printHttpReceivedArgs();
 
 uint8_t nb_zones = 0;
+
+char zones[MAX_NB_ZONES][MAX_ZONE_STR_LEN + 1];
+
 uint8_t nb_programms = 0;
 uint8_t nb_programms_ps = 0;
-
 uint8_t nb_ot_programms = 0;
 
-programm programms[MAX_NB_PROGRAMMS];
-programm programms_ps[MAX_NB_PROGRAMMS];
-
+programm programms[MAX_NB_PROGRAMMS_PER_WEEK];
+programm programms_ps[MAX_NB_PROGRAMMS_PER_WEEK];
 programm ot_programms[MAX_NB_ZONES];
 
 // HTTP
@@ -482,7 +484,7 @@ void handleIndex()
   uint16_t now_mow = now_week_minute();
   uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0, rspan = 0;
   bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
-  uint8_t day_idx = DAYS_A_WEEK;
+  uint8_t day_idx = DAYS_PER_WEEK;
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
     switch(day_from_week_minutes(programms[i].mow))
@@ -741,7 +743,7 @@ void handleSkip()
       "</tr>";
 
   bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
-  uint8_t day_idx = DAYS_A_WEEK;
+  uint8_t day_idx = DAYS_PER_WEEK;
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
     html += "<tr>";
@@ -974,10 +976,10 @@ void handleOnetimeSave()
   String arg_str;
   bool hm_ok = (arg_str = server.arg("h")).length() > 0 &&
       (h = arg_str.toInt()) &&
-      h < 24 &&
+      h < HOURS_PER_DAY &&
       (arg_str = server.arg("m")).length() > 0 &&
       (m = arg_str.toInt()) &&
-      m < 60;
+      m < MINUTES_PER_HOUR;
   uint16_t mow = 0;
   if(hm_ok)
     mow = week_minute(day_of_week(), h, m);
@@ -1127,14 +1129,20 @@ void handleProgramming2()
       "</head>"
       "<body>"
       "<!-- <h2>CLLS Iriga&#539;ie - Programare</h2> -->"
-      "<h3>Pasul 2 - Numele zonelor (maxim 20 caractere)</h3>"
+      "<h3>Pasul 2 - Numele zonelor (maxim ";
+  html += MAX_ZONE_STR_LEN;
+  html += " caractere)</h3>"
       "<table>";
 
   for(uint8_t i = 0; i < nb_zones; ++i)
   {
     html += "<tr><td align='center'><b>Zona ";
     html += (i + 1);
-    html += "</b></td><td><input type='text' size='20' maxlength='20' form='programming_2_save' name='z_";
+    html += "</b></td><td><input type='text' size='";
+  html += MAX_ZONE_STR_LEN;
+  html += "' maxlength='";
+  html += MAX_ZONE_STR_LEN;
+  html += "' form='programming_2_save' name='z_";
     html += i;
     html += "' value='";
     html += zones[i];
@@ -1200,14 +1208,18 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
   html += "</h3>"
       "<table>"
       "<tr>"
-      "<th align='center' rowspan='2'>Zona</th>"
-      "<th align='center'>Interval 1</th>"
-      "<th align='center'>Interval 2</th>"
-      "<th align='center'>Interval 3</th>"
-      "</tr>"
+      "<th align='center' rowspan='2'>Zona</th>";
+  for(uint8_t j = 0; j < MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
+  {
+    html += "<th align='center'>Interval ";
+    html += (j + 1);
+    html += "</th>";
+  }
+
+  html += "</tr>"
       "<tr>"
       "<td align='center' colspan='";
-  html += MAX_PROGRAMMS_PER_DAY_AND_ZONE;
+  html += MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE;
   html += "'>[hh:mm durata]</td>"
       "</tr>";
   for (uint8_t i = 0; i < nb_zones; ++i)
@@ -1222,12 +1234,12 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
     programm* progs = 0;
     uint8_t day_cp = day_t;
     if(copy_previous)
-      day_cp = (day_t + 6) % 7; // previous day
-    uint8_t h[MAX_PROGRAMMS_PER_DAY_AND_ZONE], m[MAX_PROGRAMMS_PER_DAY_AND_ZONE], d[MAX_PROGRAMMS_PER_DAY_AND_ZONE];
-    bool is_set[MAX_PROGRAMMS_PER_DAY_AND_ZONE];
+      day_cp = (day_t + DAYS_PER_WEEK - 1) % DAYS_PER_WEEK; // previous day
+    uint8_t h[MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE], m[MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE], d[MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE];
+    bool is_set[MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE];
     bool one_set = false;
     uint8_t idx = 0;
-    for(uint8_t k = 0; k < MAX_PROGRAMMS_PER_DAY_AND_ZONE; ++k)
+    for(uint8_t k = 0; k < MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE; ++k)
     {
       is_set[k] = false;
     }
@@ -1270,7 +1282,7 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
     }
     // done
 
-    for(uint8_t j = 0; j < MAX_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
+    for(uint8_t j = 0; j < MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
     {
       html += "<td align='center'>";
       if(is_set[j])
@@ -1300,19 +1312,19 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
   html += "<tr><td colspan='4'></td></tr>";
 
   html += "<tr><td colspan='";
-  html += (MAX_PROGRAMMS_PER_DAY_AND_ZONE + 1);
+  html += (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE + 1);
   html += "' align='center'><form method='post' action='programming_3"; html += (day_t + 1); html += "_load_prev' id='programming_3_load_prev'><input type='submit' value='Valori ziua precedent&#259;'></form></td></tr>";
 
   html += "<tr><td colspan='";
-  html += (MAX_PROGRAMMS_PER_DAY_AND_ZONE + 1);
+  html += (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE + 1);
   html += "' align='center'><form method='post' action='programming_3"; html += (day_t + 1); html += "_save' id='programming_3_save'><input type='submit' value='&#206;nainte'></form></td></tr>";
 
   html += "<tr><td colspan='";
-  html += (MAX_PROGRAMMS_PER_DAY_AND_ZONE + 1);
+  html += (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE + 1);
   html += "'></td></tr>";
 
   html += "<tr><td colspan='";
-  html += (MAX_PROGRAMMS_PER_DAY_AND_ZONE + 1);
+  html += (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE + 1);
   html += "' align='center'><form method='post' action='programming_";
   if(day_t)
   {
@@ -1359,7 +1371,7 @@ void handleProgramming3Save(uint8_t day_t)
     if((arg_str = server.arg(String("z_") + day_t + "_" + i)).length() <= 0)
       continue;
     z = arg_str.toInt();
-    for(uint8_t j = 0; j < MAX_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
+    for(uint8_t j = 0; j < MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
     {
       if((arg_str = server.arg(String("h_") + day_t + "_" + i + "_" + j)).length() <= 0)
         continue;
@@ -1604,8 +1616,8 @@ uint16_t now_to_week_minutes(uint16_t week_minutes)
   uint16_t now_week_minutes = now_week_minute();
   if (week_minutes < now_week_minutes)
     // will be next week
-    week_minutes += MINUTES_A_WEEK;
-  return (week_minutes - now_week_minutes) % MINUTES_A_WEEK;
+    week_minutes += MINUTES_PER_WEEK;
+  return (week_minutes - now_week_minutes) % MINUTES_PER_WEEK;
 }
 
 /**
@@ -1618,15 +1630,15 @@ uint16_t now_to_week_minutes(uint16_t week_minutes)
 uint16_t week_minute(uint8_t day, uint8_t hour, uint8_t minute)
 {
   // day should be between Monday and Sunday
-  if (day >= DAYS_A_WEEK)
-    day %= DAYS_A_WEEK;
+  if (day >= DAYS_PER_WEEK)
+    day %= DAYS_PER_WEEK;
   // hour should be between 0 and 23
-  if (hour >= HOURS_A_DAY)
-    hour %= HOURS_A_DAY;
+  if (hour >= HOURS_PER_DAY)
+    hour %= HOURS_PER_DAY;
   // minute should be between 0 and 59
-  if (minute >= MINUTES_A_HOUR)
-    minute %= MINUTES_A_HOUR;
-  return day * MINUTES_A_DAY + hour * MINUTES_A_HOUR + minute;
+  if (minute >= MINUTES_PER_HOUR)
+    minute %= MINUTES_PER_HOUR;
+  return day * MINUTES_PER_DAY + hour * MINUTES_PER_HOUR + minute;
 }
 
 /**
@@ -1634,7 +1646,7 @@ uint16_t week_minute(uint8_t day, uint8_t hour, uint8_t minute)
  */
 uint8_t day_of_week()
 {
-  return (weekday() + 5) % 7;
+  return (weekday() + DAYS_PER_WEEK - 2) % DAYS_PER_WEEK;
 }
 
 /**
@@ -1643,7 +1655,7 @@ uint8_t day_of_week()
  */
 uint8_t day_from_week_minutes(uint16_t week_minutes)
 {
-  return (week_minutes / (MINUTES_A_HOUR * HOURS_A_DAY)) % DAYS_A_WEEK;
+  return (week_minutes / (MINUTES_PER_HOUR * HOURS_PER_DAY)) % DAYS_PER_WEEK;
 }
 
 /**
@@ -1651,7 +1663,7 @@ uint8_t day_from_week_minutes(uint16_t week_minutes)
  */
 uint8_t hour_from_week_minutes(uint16_t week_minutes)
 {
-  return (week_minutes / MINUTES_A_HOUR) % HOURS_A_DAY;
+  return (week_minutes / MINUTES_PER_HOUR) % HOURS_PER_DAY;
 }
 
 /**
@@ -1659,7 +1671,7 @@ uint8_t hour_from_week_minutes(uint16_t week_minutes)
  */
 uint8_t minute_from_week_minutes(uint16_t week_minutes)
 {
-  return week_minutes % MINUTES_A_HOUR;
+  return week_minutes % MINUTES_PER_HOUR;
 }
 
 /**
@@ -1669,8 +1681,8 @@ const char* to_string(uint16_t week_minutes)
 {
   static char wm_buff[week_minute_str_len + 1];
   sprintf(wm_buff, "%s %d:%02d", days[day_from_week_minutes(week_minutes)],
-      ((week_minutes / MINUTES_A_HOUR) % HOURS_A_DAY),
-      (week_minutes % MINUTES_A_HOUR));
+      ((week_minutes / MINUTES_PER_HOUR) % HOURS_PER_DAY),
+      (week_minutes % MINUTES_PER_HOUR));
   return wm_buff;
 }
 
@@ -1680,8 +1692,8 @@ const char* to_string(uint16_t week_minutes)
 const char* to_string_time(uint16_t week_minutes)
 {
   static char wm_buff[week_minute_str_len - 2];
-  sprintf(wm_buff, "%d:%02d", ((week_minutes / MINUTES_A_HOUR) % HOURS_A_DAY),
-      (week_minutes % MINUTES_A_HOUR));
+  sprintf(wm_buff, "%d:%02d", ((week_minutes / MINUTES_PER_HOUR) % HOURS_PER_DAY),
+      (week_minutes % MINUTES_PER_HOUR));
   return wm_buff;
 }
 
@@ -1872,7 +1884,9 @@ void loadDefaultZones()
   for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
   {
     zone = String("Zona ") + (i + 1);
-    strcpy(&zones[i][0], zone.c_str());
+    strncpy(&zones[i][0], zone.c_str(), MAX_ZONE_STR_LEN);
+    // for safety - put terminating char
+    zones[i][MAX_ZONE_STR_LEN] = '\0';
   }
   nb_zones = MAX_NB_ZONES;
 }
