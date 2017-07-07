@@ -1,0 +1,22 @@
+@startuml
+  participant "LwM2M Client" as cli
+  participant "LwM2M Server" as srv
+  participant "LwM2M Bootstrap Server" as boot
+
+  == Bootstrap ==
+  cli -> boot : Bootstrap-Request
+  boot -> cli : Discover / Write / Delete
+  boot -> cli : Bootstrap-Finish
+
+  == Client Registration ==
+  cli -> srv : Register / Update / De-register
+
+  == Device Management and Service Enablement ==
+  srv -> cli : Read / Write / Create / Delete
+  srv -> cli : Write-Attributes / Execute / Discover
+
+  == Information Reporting ==
+  srv -> cli : Observe / Cancel Observation
+  cli -> srv : Notify
+
+@enduml

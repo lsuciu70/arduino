@@ -7,8 +7,12 @@ IPAddress.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
 
+ArduinoOTA.h
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ArduinoOTA
+
 ESP8266WiFi.h
 WiFiClient.h
+WiFiUdp.h
 /home/lsuciu/arduino/libraries/ESP8266WiFi/src
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266WiFi/src
 
@@ -53,6 +57,9 @@ pgmspace.h
 
 functional
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2
++
+/home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2/xtensa-lx106-elf
+
 
 
 

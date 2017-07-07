@@ -40,9 +40,14 @@ uint16_t eepromRead(uint16_t addr, char* value, uint16_t size)
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  EEPROM.begin(4096);
   Serial.println();
+  EEPROM.begin(16384);
+  Serial.println();
+  Serial.print("EEPROM.size: ");
   Serial.println(EEPROM.size());
+  // stop here
+  if(true)
+    return;
   Serial.println(sizeof(programm));
 
   uint16_t addr = 128;

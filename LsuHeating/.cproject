@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?>
+<cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="cdt.managedbuild.config.gnu.exe.debug.1543745756">
+			<storageModule
+				buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider"
+				id="cdt.managedbuild.config.gnu.exe.debug.1543745756" moduleId="org.eclipse.cdt.core.settings"
+				name="Debug">
+				<externalSettings />
+				<extensions>
+					<extension id="org.eclipse.cdt.core.GNU_ELF" point="org.eclipse.cdt.core.BinaryParser" />
+					<extension id="org.eclipse.cdt.core.GASErrorParser"
+						point="org.eclipse.cdt.core.ErrorParser" />
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser"
+						point="org.eclipse.cdt.core.ErrorParser" />
+					<extension id="org.eclipse.cdt.core.GLDErrorParser"
+						point="org.eclipse.cdt.core.ErrorParser" />
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser" />
+					<extension id="org.eclipse.cdt.core.GCCErrorParser"
+						point="org.eclipse.cdt.core.ErrorParser" />
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}"
+					buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe"
+					buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug"
+					cleanCommand="rm -rf" description=""
+					id="cdt.managedbuild.config.gnu.exe.debug.1543745756" name="Debug"
+					parent="cdt.managedbuild.config.gnu.exe.debug">
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.debug.1543745756."
+						name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.exe.debug.2015563821"
+							name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.debug">
+							<targetPlatform
+								id="cdt.managedbuild.target.gnu.platform.exe.debug.769367423"
+								name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.debug" />
+							<builder buildPath="${workspace_loc:/LsuHeating}/Debug"
+								id="cdt.managedbuild.target.gnu.builder.exe.debug.737744574"
+								keepEnvironmentInBuildfile="false" managedBuildOn="true"
+								name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.debug" />
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.42322724"
+								name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base" />
+							<tool
+								id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.411361732"
+								name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug">
+								<option
+									id="gnu.cpp.compiler.exe.debug.option.optimization.level.863559047"
+									name="Optimization Level" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level"
+									useByScannerDiscovery="false"
+									value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated" />
+								<option
+									id="gnu.cpp.compiler.exe.debug.option.debugging.level.232880302"
+									name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level"
+									useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max"
+									valueType="enumerated" />
+								<option id="gnu.cpp.compiler.option.include.paths.35731791"
+									name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths"
+									useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/ESP8266WiFi/src" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/DallasTemperature" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/OneWire" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/Time" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/Timezone" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuScheduler" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuWiFi" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuNtpTime" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuLogger" />
+								</option>
+								<option id="gnu.cpp.compiler.option.preprocessor.def.1270487365"
+									name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def"
+									useByScannerDiscovery="false" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="ARDUINO=100" />
+									<listOptionValue builtIn="false" value="UBRRH" />
+								</option>
+								<inputType
+									id="cdt.managedbuild.tool.gnu.cpp.compiler.input.632428780"
+									superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input" />
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.1721456719"
+								name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug">
+								<option defaultValue="gnu.c.optimization.level.none"
+									id="gnu.c.compiler.exe.debug.option.optimization.level.1736569354"
+									name="Optimization Level" superClass="gnu.c.compiler.exe.debug.option.optimization.level"
+									useByScannerDiscovery="false" valueType="enumerated" />
+								<option
+									id="gnu.c.compiler.exe.debug.option.debugging.level.810499876"
+									name="Debug Level" superClass="gnu.c.compiler.exe.debug.option.debugging.level"
+									useByScannerDiscovery="false" value="gnu.c.debugging.level.max"
+									valueType="enumerated" />
+								<option id="gnu.c.compiler.option.include.paths.289493051"
+									name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths"
+									useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/ESP8266WiFi/src" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/DallasTemperature" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/OneWire" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/Time" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/Timezone" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuScheduler" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuWiFi" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuNtpTime" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuLogger" />
+								</option>
+								<option
+									id="gnu.c.compiler.option.preprocessor.def.symbols.1752378886"
+									name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols"
+									useByScannerDiscovery="false" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="ARDUINO=100" />
+								</option>
+								<inputType
+									id="cdt.managedbuild.tool.gnu.c.compiler.input.1913907597"
+									superClass="cdt.managedbuild.tool.gnu.c.compiler.input" />
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.288175780"
+								name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug" />
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.252221509"
+								name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
+								<inputType
+									id="cdt.managedbuild.tool.gnu.cpp.linker.input.839095725"
+									superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+									<additionalInput kind="additionalinputdependency"
+										paths="$(USER_OBJS)" />
+									<additionalInput kind="additionalinput" paths="$(LIBS)" />
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.debug.1178283728"
+								name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug">
+								<option id="gnu.both.asm.option.include.paths.173503268"
+									name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths"
+									useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/ESP8266WiFi/src" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/DallasTemperature" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/OneWire" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/Time" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/Timezone" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuScheduler" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuWiFi" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuNtpTime" />
+									<listOptionValue builtIn="false"
+										value="/home/lsuciu/arduino/libraries/LsuLogger" />
+								</option>
+								<inputType
+									id="cdt.managedbuild.tool.gnu.assembler.input.2011907448"
+									superClass="cdt.managedbuild.tool.gnu.assembler.input" />
+							</tool>
+						</toolChain>
+					</folderInfo>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings">
+				<externalSettings containerId="LsuLogger;"
+					factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier" />
+				<externalSettings containerId="LsuNtpTime;"
+					factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier" />
+				<externalSettings containerId="LsuScheduler;"
+					factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier" />
+				<externalSettings containerId="LsuWiFi;"
+					factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier" />
+			</storageModule>
+		</cconfiguration>
+		<cconfiguration id="cdt.managedbuild.config.gnu.exe.release.1679567443">
+			<storageModule
+				buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider"
+				id="cdt.managedbuild.config.gnu.exe.release.1679567443" moduleId="org.eclipse.cdt.core.settings"
+				name="Release">
+				<externalSettings />
+				<extensions>
+					<extension id="org.eclipse.cdt.core.GNU_ELF" point="org.eclipse.cdt.core.BinaryParser" />
+					<extension id="org.eclipse.cdt.core.GASErrorParser"
+						point="org.eclipse.cdt.core.ErrorParser" />
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser"
+						point="org.eclipse.cdt.core.ErrorParser" />
+					<extension id="org.eclipse.cdt.core.GLDErrorParser"
+						point="org.eclipse.cdt.core.ErrorParser" />
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser" />
+					<extension id="org.eclipse.cdt.core.GCCErrorParser"
+						point="org.eclipse.cdt.core.ErrorParser" />
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactName="${ProjName}"
+					buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe"
+					buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release"
+					cleanCommand="rm -rf" description=""
+					id="cdt.managedbuild.config.gnu.exe.release.1679567443" name="Release"
+					parent="cdt.managedbuild.config.gnu.exe.release">
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.release.1679567443."
+						name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.exe.release.870807193"
+							name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.release">
+							<targetPlatform
+								id="cdt.managedbuild.target.gnu.platform.exe.release.2016389223"
+								name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.release" />
+							<builder buildPath="${workspace_loc:/LsuHeating}/Release"
+								id="cdt.managedbuild.target.gnu.builder.exe.release.888139550"
+								keepEnvironmentInBuildfile="false" managedBuildOn="true"
+								name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.release" />
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.46180924"
+								name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base" />
+							<tool
+								id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.464788746"
+								name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release">
+								<option
+									id="gnu.cpp.compiler.exe.release.option.optimization.level.1106428685"
+									name="Optimization Level" superClass="gnu.cpp.compiler.exe.release.option.optimization.level"
+									useByScannerDiscovery="false"
+									value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated" />
+								<option
+									id="gnu.cpp.compiler.exe.release.option.debugging.level.665962804"
+									name="Debug Level" superClass="gnu.cpp.compiler.exe.release.option.debugging.level"
+									useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.none"
+									valueType="enumerated" />
+								<inputType
+									id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1271803658"
+									superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input" />
+							</tool>
+							<tool
+								id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.1068068045"
+								name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
+								<option defaultValue="gnu.c.optimization.level.most"
+									id="gnu.c.compiler.exe.release.option.optimization.level.464218473"
+									name="Optimization Level" superClass="gnu.c.compiler.exe.release.option.optimization.level"
+									useByScannerDiscovery="false" valueType="enumerated" />
+								<option
+									id="gnu.c.compiler.exe.release.option.debugging.level.1150743852"
+									name="Debug Level" superClass="gnu.c.compiler.exe.release.option.debugging.level"
+									useByScannerDiscovery="false" value="gnu.c.debugging.level.none"
+									valueType="enumerated" />
+								<inputType
+									id="cdt.managedbuild.tool.gnu.c.compiler.input.1379676167"
+									superClass="cdt.managedbuild.tool.gnu.c.compiler.input" />
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.1551923939"
+								name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release" />
+							<tool
+								id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.802975113"
+								name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release">
+								<inputType
+									id="cdt.managedbuild.tool.gnu.cpp.linker.input.133358294"
+									superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+									<additionalInput kind="additionalinputdependency"
+										paths="$(USER_OBJS)" />
+									<additionalInput kind="additionalinput" paths="$(LIBS)" />
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.release.697275940"
+								name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.release">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.6536345"
+									superClass="cdt.managedbuild.tool.gnu.assembler.input" />
+							</tool>
+						</toolChain>
+					</folderInfo>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings" />
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="LsuHeating.cdt.managedbuild.target.gnu.exe.2047012847"
+			name="Executable" projectType="cdt.managedbuild.target.gnu.exe" />
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true"
+			selectedProfileId="" />
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.debug.767473054;cdt.managedbuild.config.gnu.exe.debug.767473054.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.965927061;cdt.managedbuild.tool.gnu.c.compiler.input.1796765138">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.release.1679567443;cdt.managedbuild.config.gnu.exe.release.1679567443.;cdt.managedbuild.tool.gnu.c.compiler.exe.release.1068068045;cdt.managedbuild.tool.gnu.c.compiler.input.1379676167">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.release.1905214522;cdt.managedbuild.config.gnu.exe.release.1905214522.;cdt.managedbuild.tool.gnu.c.compiler.exe.release.315429341;cdt.managedbuild.tool.gnu.c.compiler.input.573706417">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.debug.157640538;cdt.managedbuild.config.gnu.exe.debug.157640538.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1728255238;cdt.managedbuild.tool.gnu.cpp.compiler.input.453900039">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.debug.157640538;cdt.managedbuild.config.gnu.exe.debug.157640538.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.868465285;cdt.managedbuild.tool.gnu.c.compiler.input.140668585">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.release.999452705;cdt.managedbuild.config.gnu.exe.release.999452705.;cdt.managedbuild.tool.gnu.c.compiler.exe.release.1955365817;cdt.managedbuild.tool.gnu.c.compiler.input.1985750429">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.release.999452705;cdt.managedbuild.config.gnu.exe.release.999452705.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.2038486073;cdt.managedbuild.tool.gnu.cpp.compiler.input.1730608176">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.debug.1543745756;cdt.managedbuild.config.gnu.exe.debug.1543745756.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.411361732;cdt.managedbuild.tool.gnu.cpp.compiler.input.632428780">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.debug.767473054;cdt.managedbuild.config.gnu.exe.debug.767473054.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.8203533;cdt.managedbuild.tool.gnu.cpp.compiler.input.349000706">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.debug.1543745756;cdt.managedbuild.config.gnu.exe.debug.1543745756.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.1721456719;cdt.managedbuild.tool.gnu.c.compiler.input.1913907597">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.release.1679567443;cdt.managedbuild.config.gnu.exe.release.1679567443.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.464788746;cdt.managedbuild.tool.gnu.cpp.compiler.input.1271803658">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo
+			instanceId="cdt.managedbuild.config.gnu.exe.release.1905214522;cdt.managedbuild.config.gnu.exe.release.1905214522.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.2107239378;cdt.managedbuild.tool.gnu.cpp.compiler.input.1121336869">
+			<autodiscovery enabled="true" problemReportingEnabled="true"
+				selectedProfileId="" />
+		</scannerConfigBuildInfo>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders" />
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets" />
+</cproject>
