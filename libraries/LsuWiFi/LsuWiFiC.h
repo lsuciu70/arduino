@@ -23,6 +23,7 @@ namespace
 {
 
 const uint8_t SSID_SIZE = 3;
+uint8_t ssid_size = 0;
 const char* SSID_t[SSID_SIZE] =
 { "cls-router", "cls-ap", "lsu-tpr" };
 const char* PASSWD_t[SSID_SIZE] =
@@ -36,6 +37,25 @@ namespace LsuWiFi
 {
 
 /**
+ * Adds a new WiFi AP. Maximum three APs can be added. Returns true on success,
+ * false on failure (trying to add more then three).
+ * @params:
+ *   ssid - the AP SSID
+ *   password - the password, for no password use empty string
+ */
+bool addAp(const char *ssid, const char *password)
+{
+  if (!initialized && (initialized = true))
+      WiFi.mode(WIFI_STA);
+  if(ssid_size >= SSID_SIZE)
+    return false;
+  SSID_t[ssid_size] = String(ssid).c_str();
+  PASSWD_t[ssid_size] = String(password).c_str();
+  ++ssid_size;
+  return true;
+}
+
+/**
  * Returns true if WiFi is connected, false otherwise.
  */
 inline bool isConnected()
@@ -45,26 +65,35 @@ inline bool isConnected()
 
 /**
  * Connects to one of LSU WiFi networks.
- * ssid_idx - the index to try, default 0 (first one)
- * timeout - the timeout (in milliseconds) before giving up on current index, default 5000
- * retry_after_timeout - flag indicating if should retry after timeout
- * try_next_ssid - flag indicating to try next index on retry
+ * @params:
+ *   ssid_idx - the index to try, default 0 (first one)
+ *   timeout - the timeout (in milliseconds) before giving up on current index, default 10000
+ *   retry_after_timeout - flag indicating if should retry after timeout, default true
+ *   try_next_ssid - flag indicating to try next index on retry, default true
+ *
  */
 bool connect(const uint8_t ssid_idx = 0, const uint16_t timeout = 10000,
     const bool retry_after_timeout = true, const bool try_next_ssid = true, const uint8_t try_index = 1)
 {
   if (!initialized && (initialized = true))
+  {
+    if(ssid_size == 0)
+      ssid_size = SSID_SIZE;
     WiFi.mode(WIFI_STA);
+  }
   if (isConnected())
     return true;
-  uint8_t ssid_ix = ssid_idx % SSID_SIZE;
+  uint8_t ssid_ix = ssid_idx % ssid_size;
   const char* ssid = SSID_t[ssid_ix];
   const char* passwd = PASSWD_t[ssid_ix];
 #if DEBUG
   Serial.print(F("WiFi: connecting to "));
   Serial.println(ssid);
 #endif
-  WiFi.begin(ssid, passwd);
+  if(strlen(passwd))
+    WiFi.begin(ssid, passwd);
+  else
+    WiFi.begin(ssid);
   unsigned long mllis = millis();
   byte count = 1;
   while (!isConnected())
@@ -88,7 +117,7 @@ bool connect(const uint8_t ssid_idx = 0, const uint16_t timeout = 10000,
         Serial.println(F(" s timed out. No retry."));
       }
 #endif
-      if (!retry_after_timeout && try_index == SSID_SIZE)
+      if (!retry_after_timeout && try_index == ssid_size)
         // do not retry, and tried all available
         return false;
       if (try_next_ssid)

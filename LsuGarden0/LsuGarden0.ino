@@ -11,6 +11,11 @@
 #include <LsuWiFiC.h>
 #include <LsuNtpTimeC.h>
 
+/* WiFi AP settings*/
+const char *ssid = "tralala";
+const char *passwd = "trilulilu"; // use empty string for no password
+/**/
+
 enum days_enum
   : uint8_t
   {
@@ -41,7 +46,7 @@ enum days_enum
 #define EEPROM_SIZE          4096
 
 uint8_t pin[MAX_NB_ZONES] =
-{ D1, D2, D3, D4, D5, D6, D7, D8, };
+{ D1, D2, D3, D4, };
 
 const char* days[DAYS_PER_WEEK] =
 { "Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du", };
@@ -160,6 +165,10 @@ void setup()
 #ifdef EEPROM_RESET
   eepromReset();
 #endif
+
+  // add WiFi AP
+  if(strlen(ssid))
+    LsuWiFi::addAp(ssid, passwd);
 
   LsuWiFi::connect(2, 10000, true, false);
   LsuNtpTime::begin();
