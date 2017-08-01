@@ -27,7 +27,9 @@ enum days_enum
 #define OFF HIGH
 #define ON  LOW
 
+#ifndef DAYS_PER_WEEK
 #define DAYS_PER_WEEK     7
+#endif
 #define HOURS_PER_DAY    24
 #define MINUTES_PER_HOUR 60
 #define MINUTES_PER_DAY  (HOURS_PER_DAY * MINUTES_PER_HOUR)
@@ -46,6 +48,8 @@ enum days_enum
 #define EEPROM_ZONE_START /*  256 */ EEPROM_START
 #define EEPROM_PROG_START /*  426 */ (EEPROM_ZONE_START + 2 + MAX_NB_ZONES * (MAX_ZONE_STR_LEN + 1))
 #define EEPROM_SIZE          4096
+
+char content[BUFF_SIZE];
 
 uint8_t pin[MAX_NB_ZONES] =
 { D1, D2, D3, D4, };
@@ -172,7 +176,7 @@ void setup()
   if(strlen(ssid))
     LsuWiFi::addAp(ssid, passwd);
 
-  LsuWiFi::connect(2);
+  LsuWiFi::connect();
   LsuNtpTime::begin();
 
   for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
@@ -258,7 +262,7 @@ void setup()
 
 void loop()
 {
-  LsuWiFi::connect(2);
+  LsuWiFi::connect();
   if((millis() % 5000) == 0) // every 5 seconds
     runProgramms();
   server.handleClient();
@@ -492,8 +496,16 @@ void handleIndex2()
     z_c[programms[i].zone] += 1;
   }
 
-  char content[BUFF_SIZE] = {'\0'};
-  sprintf(content + strlen(content), content_index2_1_fmt, days_full[day_from_week_minutes(now_mow)], LsuNtpTime::timeString());
+  content[0] = '\0';
+  server.sendHeader("Refresh", "10");
+  server.send(200, "text/html", "");
+  Serial.println(days_full[day_from_week_minutes(now_mow)]);
+  Serial.println(LsuNtpTime::timeString());
+  sprintf(content, content_index2_1_fmt, days_full[day_from_week_minutes(now_mow)], LsuNtpTime::timeString());
+  Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+  server.sendContent(content);
+  content[0] = '\0';
+  return;
 
   String html = "";
 //  html += "<!DOCTYPE html>"
@@ -524,7 +536,11 @@ void handleIndex2()
   if(nb_ot_programms)
   {
     sortProgrammsByZone(ot_programms, nb_ot_programms);
-    sprintf(content + strlen(content), content_index2_2_fmt);
+    sprintf(content, content_index2_2_fmt);
+    Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+    server.sendContent(content);
+    content[0] = '\0';
+
 //    html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>"
 //        "<tr>"
 //        "<th>Zona</th>"
@@ -536,13 +552,17 @@ void handleIndex2()
 //        "</tr>";
     for (uint8_t i = 0; i < nb_ot_programms; ++i)
     {
-      sprintf(content + strlen(content), content_index2_3i_fmt,
+      sprintf(content, content_index2_3i_fmt,
           zones[ot_programms[i].zone],
           days_full[day_from_week_minutes(ot_programms[i].mow)],
           to_string_time(ot_programms[i].mow),
           (int)ot_programms[i].time,
           (ot_programms[i].running ? "da" : "nu"),
           (ot_programms[i].skip ? "da" : "nu"));
+      Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+      server.sendContent(content);
+      content[0] = '\0';
+
 //      html += "<tr>";
 //      html += "<td align='center'>";
 //      html += zones[ot_programms[i].zone];
@@ -564,13 +584,21 @@ void handleIndex2()
 //      html += "</td>";
 //      html += "</tr>";
     }
-    sprintf(content + strlen(content), content_index2_4_fmt);
+    sprintf(content, content_index2_4_fmt);
+    Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+    server.sendContent(content);
+    content[0] = '\0';
+
 //    html += "<tr><td colspan='6'></td></tr>";
   }
   // done - one time programms
 
   // weekly programming
-  sprintf(content + strlen(content), content_index2_5_fmt);
+  sprintf(content, content_index2_5_fmt);
+  Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+  server.sendContent(content);
+  content[0] = '\0';
+
 //  html += "<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>"
 //      "<tr>"
 //      "<th>Zona</th>"
@@ -589,11 +617,19 @@ void handleIndex2()
     {
       if(j != programms[i].zone)
         continue;
-      sprintf(content + strlen(content), "<tr>");
+      sprintf(content, "<tr>");
+      Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+      server.sendContent(content);
+      content[0] = '\0';
+
 //      html += "<tr>";
       if(z_ft[j])
       {
-        sprintf(content + strlen(content), content_index2_6i_1_fmt, z_c[j], zones[j]);
+        sprintf(content, content_index2_6i_1_fmt, z_c[j], zones[j]);
+        Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+        server.sendContent(content);
+        content[0] = '\0';
+
 //        html += "<td align='center' rowspan='";
 //        html += z_c[j];
 //        html += "'>";
@@ -601,12 +637,16 @@ void handleIndex2()
 //        html += "</td>";
         z_ft[j] = false;
       }
-      sprintf(content + strlen(content), content_index2_6i_2_fmt,
+      sprintf(content, content_index2_6i_2_fmt,
           days_full[day_from_week_minutes(programms[i].mow)],
           to_string_time(programms[i].mow),
           (int)programms[i].time,
           (programms[i].running ? "da" : "nu"),
           (programms[i].skip ? "da" : "nu"));
+      Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+      server.sendContent(content);
+      content[0] = '\0';
+
 //      html += "<td align='left'>";
 //      html += days_full[day_from_week_minutes(programms[i].mow)];
 //      html += "</td>";
@@ -626,14 +666,18 @@ void handleIndex2()
     }
   }
   // done - weekly programming
-  sprintf(content + strlen(content), content_index2_7_fmt);
+  sprintf(content, content_index2_7_fmt);
+  Serial.print(String() + strlen(content) + " - ");Serial.println(content);
+  server.sendContent(content);
+  content[0] = '\0';
+
 //  html += "<tr><td colspan='6'></td></tr>";
 //  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
 //  html += "</table>"
 //      "</body>"
 //      "</html>";
-  server.sendHeader("Refresh", "10");
-  server.send(200, "text/html", content);
+//  server.sendHeader("Refresh", "10");
+//  server.send(200, "text/html", content);
 //  server.send(200, "text/html", html);
 }
 
