@@ -27,7 +27,7 @@
 									<listOptionValue builtIn="false" value="/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266"/>
 									<listOptionValue builtIn="false" value="/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/Wire"/>
 									<listOptionValue builtIn="false" value="/home/lsuciu/arduino/libraries/ESP8266WiFi/src"/>
-									<listOptionValue builtIn="false" value="/home/lsuciu/arduino/libraries/SparkFunBME280/src"/>
+									<listOptionValue builtIn="false" value="/home/lsuciu/arduino/libraries/SparkFun_BME280/src"/>
 									<listOptionValue builtIn="false" value="/home/lsuciu/arduino/libraries/LsuWiFi"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.209425912" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
