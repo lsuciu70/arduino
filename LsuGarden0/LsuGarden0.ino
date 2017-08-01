@@ -12,7 +12,7 @@
 #include <LsuNtpTimeC.h>
 
 /* WiFi AP settings*/
-const char *ssid = "tralala";
+const char *ssid = "";
 const char *passwd = "trilulilu"; // use empty string for no password
 /**/
 
@@ -21,6 +21,8 @@ enum days_enum
   {
     MO = 0, TU, WE, TH, FR, SA, SU,
 };
+
+#define BUFF_SIZE 4096
 
 #define OFF HIGH
 #define ON  LOW
@@ -170,7 +172,7 @@ void setup()
   if(strlen(ssid))
     LsuWiFi::addAp(ssid, passwd);
 
-  LsuWiFi::connect(2, 10000, true, false);
+  LsuWiFi::connect(2);
   LsuNtpTime::begin();
 
   for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
@@ -196,12 +198,12 @@ void setup()
   eepromPrint(EEPROM_PROG_START, true);
 #endif
 
-//  if (!nb_programms)
-//  {
-//    loadDefaultProgramms();
-//    // sort them
-//    sortProgramms(programms, nb_programms);
-//  }
+  if (!nb_programms)
+  {
+    loadDefaultProgramms();
+    // sort them
+    sortProgramms(programms, nb_programms);
+  }
 
 
 #if DEBUG
@@ -256,7 +258,7 @@ void setup()
 
 void loop()
 {
-  LsuWiFi::connect(2, 10000, true, false);
+  LsuWiFi::connect(2);
   if((millis() % 5000) == 0) // every 5 seconds
     runProgramms();
   server.handleClient();
@@ -351,6 +353,130 @@ void runProgramms()
   }
 }
 
+/**
+ * Escapes:
+ * %s - days_full[day_from_week_minutes(now_mow)]
+ * %s - LsuNtpTime::timeString()
+ */
+const char content_index2_1_fmt[] PROGMEM =
+{"<!DOCTYPE html>"
+"<html>"
+"<head>"
+"<meta charset='UTF-8'>"
+"<!-- <title>Iriga&#539;ie</title> -->"
+"<style type='text/css'>"
+"table { border-collapse:collapse; border-style:solid; }"
+"th { padding: 15px; border-style:solid; border-width:thin; }"
+"td { padding: 5px; border-style:solid; border-width:thin; }"
+"</style>"
+"</head>"
+"<body>"
+"<!-- <h2>Iriga&#539;ie</h2> -->"
+"<table>"
+"<tr><td colspan='6' align='center'>"
+"<b>%s, %s</b>"
+"</td></tr>"
+"<tr><td colspan='6'></td></tr>"
+"<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
+"<tr><td colspan='6'></td></tr>"};
+
+/**
+ * Escapes:
+ * none
+ */
+const char content_index2_2_fmt[] PROGMEM =
+{"<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>"
+"<tr>"
+"<th>Zona</th>"
+"<th>Ziua</th>"
+"<th>Ora</th>"
+"<th>Durata</th>"
+"<th>Merge</th>"
+"<th>Omis</th>"
+"</tr>"};
+
+/**
+ * Escapes:
+ * %s - zones[ot_programms[i].zone]
+ * %s - days_full[day_from_week_minutes(ot_programms[i].mow)]
+ * %s - to_string_time(ot_programms[i].mow)
+ * %d - (int)ot_programms[i].time
+ * %s - (ot_programms[i].running ? "da" : "nu")
+ * %s - (ot_programms[i].skip ? "da" : "nu")
+ */
+const char content_index2_3i_fmt[] PROGMEM =
+{"<tr>"
+"<td align='center'>%s</td>"
+"<td align='left'>%s</td>"
+"<td align='center'>%s</td>"
+"<td align='center'>%d</td>"
+"<td align='center'>%s</td>"
+"<td align='center'>%s</td>"
+"<tr>"
+};
+
+/**
+ * Escapes:
+ * none
+ */
+const char content_index2_4_fmt[] PROGMEM =
+{"<tr><td colspan='6'></td></tr>"
+};
+
+/**
+ * Escapes:
+ * none
+ */
+const char content_index2_5_fmt[] PROGMEM =
+{"<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>"
+  "<tr>"
+  "<th>Zona</th>"
+  "<th>Ziua</th>"
+  "<th>Ora</th>"
+  "<th>Durata</th>"
+  "<th>Merge</th>"
+  "<th>Omis</th>"
+  "</tr>"
+};
+
+/**
+ * Escapes:
+ * %d - z_c[j]
+ * %s - zones[j]
+ */
+const char content_index2_6i_1_fmt[] PROGMEM =
+{"<td align='center' rowspan='%d'>%s</td>"
+};
+
+/**
+ * Escapes:
+ * %s - days_full[day_from_week_minutes(programms[i].mow)]
+ * %s - to_string_time(programms[i].mow)
+ * %d - (int)programms[i].time
+ * %s - (programms[i].running ? "da" : "nu")
+ * %s - (programms[i].skip ? "da" : "nu")
+ */
+const char content_index2_6i_2_fmt[] PROGMEM =
+{"<td align='left'>%s</td>"
+  "<td align='center'>%s</td>"
+  "<td align='center'>%d</td>"
+  "<td align='center'>%s</td>"
+  "<td align='center'>%s</td>"
+  "</tr>"
+};
+
+/**
+ * Escapes:
+ * none
+ */
+const char content_index2_7_fmt[] PROGMEM =
+{"<tr><td colspan='6'></td></tr>"
+  "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
+  "</table>"
+  "</body>"
+  "</html>"
+};
+
 void handleIndex2()
 {
   uint16_t now_mow = now_week_minute();
@@ -365,81 +491,95 @@ void handleIndex2()
   {
     z_c[programms[i].zone] += 1;
   }
-  String html =
-      "<!DOCTYPE html>"
-      "<html>"
-      "<head>"
-      "<meta charset='UTF-8'>"
-      "<!-- <title>Iriga&#539;ie</title> -->"
-      "<style type='text/css'>"
-      "table { border-collapse:collapse; border-style:solid; }"
-      "th { padding: 15px; border-style:solid; border-width:thin; }"
-      "td { padding: 5px; border-style:solid; border-width:thin; }"
-      "</style>"
-      "</head>"
-      "<body>"
-      "<!-- <h2>Iriga&#539;ie</h2> -->"
-      "<table>"
-      "<tr><td colspan='6' align='center'>"
-      "<b>";
-  html += days_full[day_from_week_minutes(now_mow)];
-  html += ", ";
-  html += LsuNtpTime::timeString();
-  html += "</b>"
-      "</td></tr>";
-  html += "<tr><td colspan='6'></td></tr>";
-  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
-  html += "<tr><td colspan='6'></td></tr>";
+
+  char content[BUFF_SIZE] = {'\0'};
+  sprintf(content + strlen(content), content_index2_1_fmt, days_full[day_from_week_minutes(now_mow)], LsuNtpTime::timeString());
+
+  String html = "";
+//  html += "<!DOCTYPE html>"
+//      "<html>"
+//      "<head>"
+//      "<meta charset='UTF-8'>"
+//      "<!-- <title>Iriga&#539;ie</title> -->"
+//      "<style type='text/css'>"
+//      "table { border-collapse:collapse; border-style:solid; }"
+//      "th { padding: 15px; border-style:solid; border-width:thin; }"
+//      "td { padding: 5px; border-style:solid; border-width:thin; }"
+//      "</style>"
+//      "</head>"
+//      "<body>"
+//      "<!-- <h2>Iriga&#539;ie</h2> -->"
+//      "<table>"
+//      "<tr><td colspan='6' align='center'>"
+//      "<b>";
+//  html += days_full[day_from_week_minutes(now_mow)];
+//  html += ", ";
+//  html += LsuNtpTime::timeString();
+//  html += "</b>"
+//      "</td></tr>";
+//  html += "<tr><td colspan='6'></td></tr>";
+//  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
+//  html += "<tr><td colspan='6'></td></tr>";
   // one time programms
   if(nb_ot_programms)
   {
     sortProgrammsByZone(ot_programms, nb_ot_programms);
-    html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>";
-    html += "<tr>"
-          "<th>Zona</th>"
-          "<th>Ziua</th>"
-          "<th>Ora</th>"
-          "<th>Durata</th>"
-          "<th>Merge</th>"
-          "<th>Omis</th>"
-          "</tr>";
+    sprintf(content + strlen(content), content_index2_2_fmt);
+//    html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>"
+//        "<tr>"
+//        "<th>Zona</th>"
+//        "<th>Ziua</th>"
+//        "<th>Ora</th>"
+//        "<th>Durata</th>"
+//        "<th>Merge</th>"
+//        "<th>Omis</th>"
+//        "</tr>";
     for (uint8_t i = 0; i < nb_ot_programms; ++i)
     {
-      html += "<tr>";
-      html += "<td align='center'>";
-      html += zones[ot_programms[i].zone];
-      html += "</td>";
-      html += "<td align='left'>";
-      html += days_full[day_from_week_minutes(ot_programms[i].mow)];
-      html += "</td>";
-      html += "<td align='center'>";
-      html += to_string_time(ot_programms[i].mow);
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (int)ot_programms[i].time;
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (ot_programms[i].running ? "da" : "nu");
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (ot_programms[i].skip ? "da" : "nu");
-      html += "</td>";
-      html += "</tr>";
+      sprintf(content + strlen(content), content_index2_3i_fmt,
+          zones[ot_programms[i].zone],
+          days_full[day_from_week_minutes(ot_programms[i].mow)],
+          to_string_time(ot_programms[i].mow),
+          (int)ot_programms[i].time,
+          (ot_programms[i].running ? "da" : "nu"),
+          (ot_programms[i].skip ? "da" : "nu"));
+//      html += "<tr>";
+//      html += "<td align='center'>";
+//      html += zones[ot_programms[i].zone];
+//      html += "</td>";
+//      html += "<td align='left'>";
+//      html += days_full[day_from_week_minutes(ot_programms[i].mow)];
+//      html += "</td>";
+//      html += "<td align='center'>";
+//      html += to_string_time(ot_programms[i].mow);
+//      html += "</td>";
+//      html += "<td align='center'>";
+//      html += (int)ot_programms[i].time;
+//      html += "</td>";
+//      html += "<td align='center'>";
+//      html += (ot_programms[i].running ? "da" : "nu");
+//      html += "</td>";
+//      html += "<td align='center'>";
+//      html += (ot_programms[i].skip ? "da" : "nu");
+//      html += "</td>";
+//      html += "</tr>";
     }
-    html += "<tr><td colspan='6'></td></tr>";
+    sprintf(content + strlen(content), content_index2_4_fmt);
+//    html += "<tr><td colspan='6'></td></tr>";
   }
   // done - one time programms
 
   // weekly programming
-  html += "<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>";
-  html += "<tr>"
-      "<th>Zona</th>"
-      "<th>Ziua</th>"
-      "<th>Ora</th>"
-      "<th>Durata</th>"
-      "<th>Merge</th>"
-      "<th>Omis</th>"
-      "</tr>";
+  sprintf(content + strlen(content), content_index2_5_fmt);
+//  html += "<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>"
+//      "<tr>"
+//      "<th>Zona</th>"
+//      "<th>Ziua</th>"
+//      "<th>Ora</th>"
+//      "<th>Durata</th>"
+//      "<th>Merge</th>"
+//      "<th>Omis</th>"
+//      "</tr>";
 
   for (uint8_t j = 0; j < MAX_NB_ZONES; ++j)
   {
@@ -449,43 +589,52 @@ void handleIndex2()
     {
       if(j != programms[i].zone)
         continue;
-      html += "<tr>";
+      sprintf(content + strlen(content), "<tr>");
+//      html += "<tr>";
       if(z_ft[j])
       {
-        html += "<td align='center' rowspan='";
-        html += z_c[j];
-        html += "'>";
-        html += zones[j];
-        html += "</td>";
+        sprintf(content + strlen(content), content_index2_6i_1_fmt, z_c[j], zones[j]);
+//        html += "<td align='center' rowspan='";
+//        html += z_c[j];
+//        html += "'>";
+//        html += zones[j];
+//        html += "</td>";
         z_ft[j] = false;
       }
-      html += "<td align='left'>";
-      html += days_full[day_from_week_minutes(programms[i].mow)];
-      html += "</td>";
-      html += "<td align='center'>";
-      html += to_string_time(programms[i].mow);
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (int)programms[i].time;
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (programms[i].running ? "da" : "nu");
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (programms[i].skip ? "da" : "nu");
-      html += "</td>";
-      html += "</tr>";
+      sprintf(content + strlen(content), content_index2_6i_2_fmt,
+          days_full[day_from_week_minutes(programms[i].mow)],
+          to_string_time(programms[i].mow),
+          (int)programms[i].time,
+          (programms[i].running ? "da" : "nu"),
+          (programms[i].skip ? "da" : "nu"));
+//      html += "<td align='left'>";
+//      html += days_full[day_from_week_minutes(programms[i].mow)];
+//      html += "</td>";
+//      html += "<td align='center'>";
+//      html += to_string_time(programms[i].mow);
+//      html += "</td>";
+//      html += "<td align='center'>";
+//      html += (int)programms[i].time;
+//      html += "</td>";
+//      html += "<td align='center'>";
+//      html += (programms[i].running ? "da" : "nu");
+//      html += "</td>";
+//      html += "<td align='center'>";
+//      html += (programms[i].skip ? "da" : "nu");
+//      html += "</td>";
+//      html += "</tr>";
     }
   }
   // done - weekly programming
-
-  html += "<tr><td colspan='6'></td></tr>";
-  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
-  html += "</table>"
-      "</body>"
-      "</html>";
+  sprintf(content + strlen(content), content_index2_7_fmt);
+//  html += "<tr><td colspan='6'></td></tr>";
+//  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
+//  html += "</table>"
+//      "</body>"
+//      "</html>";
   server.sendHeader("Refresh", "10");
-  server.send(200, "text/html", html);
+  server.send(200, "text/html", content);
+//  server.send(200, "text/html", html);
 }
 
 void handleIndex()
@@ -536,6 +685,8 @@ void handleIndex()
   if(nb_ot_programms)
   {
     sortProgramms(ot_programms, nb_ot_programms);
+    day_idx = day_of_week();
+    rspan = nb_ot_programms;
     html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>";
     html += "<tr>"
           "<th>Ziua</th>"
@@ -545,8 +696,6 @@ void handleIndex()
           "<th>Merge</th>"
           "<th>Omis</th>"
           "</tr>";
-    day_idx = day_of_week();
-    rspan = nb_ot_programms;
     html += "<tr>";
     if(rspan)
     {

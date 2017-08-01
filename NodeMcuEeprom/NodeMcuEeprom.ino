@@ -1,8 +1,10 @@
 #include <Arduino.h>
 
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
+#include <ESP8266mDNS.h>
 
 #define SECONDS_AS_PICO (1000000)
 #define SECONDS_AS_MILLIS (1000)
@@ -43,9 +45,10 @@ FREE     -> 220
 #define MAX_USR_PWD_LEN 16
 #define MAX_HOST_LEN     8
 
-#define DEFAULT_AP_SSID "default-ap"
+#define DEFAULT_AP_SSID "irigatie-ap"
 #define DEFAULT_AP_PWD  "admin_1234"
 #define DEFAULT_USR_PWD "admin"
+#define DEFAULT_HOSTNAME "irigatie"
 
 enum : uint8_t
 {
@@ -74,21 +77,12 @@ char ap2_pwd[MAX_USR_PWD_LEN + 1];
 
 ESP8266WebServer server(80);
 
-// Romanian HTML Decimal Code
-// Ă: &#258;
-// ă: &#259;
-// Â: &#194;
-// â: &#226;
-// Î: &#206;
-// î: &#238;
-// Ș: &#x218;
-// ș: &#x219;
-// Ț: &#538;
-// ț: &#539;
-
-String content_root =
+const char content_root[] PROGMEM =
+{"<!DOCTYPE html>"
 "<html>"
-"<head><title>Iriga&#539;ie</title></head>"
+"<head>"
+"<meta charset='UTF-8'>"
+"<title>Iriga&#539;ie</title></head>"
 "<body>"
 "<h1>Sistemul de iriga&#539;ie</h1>"
 "<h2>Ac&#539;iuni:</h2>"
@@ -97,11 +91,14 @@ String content_root =
 "<tr><td><form name='reset' method='POST' action='reset'><input type='submit' value='Resetare' style='width:100%'></form></td></tr>"
 "</table>"
 "</body>"
-"</html>";
+"</html>"};
 
-String content_settings =
+const char content_settings[] PROGMEM =
+{"<!DOCTYPE html>"
 "<html>"
-"<head><title>Iriga&#539;ie</title></head>"
+"<head>"
+"<meta charset='UTF-8'>"
+"<title>Iriga&#539;ie</title></head>"
 "<body>"
 "<h1>Sistemul de iriga&#539;ie</h1>"
 "<h2>Setare mod lucru:</h2>"
@@ -110,11 +107,23 @@ String content_settings =
 "<tr><td><form name='cli_mode' method='POST' action='cli_mode'><input type='submit' value='Client WiFi' style='width:100%'></form></td></tr>"
 "</table>"
 "</body>"
-"</html>";
+"</html>"};
 
-const char* content_set_ap_mode_fmt =
+/**
+ * Escapes:
+ * %s - ap1_name
+ * %s - 1st found AP - name
+ * %d - 1st found AP - power
+ * %s - 2nd found AP - name
+ * %d - 2nd found AP - power
+ * %s - 3rd found AP - name
+ * %d - 3rd found AP - power
+ */
+const char content_set_ap_mode_fmt[] PROGMEM =
+{"<!DOCTYPE html>"
 "<html>"
 "<head>"
+"<meta charset='UTF-8'>"
 "<title>Iriga&#539;ie</title>"
 "<style>"
 "table {border-collapse: collapse;border-top: 2px solid black;border-bottom: 2px solid black;}"
@@ -154,11 +163,23 @@ const char* content_set_ap_mode_fmt =
 "</form>"
 "</table>"
 "</body>"
-"</html>";
+"</html>"};
 
-const char* content_set_cli_mode_fmt =
+/**
+ * Escapes:
+ * %s - ap1_name
+ * %s - 1st found AP - name
+ * %d - 1st found AP - power
+ * %s - 2nd found AP - name
+ * %d - 2nd found AP - power
+ * %s - 3rd found AP - name
+ * %d - 3rd found AP - power
+ */
+const char content_set_cli_mode_fmt[] PROGMEM =
+{"<!DOCTYPE html>"
 "<html>"
 "<head>"
+"<meta charset='UTF-8'>"
 "<title>Iriga&#539;ie</title>"
 "<style>"
 "table {border-collapse: collapse;border-top: 2px solid black;border-bottom: 2px solid black;}"
@@ -197,7 +218,93 @@ const char* content_set_cli_mode_fmt =
 "</form>"
 "</table>"
 "</body>"
-"</html>";
+"</html>"};
+
+/**
+ * Escapes:
+ * %s - Nume AP
+ * %s - Parola AP
+ * %s - Utilizator
+ * %s - Parola
+ *
+ */
+const char content_save_ap_mode_response_fmt[] PROGMEM =
+{"<!DOCTYPE html>"
+"<html>"
+"<head>"
+"<meta charset='UTF-8'>"
+"<title>Iriga&#539;ie</title></head>"
+"<body>"
+"<h1>Sistemul de iriga&#539;ie</h1>"
+"<p><b>"
+"Salvarea set&#259;rilor pentul modul 'Punct Acces WiFi' s-a f&#259;cut cu succes; sistemul va reporni cu noile set&#259;ri."
+"</b></p>"
+"<p><b>"
+"Va trebui s&#259; v&#259; reconecta&#539;i folosind noile valori pentru punctul acces WiFi:"
+"</b></p>"
+"<p><b>"
+"Nume AP:   %s<br>"
+"Parola AP: %s"
+"</b></p>"
+"<p><b>"
+"Pentru sistem folosi&#539;i:"
+"</b></p>"
+"<p><b>"
+"Utilizator: %s<br>"
+"Parola:     %s"
+"</b></p>"
+"<p style='color:red'><b>"
+"!!! Asigura&#539;i-v&#259; ca le-a&#539;i notat &#238;ntr-un loc sigur; f&#259;r&#259; ele nu v&#259; ve&#539;i putea conecta la sistem !!!"
+"</b></p>"
+"<p style='color:red'><b>"
+"!!! Dac&#259; nu v&#259; conecta&#539;i &#238;n urm&#259;toarele 5 minute sistemul va reveni la set&#259;rile ini&#539;iale. !!!"
+"</b></p>"
+"<p>"
+"Dup&#259; reconectare deschide&#539;i pagina principal&#259; butonul de mai jos."
+"</p>"
+"<p>"
+"<form name='save_ap_response' method='GET' action='.'>"
+"<input type='submit' value='Pagina principal&#259;'>"
+"</form>"
+"</p>"
+"</body>"
+"</html>"};
+
+const char content_reset_response[] PROGMEM =
+{"<!DOCTYPE html>"
+"<html>"
+"<head>"
+"<meta charset='UTF-8'>"
+"<title>Iriga&#539;ie</title></head>"
+"<body>"
+"<h1>Sistemul de iriga&#539;ie</h1>"
+"<p><b>"
+"Resetarea s-a f&#259;cut cu succes; sistemul va reporni cu set&#259;rile implicite."
+"</b></p>"
+"<p><b>"
+"Pentru conectare folosi&#539;i:"
+"</b></p>"
+"<p><b>"
+"Nume AP:   "DEFAULT_AP_SSID"<br>"
+"Parola AP: "DEFAULT_AP_PWD""
+"</b></p>"
+"<p><b>"
+"Pentru sistem folosi&#539;i:"
+"</b></p>"
+"<p><b>"
+"Utilizator: "DEFAULT_USR_PWD"<br>"
+"Parola:     "DEFAULT_USR_PWD""
+"</b></p>"
+"<p>"
+"Dup&#259; reconectare deschide&#539;i pagina principal&#259; butonul de mai jos."
+"</p>"
+"<p>"
+"<form name='reset_response' method='GET' action='.'>"
+"<input type='submit' value='Pagina principal&#259;'>"
+"</form>"
+"</p>"
+"</body>"
+"</html>"};
 
 void handleRoot()
 {
@@ -342,45 +449,6 @@ uint16_t eepromRead(uint16_t addr, char* value)
   *(value + (i++)) = c;
   return addr;
 }
-
-const char* content_save_ap_mode_response_fmt =
-"<html>"
-"<head><title>Iriga&#539;ie</title></head>"
-"<body>"
-"<h1>Sistemul de iriga&#539;ie</h1>"
-"<p><b>"
-"Salvarea set&#259;rilor pentul modul 'Punct Acces WiFi' s-a f&#259;cut cu succes; sistemul va reporni cu noile set&#259;ri."
-"</b></p>"
-"<p><b>"
-"Va trebui s&#259; v&#259; reconecta&#539;i folosind noile valori pentru punctul acces WiFi:"
-"</b></p>"
-"<p><b>"
-"Nume AP:   %s<br>"
-"Parola AP: %s"
-"</b></p>"
-"<p><b>"
-"Pentru sistem folosi&#539;i:"
-"</b></p>"
-"<p><b>"
-"Utilizator: %s<br>"
-"Parola:     %s"
-"</b></p>"
-"<p style='color:red'><b>"
-"!!! Asigura&#539;i-v&#259; ca le-a&#539;i notat &#238;ntr-un loc sigur; f&#259;r&#259; ele nu v&#259; ve&#539;i putea conecta la sistem !!!"
-"</b></p>"
-"<p style='color:red'><b>"
-"!!! Dac&#259; nu v&#259; conecta&#539;i &#238;n urm&#259;toarele 5 minute sistemul va reveni la set&#259;rile ini&#539;iale. !!!"
-"</b></p>"
-"<p>"
-"Dup&#259; reconectare deschide&#539;i pagina principal&#259; butonul de mai jos."
-"</p>"
-"<p>"
-"<form name='save_ap_response' method='GET' action='.'>"
-"<input type='submit' value='Pagina principal&#259;'>"
-"</form>"
-"</p>"
-"</body>"
-"</html>";
 
 void handleSaveApMode()
 {
@@ -579,39 +647,6 @@ ap2_pwd = bb
   server.send(200, "text/html", "<h1>handleSaveCliMode done</h1>");
 }
 
-String content_reset_response =
-"<html>"
-"<head><title>Iriga&#539;ie</title></head>"
-"<body>"
-"<h1>Sistemul de iriga&#539;ie</h1>"
-"<p><b>"
-"Resetarea s-a f&#259;cut cu succes; sistemul va reporni cu set&#259;rile implicite."
-"</b></p>"
-"<p><b>"
-"Pentru conectare folosi&#539;i:"
-"</b></p>"
-"<p><b>"
-"Nume AP:   "DEFAULT_AP_SSID"<br>"
-"Parola AP: "DEFAULT_AP_PWD""
-"</b></p>"
-"<p><b>"
-"Pentru sistem folosi&#539;i:"
-"</b></p>"
-"<p><b>"
-"Utilizator: "DEFAULT_USR_PWD"<br>"
-"Parola:     "DEFAULT_USR_PWD""
-"</b></p>"
-"<p>"
-"Dup&#259; reconectare deschide&#539;i pagina principal&#259; butonul de mai jos."
-"</p>"
-"<p>"
-"<form name='reset_response' method='GET' action='.'>"
-"<input type='submit' value='Pagina principal&#259;'>"
-"</form>"
-"</p>"
-"</body>"
-"</html>";
-
 void handleReset()
 {
   eepromReset();
@@ -620,11 +655,8 @@ void handleReset()
   ESP.deepSleep(SECONDS_AS_PICO);
 }
 
-void setup()
+void setupWiFi()
 {
-  Serial.begin(115200);
-  EEPROM.begin(EEPROM_SIZE);
-
   uint16_t addr = EEPROM_START;
   op_mode = EEPROM.read(addr++);
   guard = EEPROM.read(addr++);
@@ -651,7 +683,10 @@ void setup()
       Serial.println("Error setting hostname!");
       return;
     }
-    WiFi.begin(ap1_name, ap1_pwd);
+    if(WL_CONNECTED == WiFi.begin(ap1_name, ap1_pwd))
+    {
+      Serial.println("\nWiFi client connected");
+    }
   }
   else
   {
@@ -681,11 +716,13 @@ void setup()
       Serial.println(op_mode);
       return;
     }
+    strcpy(host_name, DEFAULT_HOSTNAME);
   	if(!WiFi.mode(WIFI_AP_STA))
   	{
   	  Serial.println("Error setting WiFi mode!");
   	  return;
   	}
+  	WiFi.hostname(host_name);
   	if(!WiFi.softAPConfig(IPAddress(10, 10, 10, 10), IPAddress(127, 0, 0, 1), IPAddress(255, 0, 0, 0)))
   	{
   	  Serial.println("Error setting AP IPs!");
@@ -699,6 +736,10 @@ void setup()
     Serial.print("\nAP started, local IP: ");
     Serial.println(WiFi.softAPIP());
   }
+}
+
+void setupWebServer()
+{
   server.on("/", handleRoot);
   server.on("/ap_mode", handleSetupApMode);
   server.on("/cli_mode", handleSetupCliMode);
@@ -707,6 +748,15 @@ void setup()
   server.on("/reset", handleReset);
   server.begin();
   Serial.println("Web server started");
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  EEPROM.begin(EEPROM_SIZE);
+  setupWiFi();
+  MDNS.begin(host_name);
+  setupWebServer();
 }
 
 void loop()
