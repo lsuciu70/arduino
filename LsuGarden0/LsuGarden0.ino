@@ -370,7 +370,7 @@ void handleIndex2()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#539;ie</title> -->"
+      "<!-- <title>Iriga&#539;ie</title> -->"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -378,7 +378,7 @@ void handleIndex2()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>CLLS Iriga&#539;ie</h2> -->"
+      "<!-- <h2>Iriga&#539;ie</h2> -->"
       "<table>"
       "<tr><td colspan='6' align='center'>"
       "<b>";
@@ -512,7 +512,7 @@ void handleIndex()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#539;ie</title> -->"
+      "<!-- <title>Iriga&#539;ie</title> -->"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -520,7 +520,7 @@ void handleIndex()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>CLLS Iriga&#539;ie</h2> -->"
+      "<!-- <h2>Iriga&#539;ie</h2> -->"
       "<table>"
       "<tr><td colspan='6' align='center'>"
       "<b>";
@@ -724,7 +724,7 @@ void handleSkip()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#539;ie - Omitere</title> -->"
+      "<!-- <title>Iriga&#539;ie - Omitere</title> -->"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -732,7 +732,7 @@ void handleSkip()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>CLLS Iriga&#539;ie - Omitere</h2> -->"
+      "<!-- <h2>Iriga&#539;ie - Omitere</h2> -->"
       "<table>"
       "<tr><td colspan='6' align='center'>"
       "<b>";
@@ -897,12 +897,12 @@ void handleSkipSave()
       }
 #endif
       server.sendHeader("refresh", "1;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Omitere</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Omitere</h2> --><h3>Salvare reusita</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Omitere</title> --></head><body><!-- <h2>Iriga&#539;ie - Omitere</h2> --><h3>Salvare reusita</h3></body></html>");
     }
     else
     {
       server.sendHeader("refresh", "3;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Omitere</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Omitere</h2> --><h3 style='color:red'>Eroare salvare</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Omitere</title> --></head><body><!-- <h2>Iriga&#539;ie - Omitere</h2> --><h3 style='color:red'>Eroare salvare</h3></body></html>");
     }
   }
   else
@@ -919,7 +919,7 @@ void handleOnetime()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#539;ie - Pornire rapid&#259;</title> -->"
+      "<!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> -->"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -928,7 +928,7 @@ void handleOnetime()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>CLLS Iriga&#539;ie - Pornire rapid&#259;</h2> -->"
+      "<!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> -->"
       "<table>"
       "<tr><td colspan='2' align='center'>"
       "<b>";
@@ -1008,14 +1008,14 @@ void handleOnetimeSave()
           (d = arg_str.toInt()) > MAX_DURATION)
       {
         server.sendHeader("refresh", "3;url=/");
-        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3 style='color:red'>Eroare, durat&#259; eronat&#259; pentru ") + zones[i] + "</h3></body></html>");
+        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3 style='color:red'>Eroare, durat&#259; eronat&#259; pentru ") + zones[i] + "</h3></body></html>");
         return;
       }
       // start time not OK
       if(!hm_ok)
       {
         server.sendHeader("refresh", "3;url=/");
-        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3 style='color:red'>Eroare, timpul de pornire eronat: ") + h + ":" + m + " [hh:mm]</h3></body></html>");
+        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3 style='color:red'>Eroare, timpul de pornire eronat: ") + h + ":" + m + " [hh:mm]</h3></body></html>");
         return;
       }
       // save
@@ -1033,7 +1033,7 @@ void handleOnetimeSave()
   {
     nb_ot_programms = j;
     server.sendHeader("refresh", "3;url=/");
-    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3>Salvare reusita</h3></body></html>");
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3>Salvare reusita</h3></body></html>");
     return;
   }
   server.sendHeader("refresh", "1;url=/");
@@ -1051,7 +1051,7 @@ void handleProgramming1()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#539;ie - Programare 1</title> -->"
+      "<!-- <title>Iriga&#539;ie - Programare 1</title> -->"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -1060,7 +1060,7 @@ void handleProgramming1()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>CLLS Iriga&#539;ie - Programare</h2> -->"
+      "<!-- <h2>Iriga&#539;ie - Programare</h2> -->"
       "<h3>Pasul 1 - Num&#259;rul de zone (maxim 8)</h3>"
       "<table>";
 
@@ -1091,7 +1091,7 @@ void handleProgramming1Save()
   String arg_str;
   if((arg_str = server.arg("nb_zones")).length() > 0)
     nb_zones_n = arg_str.toInt();
-  if(nb_zones_n && nb_zones_n <= MAX_NB_ZONES)
+  if(nb_zones_n > 0 && nb_zones_n <= MAX_NB_ZONES)
   {
     if(nb_zones != nb_zones_n)
     {
@@ -1105,7 +1105,7 @@ void handleProgramming1Save()
       }
       nb_zones = tmp;
       server.sendHeader("refresh", "3;url=/programming_2");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Programare 2</h2> --><h3 style='color:red'>Eroare salvare, se va folosi num&#259;rul de zone ini&#539;</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 2</h2> --><h3 style='color:red'>Eroare salvare, se va folosi num&#259;rul de zone ini&#539;</h3></body></html>");
       return;
 
     }
@@ -1115,7 +1115,7 @@ void handleProgramming1Save()
   else
   {
     server.sendHeader("refresh", "3;url=/programming_1");
-    server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Programare 1</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Programare 1</h2> --><h3 style='color:red'>Eroare, numar de zone eronat: ") + nb_zones_n + "</h3></body></html>");
+    server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 1</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 1</h2> --><h3 style='color:red'>Eroare, num&#259;r de zone eronat: ") + nb_zones_n + "<br>Trebuie s&#259; fie &#238;ntre 1 &#x219;i " + MAX_NB_ZONES + " inclusiv</h3></body></html>");
     return;
   }
 }
@@ -1128,7 +1128,7 @@ void handleProgramming2()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#539;ie - Programare 2</title> -->"
+      "<!-- <title>Iriga&#539;ie - Programare 2</title> -->"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -1137,7 +1137,7 @@ void handleProgramming2()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>CLLS Iriga&#539;ie - Programare</h2> -->"
+      "<!-- <h2>Iriga&#539;ie - Programare</h2> -->"
       "<h3>Pasul 2 - Numele zonelor (maxim ";
   html += MAX_ZONE_STR_LEN;
   html += " caractere)</h3>"
@@ -1188,7 +1188,7 @@ void handleProgramming2Save()
   if(one_saved && !(eepromSaveZones() && nb_zones == eepromLoadZones()))
   {
     server.sendHeader("refresh", "3;url=/programming_31");
-    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Programare 2</h2> --><h3 style='color:red'>Eroare salvare, se vor folosi numele implicite</h3></body></html>");
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 2</h2> --><h3 style='color:red'>Eroare salvare, se vor folosi numele implicite</h3></body></html>");
     return;
   }
   server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0; url=/programming_31' /></head></html>");
@@ -1202,7 +1202,7 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>CLLS Iriga&#539;ie - Programare 3</title> -->"
+      "<!-- <title>Iriga&#539;ie - Programare 3</title> -->"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -1211,7 +1211,7 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>CLLS Iriga&#539;ie - Programare</h2> -->"
+      "<!-- <h2>Iriga&#539;ie - Programare</h2> -->"
       "<h3>Pasul 3 - ";
   html += days_full[day_t];
   html += "</h3>"
@@ -1407,13 +1407,13 @@ void handleProgramming3Save(uint8_t day_t)
     if(eepromSaveProgramms(programms_ps, nb_programms_ps))
     {
       server.sendHeader("refresh", "1;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Programare 3</h2> --><h3>Salvare reusita</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 3</h2> --><h3>Salvare reusita</h3></body></html>");
       eepromLoadProgramms();
     }
     else
     {
       server.sendHeader("refresh", "3;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>CLLS Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>CLLS Iriga&#539;ie - Programare 3</h2> --><h3 style='color:red'>Eroare salvare</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 3</h2> --><h3 style='color:red'>Eroare salvare</h3></body></html>");
 
     }
   }
