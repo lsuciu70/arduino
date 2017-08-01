@@ -61,6 +61,16 @@ functional
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2/xtensa-lx106-elf
 
 
+pins_arduino.h
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/tests/host/common
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/generic
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/d1
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/d1_mini
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/adafruit
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/nodemcu
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/thing
+
+
 
 
 

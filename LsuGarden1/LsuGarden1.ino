@@ -26,7 +26,7 @@ enum days_enum
 #define MINUTES_PER_DAY  (HOURS_PER_DAY * MINUTES_PER_HOUR)
 #define MINUTES_PER_WEEK (DAYS_PER_WEEK * MINUTES_PER_DAY)
 
-#define MAX_NB_ZONES                       4 // 4 realys -> max 4 zones
+#define MAX_NB_ZONES                       8 // 8 realys -> max 8 zones
 #define MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE  3 // 3 times a day
 #define MAX_NB_PROGRAMMS_PER_DAY       /* 24 */ (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE * MAX_NB_ZONES) // 3 times a day, 8 zones
 #define MAX_NB_PROGRAMMS_PER_WEEK     /* 168 */ (MAX_NB_PROGRAMMS_PER_DAY * DAYS_PER_WEEK) // all zones, 7 days
