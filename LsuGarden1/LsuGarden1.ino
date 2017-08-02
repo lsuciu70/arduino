@@ -33,7 +33,7 @@ enum days_enum
 #define MINUTES_PER_DAY  (HOURS_PER_DAY * MINUTES_PER_HOUR)
 #define MINUTES_PER_WEEK (DAYS_PER_WEEK * MINUTES_PER_DAY)
 
-#define MAX_NB_ZONES                       4 // 8 realys -> max 8 zones
+#define MAX_NB_ZONES                       4 // 4 realys -> max 4 zones
 #define MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE  3 // 3 times a day
 #define MAX_NB_PROGRAMMS_PER_DAY       /* 24 */ (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE * MAX_NB_ZONES) // 3 times a day, 8 zones
 #define MAX_NB_PROGRAMMS_PER_WEEK     /* 168 */ (MAX_NB_PROGRAMMS_PER_DAY * DAYS_PER_WEEK) // all zones, 7 days
@@ -172,7 +172,7 @@ void setup()
   if(strlen(ssid))
     LsuWiFi::addAp(ssid, passwd);
 
-  LsuWiFi::connect(2, 10000, true, false);
+  LsuWiFi::connect();
   LsuNtpTime::begin();
 
   for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
@@ -255,7 +255,7 @@ void setup()
 
 void loop()
 {
-  LsuWiFi::connect(2, 10000, true, false);
+  LsuWiFi::connect();
   if((millis() % 5000) == 0) // every 5 seconds
     runProgramms();
   server.handleClient();
@@ -292,7 +292,7 @@ void runProgramms()
         ot_programms[i].running = false;
         digitalWrite(pin[ot_programms[i].zone], OFF);
 #if DEBUG
-        Serial.print(to_string(ot_programms[i]));Serial.println(" - stop");
+        Serial.print(to_string(ot_programms[i]));Serial.println(" - stop (one time)");
 #endif
       }
     }
@@ -304,7 +304,7 @@ void runProgramms()
         ot_programms[run_prog].running = true;
         digitalWrite(pin[ot_programms[run_prog].zone], ON);
 #if DEBUG
-        Serial.print(to_string(ot_programms[run_prog]));Serial.println(" - start");
+        Serial.print(to_string(ot_programms[run_prog]));Serial.println(" - start (one time)");
 #endif
       }
     }
@@ -335,7 +335,7 @@ void runProgramms()
       programms[i].running = false;
       digitalWrite(pin[programms[i].zone], OFF);
 #if DEBUG
-      Serial.print(to_string(programms[i]));Serial.println(" - stop");
+      Serial.print(to_string(programms[i]));Serial.println(" - stop (schedule)");
 #endif
     }
   }
@@ -345,7 +345,7 @@ void runProgramms()
     programms[run_prog].running = true;
     digitalWrite(pin[programms[run_prog].zone], ON);
 #if DEBUG
-    Serial.print(to_string(programms[run_prog]));Serial.println(" - start");
+    Serial.print(to_string(programms[run_prog]));Serial.println(" - start (schedule)");
 #endif
   }
 }
@@ -994,7 +994,14 @@ void handleOnetimeSave()
   // stop all that may run
   for (uint8_t i = 0; i < nb_ot_programms; ++i)
   {
-    digitalWrite(pin[ot_programms[i].zone], OFF);
+    if(ot_programms[i].running)
+    {
+      ot_programms[i].running = false;
+      digitalWrite(pin[ot_programms[i].zone], OFF);
+#if DEBUG
+      Serial.print(to_string(ot_programms[i]));Serial.println(" - stop (one time save)");
+#endif
+    }
   }
   nb_ot_programms = 0;
   uint8_t j = 0;
@@ -1026,12 +1033,12 @@ void handleOnetimeSave()
     }
   }
 #if DEBUG
-      Serial.print("nb_ot_programms: ");Serial.println(j);
+  Serial.print("nb_ot_programms: ");Serial.println(j);
 #endif
   if(nb_ot_programms != j)
   {
     nb_ot_programms = j;
-    server.sendHeader("refresh", "3;url=/");
+    server.sendHeader("refresh", "1;url=/");
     server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3>Salvare reusita</h3></body></html>");
     return;
   }
@@ -1090,7 +1097,7 @@ void handleProgramming1Save()
   String arg_str;
   if((arg_str = server.arg("nb_zones")).length() > 0)
     nb_zones_n = arg_str.toInt();
-  if(nb_zones_n && nb_zones_n <= MAX_NB_ZONES)
+  if(nb_zones_n > 0 && nb_zones_n <= MAX_NB_ZONES)
   {
     if(nb_zones != nb_zones_n)
     {
@@ -1114,7 +1121,7 @@ void handleProgramming1Save()
   else
   {
     server.sendHeader("refresh", "3;url=/programming_1");
-    server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 1</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 1</h2> --><h3 style='color:red'>Eroare, numar de zone eronat: ") + nb_zones_n + "</h3></body></html>");
+    server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 1</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 1</h2> --><h3 style='color:red'>Eroare, num&#259;r de zone eronat: ") + nb_zones_n + "<br>Trebuie s&#259; fie &#238;ntre 1 &#x219;i " + MAX_NB_ZONES + " inclusiv</h3></body></html>");
     return;
   }
 }
@@ -1824,7 +1831,6 @@ void sortProgrammsByZone(programm* programms_t, uint8_t nb_programms_t)
 
 void loadDefaultProgramms()
 {
-//  nb_zones = 5;
   uint8_t i = 0;
   // zona 1, TU, 20:40, 10
   programms[i++] =
@@ -1862,6 +1868,8 @@ void loadDefaultProgramms()
   // zona 4, SU, 21:20, 10
   programms[i++] =
   { week_minute(SU, 21, 20), 3, 10, false, false};
+
+  nb_programms = i;
 }
 
 void loadDefaultZones()

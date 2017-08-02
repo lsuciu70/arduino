@@ -35,7 +35,7 @@ enum days_enum
 #define MINUTES_PER_DAY  (HOURS_PER_DAY * MINUTES_PER_HOUR)
 #define MINUTES_PER_WEEK (DAYS_PER_WEEK * MINUTES_PER_DAY)
 
-#define MAX_NB_ZONES                       4 // 4 realys -> max 4 zones
+#define MAX_NB_ZONES                       8 // 8 realys -> max 8 zones
 #define MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE  3 // 3 times a day
 #define MAX_NB_PROGRAMMS_PER_DAY       /* 24 */ (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE * MAX_NB_ZONES) // 3 times a day, 8 zones
 #define MAX_NB_PROGRAMMS_PER_WEEK     /* 168 */ (MAX_NB_PROGRAMMS_PER_DAY * DAYS_PER_WEEK) // all zones, 7 days
@@ -49,16 +49,22 @@ enum days_enum
 #define EEPROM_PROG_START /*  426 */ (EEPROM_ZONE_START + 2 + MAX_NB_ZONES * (MAX_ZONE_STR_LEN + 1))
 #define EEPROM_SIZE          4096
 
-char content[BUFF_SIZE];
-
 uint8_t pin[MAX_NB_ZONES] =
-{ D1, D2, D3, D4, };
+{ D1, D2, D3, D4, D5, D6, D7, D8, };
 
 const char* days[DAYS_PER_WEEK] =
 { "Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du", };
 
 const char* days_full[DAYS_PER_WEEK] =
-{ "Luni", "Mar&#539;i", "Miercuri", "Joi", "Vineri", "S&#226;mb&#259;t&#259;", "Duminic&#259;", };
+{
+  "Luni",
+  "Mar&#539;i",
+  "Miercuri",
+  "Joi",
+  "Vineri",
+  "S&#226;mb&#259;t&#259;",
+  "Duminic&#259;",
+};
 
 typedef struct programm_struct
 {
@@ -69,8 +75,12 @@ typedef struct programm_struct
   bool running;
 }__attribute__((packed)) programm;
 
+
+const uint8_t FULL_DAY_STR_LEN = strlen("S&#226;mb&#259;t&#259;");
 // "DD hh:mm"
-const uint8_t week_minute_str_len = strlen("DD hh:mm");
+const uint8_t DAY_TIME_STR_LEN = strlen("DD hh:mm");
+// "hh:mm:ss"
+const uint8_t TIME_STR_LEN = LsuNtpTime::timeStringLength;
 const char* to_string(uint16_t);
 const char* to_string_time(uint16_t);
 const char* to_string(programm&);
@@ -176,7 +186,7 @@ void setup()
   if(strlen(ssid))
     LsuWiFi::addAp(ssid, passwd);
 
-  LsuWiFi::connect();
+  LsuWiFi::connect(2, 10000, true, false);
   LsuNtpTime::begin();
 
   for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
@@ -208,7 +218,6 @@ void setup()
     // sort them
     sortProgramms(programms, nb_programms);
   }
-
 
 #if DEBUG
   Serial.println();
@@ -258,11 +267,9 @@ void setup()
 
 
 
-
-
 void loop()
 {
-  LsuWiFi::connect();
+  LsuWiFi::connect(2, 10000, true, false);
   if((millis() % 5000) == 0) // every 5 seconds
     runProgramms();
   server.handleClient();
@@ -299,7 +306,7 @@ void runProgramms()
         ot_programms[i].running = false;
         digitalWrite(pin[ot_programms[i].zone], OFF);
 #if DEBUG
-        Serial.print(to_string(ot_programms[i]));Serial.println(" - stop");
+        Serial.print(to_string(ot_programms[i]));Serial.println(" - stop (one time)");
 #endif
       }
     }
@@ -311,7 +318,7 @@ void runProgramms()
         ot_programms[run_prog].running = true;
         digitalWrite(pin[ot_programms[run_prog].zone], ON);
 #if DEBUG
-        Serial.print(to_string(ot_programms[run_prog]));Serial.println(" - start");
+        Serial.print(to_string(ot_programms[run_prog]));Serial.println(" - start (one time)");
 #endif
       }
     }
@@ -342,7 +349,7 @@ void runProgramms()
       programms[i].running = false;
       digitalWrite(pin[programms[i].zone], OFF);
 #if DEBUG
-      Serial.print(to_string(programms[i]));Serial.println(" - stop");
+      Serial.print(to_string(programms[i]));Serial.println(" - stop (schedule)");
 #endif
     }
   }
@@ -352,7 +359,7 @@ void runProgramms()
     programms[run_prog].running = true;
     digitalWrite(pin[programms[run_prog].zone], ON);
 #if DEBUG
-    Serial.print(to_string(programms[run_prog]));Serial.println(" - start");
+    Serial.print(to_string(programms[run_prog]));Serial.println(" - start (schedule)");
 #endif
   }
 }
@@ -481,6 +488,8 @@ const char content_index2_7_fmt[] PROGMEM =
   "</html>"
 };
 
+char content[BUFF_SIZE];
+
 void handleIndex2()
 {
   uint16_t now_mow = now_week_minute();
@@ -496,16 +505,12 @@ void handleIndex2()
     z_c[programms[i].zone] += 1;
   }
 
-  content[0] = '\0';
   server.sendHeader("Refresh", "10");
-  server.send(200, "text/html", "");
-  Serial.println(days_full[day_from_week_minutes(now_mow)]);
-  Serial.println(LsuNtpTime::timeString());
-  sprintf(content, content_index2_1_fmt, days_full[day_from_week_minutes(now_mow)], LsuNtpTime::timeString());
-  Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-  server.sendContent(content);
   content[0] = '\0';
-  return;
+  sprintf_P(content + strlen(content), content_index2_1_fmt, days_full[day_from_week_minutes(now_mow)], LsuNtpTime::timeString());
+  Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+//  server.send(200, "text/html", content);
+//  content[0] = '\0';
 
   String html = "";
 //  html += "<!DOCTYPE html>"
@@ -536,10 +541,10 @@ void handleIndex2()
   if(nb_ot_programms)
   {
     sortProgrammsByZone(ot_programms, nb_ot_programms);
-    sprintf(content, content_index2_2_fmt);
-    Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-    server.sendContent(content);
-    content[0] = '\0';
+    sprintf_P(content + strlen(content), content_index2_2_fmt);
+    Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+    // server.sendContent(content);
+    // content[0] = '\0';
 
 //    html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>"
 //        "<tr>"
@@ -552,16 +557,16 @@ void handleIndex2()
 //        "</tr>";
     for (uint8_t i = 0; i < nb_ot_programms; ++i)
     {
-      sprintf(content, content_index2_3i_fmt,
+      sprintf_P(content + strlen(content), content_index2_3i_fmt,
           zones[ot_programms[i].zone],
           days_full[day_from_week_minutes(ot_programms[i].mow)],
           to_string_time(ot_programms[i].mow),
           (int)ot_programms[i].time,
           (ot_programms[i].running ? "da" : "nu"),
           (ot_programms[i].skip ? "da" : "nu"));
-      Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-      server.sendContent(content);
-      content[0] = '\0';
+      Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+      // server.sendContent(content);
+      // content[0] = '\0';
 
 //      html += "<tr>";
 //      html += "<td align='center'>";
@@ -584,20 +589,20 @@ void handleIndex2()
 //      html += "</td>";
 //      html += "</tr>";
     }
-    sprintf(content, content_index2_4_fmt);
-    Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-    server.sendContent(content);
-    content[0] = '\0';
+    sprintf_P(content + strlen(content), content_index2_4_fmt);
+    Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+    // server.sendContent(content);
+    // content[0] = '\0';
 
 //    html += "<tr><td colspan='6'></td></tr>";
   }
   // done - one time programms
 
   // weekly programming
-  sprintf(content, content_index2_5_fmt);
-  Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-  server.sendContent(content);
-  content[0] = '\0';
+  sprintf_P(content + strlen(content), content_index2_5_fmt);
+  Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+  // server.sendContent(content);
+  // content[0] = '\0';
 
 //  html += "<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>"
 //      "<tr>"
@@ -617,18 +622,18 @@ void handleIndex2()
     {
       if(j != programms[i].zone)
         continue;
-      sprintf(content, "<tr>");
-      Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-      server.sendContent(content);
-      content[0] = '\0';
+      sprintf_P(content + strlen(content), "<tr>");
+      Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+      // server.sendContent(content);
+      // content[0] = '\0';
 
 //      html += "<tr>";
       if(z_ft[j])
       {
-        sprintf(content, content_index2_6i_1_fmt, z_c[j], zones[j]);
-        Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-        server.sendContent(content);
-        content[0] = '\0';
+        sprintf_P(content + strlen(content), content_index2_6i_1_fmt, z_c[j], zones[j]);
+        Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+        // server.sendContent(content);
+        // content[0] = '\0';
 
 //        html += "<td align='center' rowspan='";
 //        html += z_c[j];
@@ -637,15 +642,15 @@ void handleIndex2()
 //        html += "</td>";
         z_ft[j] = false;
       }
-      sprintf(content, content_index2_6i_2_fmt,
+      sprintf_P(content + strlen(content), content_index2_6i_2_fmt,
           days_full[day_from_week_minutes(programms[i].mow)],
           to_string_time(programms[i].mow),
           (int)programms[i].time,
           (programms[i].running ? "da" : "nu"),
           (programms[i].skip ? "da" : "nu"));
-      Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-      server.sendContent(content);
-      content[0] = '\0';
+      Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+      // server.sendContent(content);
+      // content[0] = '\0';
 
 //      html += "<td align='left'>";
 //      html += days_full[day_from_week_minutes(programms[i].mow)];
@@ -666,18 +671,18 @@ void handleIndex2()
     }
   }
   // done - weekly programming
-  sprintf(content, content_index2_7_fmt);
-  Serial.print(String() + strlen(content) + " - ");Serial.println(content);
-  server.sendContent(content);
-  content[0] = '\0';
+  sprintf_P(content + strlen(content), content_index2_7_fmt);
+  Serial.println(String() + strlen(content) + " - ");//Serial.println(content);
+  // server.sendContent(content);
+  // content[0] = '\0';
 
 //  html += "<tr><td colspan='6'></td></tr>";
 //  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
 //  html += "</table>"
 //      "</body>"
 //      "</html>";
-//  server.sendHeader("Refresh", "10");
-//  server.send(200, "text/html", content);
+  server.sendHeader("Refresh", "10");
+  server.send(200, "text/html", content);
 //  server.send(200, "text/html", html);
 }
 
@@ -1188,7 +1193,14 @@ void handleOnetimeSave()
   // stop all that may run
   for (uint8_t i = 0; i < nb_ot_programms; ++i)
   {
-    digitalWrite(pin[ot_programms[i].zone], OFF);
+    if(ot_programms[i].running)
+    {
+      ot_programms[i].running = false;
+      digitalWrite(pin[ot_programms[i].zone], OFF);
+#if DEBUG
+      Serial.print(to_string(ot_programms[i]));Serial.println(" - stop (one time save)");
+#endif
+    }
   }
   nb_ot_programms = 0;
   uint8_t j = 0;
@@ -1220,12 +1232,12 @@ void handleOnetimeSave()
     }
   }
 #if DEBUG
-      Serial.print("nb_ot_programms: ");Serial.println(j);
+  Serial.print("nb_ot_programms: ");Serial.println(j);
 #endif
   if(nb_ot_programms != j)
   {
     nb_ot_programms = j;
-    server.sendHeader("refresh", "3;url=/");
+    server.sendHeader("refresh", "1;url=/");
     server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3>Salvare reusita</h3></body></html>");
     return;
   }
@@ -1881,7 +1893,7 @@ uint8_t minute_from_week_minutes(uint16_t week_minutes)
  */
 const char* to_string(uint16_t week_minutes)
 {
-  static char wm_buff[week_minute_str_len + 1];
+  static char wm_buff[DAY_TIME_STR_LEN + 1];
   sprintf(wm_buff, "%s %d:%02d", days[day_from_week_minutes(week_minutes)],
       ((week_minutes / MINUTES_PER_HOUR) % HOURS_PER_DAY),
       (week_minutes % MINUTES_PER_HOUR));
@@ -1893,7 +1905,7 @@ const char* to_string(uint16_t week_minutes)
  */
 const char* to_string_time(uint16_t week_minutes)
 {
-  static char wm_buff[week_minute_str_len - 2];
+  static char wm_buff[DAY_TIME_STR_LEN - 2];
   sprintf(wm_buff, "%d:%02d", ((week_minutes / MINUTES_PER_HOUR) % HOURS_PER_DAY),
       (week_minutes % MINUTES_PER_HOUR));
   return wm_buff;
@@ -1904,7 +1916,7 @@ const char* to_string_time(uint16_t week_minutes)
  */
 const char* to_string(programm& p)
 {
-  static char pg_buff[MAX_ZONE_STR_LEN + week_minute_str_len + 9];
+  static char pg_buff[MAX_ZONE_STR_LEN + DAY_TIME_STR_LEN + 9];
   sprintf(pg_buff, "%s: %s - %d", zones[p.zone % nb_zones], to_string(p.mow),
       p.time);
   return pg_buff;
@@ -2018,7 +2030,6 @@ void sortProgrammsByZone(programm* programms_t, uint8_t nb_programms_t)
 
 void loadDefaultProgramms()
 {
-//  nb_zones = 5;
   uint8_t i = 0;
   // zona 5, MO 21:30, 30
   programms[i++] =
@@ -2077,6 +2088,7 @@ void loadDefaultProgramms()
   // zona 5, SU, 21:30, 30
   programms[i++] =
   { week_minute(SU, 21, 30), 4, 30, false, false};
+
   nb_programms = i;
 }
 
