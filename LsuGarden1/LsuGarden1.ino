@@ -12,7 +12,6 @@
 #include <LsuNtpTimeC.h>
 
 /* WiFi AP settings*/
-
 const char *ssid = "";
 const char *passwd = ""; // use empty string for no password
 /**/
@@ -26,13 +25,15 @@ enum days_enum
 #define OFF HIGH
 #define ON  LOW
 
+#ifndef DAYS_PER_WEEK
 #define DAYS_PER_WEEK     7
+#endif
 #define HOURS_PER_DAY    24
 #define MINUTES_PER_HOUR 60
 #define MINUTES_PER_DAY  (HOURS_PER_DAY * MINUTES_PER_HOUR)
 #define MINUTES_PER_WEEK (DAYS_PER_WEEK * MINUTES_PER_DAY)
 
-#define MAX_NB_ZONES                       8 // 8 realys -> max 8 zones
+#define MAX_NB_ZONES                       4 // 8 realys -> max 8 zones
 #define MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE  3 // 3 times a day
 #define MAX_NB_PROGRAMMS_PER_DAY       /* 24 */ (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE * MAX_NB_ZONES) // 3 times a day, 8 zones
 #define MAX_NB_PROGRAMMS_PER_WEEK     /* 168 */ (MAX_NB_PROGRAMMS_PER_DAY * DAYS_PER_WEEK) // all zones, 7 days
@@ -47,7 +48,7 @@ enum days_enum
 #define EEPROM_SIZE          4096
 
 uint8_t pin[MAX_NB_ZONES] =
-{ D1, D2, D3, D4, D5, D6, D7, D8, };
+{ D1, D2, D3, D4, };
 
 const char* days[DAYS_PER_WEEK] =
 { "Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du", };
@@ -197,13 +198,12 @@ void setup()
   eepromPrint(EEPROM_PROG_START, true);
 #endif
 
-//  if (!nb_programms)
-//  {
-//    loadDefaultProgramms();
-//    // sort them
-//    sortProgramms(programms, nb_programms);
-//  }
-
+  if (!nb_programms)
+  {
+    loadDefaultProgramms();
+    // sort them
+    sortProgramms(programms, nb_programms);
+  }
 
 #if DEBUG
   Serial.println();
@@ -250,8 +250,6 @@ void setup()
   server.begin();
   Serial.println("Web server started");
 }
-
-
 
 
 
@@ -1828,9 +1826,6 @@ void loadDefaultProgramms()
 {
 //  nb_zones = 5;
   uint8_t i = 0;
-  // zona 5, MO 21:30, 30
-  programms[i++] =
-  { week_minute(MO, 21, 30), 4, 30, false, false};
   // zona 1, TU, 20:40, 10
   programms[i++] =
   { week_minute(TU, 20, 40), 0, 10, false, false};
@@ -1843,12 +1838,6 @@ void loadDefaultProgramms()
   // zona 4, TU, 21:20, 10
   programms[i++] =
   { week_minute(TU, 21, 20), 3, 10, false, false};
-  // zona 5, TU, 21:30, 30
-  programms[i++] =
-  { week_minute(TU, 21, 30), 4, 30, false, false};
-  // zona 5, WE 21:30, 30
-  programms[i++] =
-  { week_minute(WE, 21, 30), 4, 30, false, false};
   // zona 1, TH, 20:40, 10
   programms[i++] =
   { week_minute(TH, 20, 30), 0, 10, false, false};
@@ -1861,15 +1850,6 @@ void loadDefaultProgramms()
   // zona 4, TH, 21:20, 10
   programms[i++] =
   { week_minute(TH, 21, 20), 3, 10, false, false};
-  // zona 5, TH, 21:30, 30
-  programms[i++] =
-  { week_minute(TH, 21, 30), 4, 30, false, false};
-  // zona 5, FR, 21:30, 30
-  programms[i++] =
-  { week_minute(FR, 21, 30), 4, 30, false, false};
-  // zona 5, SA, 21:30, 30
-  programms[i++] =
-  { week_minute(SA, 21, 30), 4, 30, false, false};
   // zona 1, SU, 20:40, 10
   programms[i++] =
   { week_minute(SU, 20, 40), 0, 10, false, false};
@@ -1882,10 +1862,6 @@ void loadDefaultProgramms()
   // zona 4, SU, 21:20, 10
   programms[i++] =
   { week_minute(SU, 21, 20), 3, 10, false, false};
-  // zona 5, SU, 21:30, 30
-  programms[i++] =
-  { week_minute(SU, 21, 30), 4, 30, false, false};
-  nb_programms = i;
 }
 
 void loadDefaultZones()
