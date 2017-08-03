@@ -48,13 +48,21 @@ enum days_enum
 #define EEPROM_SIZE          4096
 
 uint8_t pin[MAX_NB_ZONES] =
-{ D1, D2, D3, D4, };
+{ D1, D2, /*D3, D4,*/ D5, D6, /*D7, D8,*/ };
 
 const char* days[DAYS_PER_WEEK] =
 { "Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du", };
 
 const char* days_full[DAYS_PER_WEEK] =
-{ "Luni", "Mar&#539;i", "Miercuri", "Joi", "Vineri", "S&#226;mb&#259;t&#259;", "Duminic&#259;", };
+{
+  "Luni",
+  "Mar&#539;i",
+  "Miercuri",
+  "Joi",
+  "Vineri",
+  "S&#226;mb&#259;t&#259;",
+  "Duminic&#259;",
+};
 
 typedef struct programm_struct
 {
@@ -65,8 +73,12 @@ typedef struct programm_struct
   bool running;
 }__attribute__((packed)) programm;
 
+
+const uint8_t FULL_DAY_STR_LEN = strlen("S&#226;mb&#259;t&#259;");
 // "DD hh:mm"
-const uint8_t week_minute_str_len = strlen("DD hh:mm");
+const uint8_t DAY_TIME_STR_LEN = strlen("DD hh:mm");
+// "hh:mm:ss"
+const uint8_t TIME_STR_LEN = LsuNtpTime::timeStringLength;
 const char* to_string(uint16_t);
 const char* to_string_time(uint16_t);
 const char* to_string(programm&);
@@ -198,12 +210,12 @@ void setup()
   eepromPrint(EEPROM_PROG_START, true);
 #endif
 
-  if (!nb_programms)
-  {
-    loadDefaultProgramms();
-    // sort them
-    sortProgramms(programms, nb_programms);
-  }
+//  if (!nb_programms)
+//  {
+//    loadDefaultProgramms();
+//    // sort them
+//    sortProgramms(programms, nb_programms);
+//  }
 
 #if DEBUG
   Serial.println();
@@ -490,22 +502,7 @@ void handleIndex2()
 void handleIndex()
 {
   uint16_t now_mow = now_week_minute();
-  uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0, rspan = 0;
-  bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
-  uint8_t day_idx = DAYS_PER_WEEK;
-  for (uint8_t i = 0; i < nb_programms; ++i)
-  {
-    switch(day_from_week_minutes(programms[i].mow))
-    {
-      case MO: ++mo_c; break;
-      case TU: ++tu_c; break;
-      case WE: ++we_c; break;
-      case TH: ++th_c; break;
-      case FR: ++fr_c; break;
-      case SA: ++sa_c; break;
-      case SU: ++su_c; break;
-    }
-  }
+  uint8_t day_idx = DAYS_PER_WEEK, rspan = 0;
   String html =
       "<!DOCTYPE html>"
       "<html>"
@@ -534,6 +531,9 @@ void handleIndex()
   // one time programms
   if(nb_ot_programms)
   {
+    uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0;
+    bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
+
     sortProgramms(ot_programms, nb_ot_programms);
     html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>";
     html += "<tr>"
@@ -544,19 +544,104 @@ void handleIndex()
           "<th>Merge</th>"
           "<th>Omis</th>"
           "</tr>";
-    day_idx = day_of_week();
-    rspan = nb_ot_programms;
-    html += "<tr>";
-    if(rspan)
+    for (uint8_t i = 0; i < nb_ot_programms; ++i)
     {
-      html += "<td align='left' rowspan='";
-      html += rspan;
-      html += "'>";
-      html += days_full[day_idx];
-      html += "</td>";
+      switch(day_from_week_minutes(ot_programms[i].mow))
+      {
+        case MO: ++mo_c; break;
+        case TU: ++tu_c; break;
+        case WE: ++we_c; break;
+        case TH: ++th_c; break;
+        case FR: ++fr_c; break;
+        case SA: ++sa_c; break;
+        case SU: ++su_c; break;
+      }
     }
     for (uint8_t i = 0; i < nb_ot_programms; ++i)
     {
+      // day
+      switch(day_from_week_minutes(ot_programms[i].mow))
+      {
+        case MO:
+          if(mo_ft)
+          {
+            rspan = mo_c;
+            day_idx = MO;
+          }
+          else
+            rspan = 0;
+          mo_ft = false;
+          break;
+        case TU:
+          if(tu_ft)
+          {
+            rspan = tu_c;
+            day_idx = TU;
+          }
+          else
+            rspan = 0;
+          tu_ft = false;
+          break;
+        case WE:
+          if(we_ft)
+          {
+            rspan = we_c;
+            day_idx = WE;
+          }
+          else
+            rspan = 0;
+          we_ft = false;
+          break;
+        case TH:
+          if(th_ft)
+          {
+            rspan = th_c;
+            day_idx = TH;
+          }
+          else
+            rspan = 0;
+          th_ft = false;
+          break;
+        case FR:
+          if(fr_ft)
+          {
+            rspan = fr_c;
+            day_idx = FR;
+          }
+          else
+            rspan = 0;
+          fr_ft = false;
+          break;
+        case SA:
+          if(sa_ft)
+          {
+            rspan = sa_c;
+            day_idx = SA;
+          }
+          else
+            rspan = 0;
+          sa_ft = false;
+          break;
+        case SU:
+          if(su_ft)
+          {
+            rspan = su_c;
+            day_idx = SU;
+          }
+          else
+            rspan = 0;
+          su_ft = false;
+          break;
+      }
+      html += "<tr>";
+      if(rspan)
+      {
+        html += "<td align='left' rowspan='";
+        html += rspan;
+        html += "'>";
+        html += days_full[day_idx];
+        html += "</td>";
+      }
 
       html += "<td align='center'>";
       html += to_string_time(ot_programms[i].mow);
@@ -587,6 +672,21 @@ void handleIndex()
       "<th>Omis</th>"
       "</tr>";
 
+  uint8_t mo_c = 0, tu_c = 0, we_c = 0, th_c = 0, fr_c = 0, sa_c = 0, su_c = 0;
+  bool mo_ft = true, tu_ft = true, we_ft = true, th_ft = true, fr_ft = true, sa_ft = true, su_ft = true;
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    switch(day_from_week_minutes(programms[i].mow))
+    {
+      case MO: ++mo_c; break;
+      case TU: ++tu_c; break;
+      case WE: ++we_c; break;
+      case TH: ++th_c; break;
+      case FR: ++fr_c; break;
+      case SA: ++sa_c; break;
+      case SU: ++su_c; break;
+    }
+  }
   for (uint8_t i = 0; i < nb_programms; ++i)
   {
     // day
@@ -1694,7 +1794,7 @@ uint8_t minute_from_week_minutes(uint16_t week_minutes)
  */
 const char* to_string(uint16_t week_minutes)
 {
-  static char wm_buff[week_minute_str_len + 1];
+  static char wm_buff[DAY_TIME_STR_LEN + 1];
   sprintf(wm_buff, "%s %d:%02d", days[day_from_week_minutes(week_minutes)],
       ((week_minutes / MINUTES_PER_HOUR) % HOURS_PER_DAY),
       (week_minutes % MINUTES_PER_HOUR));
@@ -1706,7 +1806,7 @@ const char* to_string(uint16_t week_minutes)
  */
 const char* to_string_time(uint16_t week_minutes)
 {
-  static char wm_buff[week_minute_str_len - 2];
+  static char wm_buff[DAY_TIME_STR_LEN - 2];
   sprintf(wm_buff, "%d:%02d", ((week_minutes / MINUTES_PER_HOUR) % HOURS_PER_DAY),
       (week_minutes % MINUTES_PER_HOUR));
   return wm_buff;
@@ -1717,7 +1817,7 @@ const char* to_string_time(uint16_t week_minutes)
  */
 const char* to_string(programm& p)
 {
-  static char pg_buff[MAX_ZONE_STR_LEN + week_minute_str_len + 9];
+  static char pg_buff[MAX_ZONE_STR_LEN + DAY_TIME_STR_LEN + 9];
   sprintf(pg_buff, "%s: %s - %d", zones[p.zone % nb_zones], to_string(p.mow),
       p.time);
   return pg_buff;
