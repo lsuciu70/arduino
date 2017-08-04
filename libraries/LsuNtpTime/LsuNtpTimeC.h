@@ -10,10 +10,11 @@
 
 #include <Arduino.h>
 
+#include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
+#include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
+
 #include <Time.h>         // https://github.com/PaulStoffregen/Time
 #include <Timezone.h>     // https://github.com/JChristensen/Timezone
-
-#include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
 
 namespace
 {
@@ -77,7 +78,7 @@ time_t getTime()
     Serial.print(F("NTP ERROR: no correct packet received; pktLen = "));
     Serial.print(pktLen);
     Serial.println(F(", expected 48"));
-    return getTime(); // no correct packet received
+    return 0; // no correct packet received
   }
 
   // Read and discard the first useless bytes
@@ -111,13 +112,16 @@ time_t getTime()
 namespace LsuNtpTime
 {
 /** "DD-MM-YYYY" */
-const byte dateStringLength = 10;
+const size_t DMY_STR_LEN = 10;
 
 /** "hh:mm:ss" */
-const byte timeStringLength = 8;
+const size_t HMS_STR_LEN = 8;
+
+/** "hh:mm" */
+const size_t HM_STR_LEN = 5;
 
 /** "DD-MM-YYYY hh:mm:ss" */
-const byte datetimeStringLength = dateStringLength + 1 + timeStringLength;
+const size_t DMY_HMS_STR_LEN = DMY_STR_LEN + 1 + HMS_STR_LEN;
 
 /**
  * Starts the NTP time library, and waits for first synch.
@@ -139,7 +143,7 @@ void begin(time_t seconds = (6 * 3600))
 
 /**
  * Fills and returns the input datetime buffer as "DD-MM-YYYY hh:mm:ss".
- * The buffer should be at least (datetimeStringLength + 1) in size.
+ * The buffer should be at least (DMY_HMS_STR_LEN + 1) in size.
  */
 char* datetimeString(char* datetimebuff, int day_t = day(), int month_t =
     month(), int year_t = year(), int hour_t = hour(), int minute_t = minute(),
@@ -151,13 +155,14 @@ char* datetimeString(char* datetimebuff, int day_t = day(), int month_t =
 }
 
 /**
+ * @deprecated - use datetimeString(char*, int, int, int, int, int, int)
  * Returns the date and time as "DD-MM-YYYY hh:mm:ss".
  */
 char* datetimeString(int day_t = day(), int month_t = month(), int year_t =
     year(), int hour_t = hour(), int minute_t = minute(), int second_t =
     second())
 {
-  static char datetimebuff[datetimeStringLength + 1];
+  static char datetimebuff[DMY_HMS_STR_LEN + 1];
   sprintf(datetimebuff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t,
       hour_t, minute_t, second_t);
   return datetimebuff;
@@ -165,7 +170,7 @@ char* datetimeString(int day_t = day(), int month_t = month(), int year_t =
 
 /**
  * Fills and returns the input date buffer as "DD-MM-YYYY"
- * The buffer should be at least (dateStringLength + 1) in size.
+ * The buffer should be at least (DMY_STR_LEN + 1) in size.
  */
 char* dateString(char* datebuff, int day_t = day(), int month_t = month(),
     int year_t = year())
@@ -175,34 +180,45 @@ char* dateString(char* datebuff, int day_t = day(), int month_t = month(),
 }
 
 /**
+ * @deprecated - use dateString(char*, int, int, int)
  * Returns the date as "DD-MM-YYYY"
- * The buffer should be at least (dateStringLength + 1) in size.
  */
 char* dateString(int day_t = day(), int month_t = month(), int year_t = year())
 {
-  static char datebuff[dateStringLength + 1];
+  static char datebuff[DMY_STR_LEN + 1];
   sprintf(datebuff, "%02d-%02d-%04d", day_t, month_t, year_t);
   return datebuff;
 }
 
 /**
- * Fills and returns the input time buffer as "hh:mm:ss"
- * The buffer should be at least (timeStringLength + 1) in size.
+ * Fills and returns the input time buffer as "h:mm"
+ * The buffer should be at least (HM_STR_LEN + 1) in size.
  */
-char* timeString(char* timebuff, int hour_t = hour(), int minute_t = minute(),
-    int second_t = second())
+char* timeShortString(char* timebuff, int hour_t = hour(), int minute_t = minute())
 {
-  sprintf(timebuff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
+  sprintf(timebuff, "%d:%02d", hour_t, minute_t);
   return timebuff;
 }
 
 /**
+ * Fills and returns the input time buffer as "h:mm:ss"
+ * The buffer should be at least (HMS_STR_LEN + 1) in size.
+ */
+char* timeString(char* timebuff, int hour_t = hour(), int minute_t = minute(),
+    int second_t = second())
+{
+  sprintf(timebuff, "%d:%02d:%02d", hour_t, minute_t, second_t);
+  return timebuff;
+}
+
+/**
+ * @deprected use timeString(char*, int, int, int)
  * Returns the time as "hh:mm:ss"
  */
 char* timeString(int hour_t = hour(), int minute_t = minute(), int second_t =
     second())
 {
-  static char timebuff[timeStringLength + 1];
+  static char timebuff[HMS_STR_LEN + 1];
   sprintf(timebuff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
   return timebuff;
 }

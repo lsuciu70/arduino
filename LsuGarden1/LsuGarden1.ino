@@ -1,5 +1,4 @@
 #define DEBUG 2
-#define IB_IOT 1
 // #define EEPROM_RESET
 
 #include <Arduino.h>
@@ -78,7 +77,7 @@ const uint8_t FULL_DAY_STR_LEN = strlen("S&#226;mb&#259;t&#259;");
 // "DD hh:mm"
 const uint8_t DAY_TIME_STR_LEN = strlen("DD hh:mm");
 // "hh:mm:ss"
-const uint8_t TIME_STR_LEN = LsuNtpTime::timeStringLength;
+const uint8_t TIME_STR_LEN = LsuNtpTime::HMS_STR_LEN;
 const char* to_string(uint16_t);
 const char* to_string_time(uint16_t);
 const char* to_string(programm&);
@@ -362,143 +361,6 @@ void runProgramms()
   }
 }
 
-void handleIndex2()
-{
-  uint16_t now_mow = now_week_minute();
-  uint8_t z_c[MAX_NB_ZONES];
-  bool z_ft[MAX_NB_ZONES];
-  for (uint8_t j = 0; j < MAX_NB_ZONES; ++j)
-  {
-    z_c[j] = 0;
-    z_ft[j] = true;
-  }
-  for (uint8_t i = 0; i < nb_programms; ++i)
-  {
-    z_c[programms[i].zone] += 1;
-  }
-  String html =
-      "<!DOCTYPE html>"
-      "<html>"
-      "<head>"
-      "<meta charset='UTF-8'>"
-      "<!-- <title>Iriga&#539;ie</title> -->"
-      "<style type='text/css'>"
-      "table { border-collapse:collapse; border-style:solid; }"
-      "th { padding: 15px; border-style:solid; border-width:thin; }"
-      "td { padding: 5px; border-style:solid; border-width:thin; }"
-      "</style>"
-      "</head>"
-      "<body>"
-      "<!-- <h2>Iriga&#539;ie</h2> -->"
-      "<table>"
-      "<tr><td colspan='6' align='center'>"
-      "<b>";
-  html += days_full[day_from_week_minutes(now_mow)];
-  html += ", ";
-  html += LsuNtpTime::timeString();
-  html += "</b>"
-      "</td></tr>";
-  html += "<tr><td colspan='6'></td></tr>";
-  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
-  html += "<tr><td colspan='6'></td></tr>";
-  // one time programms
-  if(nb_ot_programms)
-  {
-    sortProgrammsByZone(ot_programms, nb_ot_programms);
-    html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>";
-    html += "<tr>"
-          "<th>Zona</th>"
-          "<th>Ziua</th>"
-          "<th>Ora</th>"
-          "<th>Durata</th>"
-          "<th>Merge</th>"
-          "<th>Omis</th>"
-          "</tr>";
-    for (uint8_t i = 0; i < nb_ot_programms; ++i)
-    {
-      html += "<tr>";
-      html += "<td align='center'>";
-      html += zones[ot_programms[i].zone];
-      html += "</td>";
-      html += "<td align='left'>";
-      html += days_full[day_from_week_minutes(ot_programms[i].mow)];
-      html += "</td>";
-      html += "<td align='center'>";
-      html += to_string_time(ot_programms[i].mow);
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (int)ot_programms[i].time;
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (ot_programms[i].running ? "da" : "nu");
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (ot_programms[i].skip ? "da" : "nu");
-      html += "</td>";
-      html += "</tr>";
-    }
-    html += "<tr><td colspan='6'></td></tr>";
-  }
-  // done - one time programms
-
-  // weekly programming
-  html += "<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>";
-  html += "<tr>"
-      "<th>Zona</th>"
-      "<th>Ziua</th>"
-      "<th>Ora</th>"
-      "<th>Durata</th>"
-      "<th>Merge</th>"
-      "<th>Omis</th>"
-      "</tr>";
-
-  for (uint8_t j = 0; j < MAX_NB_ZONES; ++j)
-  {
-    if(!z_c[j])
-      continue;
-    for (uint8_t i = 0; i < nb_programms; ++i)
-    {
-      if(j != programms[i].zone)
-        continue;
-      html += "<tr>";
-      if(z_ft[j])
-      {
-        html += "<td align='center' rowspan='";
-        html += z_c[j];
-        html += "'>";
-        html += zones[j];
-        html += "</td>";
-        z_ft[j] = false;
-      }
-      html += "<td align='left'>";
-      html += days_full[day_from_week_minutes(programms[i].mow)];
-      html += "</td>";
-      html += "<td align='center'>";
-      html += to_string_time(programms[i].mow);
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (int)programms[i].time;
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (programms[i].running ? "da" : "nu");
-      html += "</td>";
-      html += "<td align='center'>";
-      html += (programms[i].skip ? "da" : "nu");
-      html += "</td>";
-      html += "</tr>";
-    }
-  }
-  // done - weekly programming
-
-  html += "<tr><td colspan='6'></td></tr>";
-  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
-  html += "</table>"
-      "</body>"
-      "</html>";
-  server.sendHeader("Refresh", "10");
-  server.send(200, "text/html", html);
-}
-
 void handleIndex()
 {
   uint16_t now_mow = now_week_minute();
@@ -508,7 +370,7 @@ void handleIndex()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>Iriga&#539;ie</title> -->"
+      "<title>Iriga&#539;ie</title>"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -516,7 +378,7 @@ void handleIndex()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>Iriga&#539;ie</h2> -->"
+      "<h2>Iriga&#539;ie</h2>"
       "<table>"
       "<tr><td colspan='6' align='center'>"
       "<b>";
@@ -801,6 +663,145 @@ void handleIndex()
   server.send(200, "text/html", html);
 }
 
+void handleIndex2()
+{
+  uint16_t now_mow = now_week_minute();
+
+  String html =
+      "<!DOCTYPE html>"
+      "<html>"
+      "<head>"
+      "<meta charset='UTF-8'>"
+      "<title>Iriga&#539;ie</title>"
+      "<style type='text/css'>"
+      "table { border-collapse:collapse; border-style:solid; }"
+      "th { padding: 15px; border-style:solid; border-width:thin; }"
+      "td { padding: 5px; border-style:solid; border-width:thin; }"
+      "</style>"
+      "</head>"
+      "<body>"
+      "<h2>Iriga&#539;ie</h2>"
+      "<table>"
+      "<tr><td colspan='6' align='center'>"
+      "<b>";
+  html += days_full[day_from_week_minutes(now_mow)];
+  html += ", ";
+  html += LsuNtpTime::timeString();
+  html += "</b>"
+      "</td></tr>";
+  html += "<tr><td colspan='6'></td></tr>";
+  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
+  html += "<tr><td colspan='6'></td></tr>";
+  // one time programms
+  if(nb_ot_programms)
+  {
+    sortProgrammsByZone(ot_programms, nb_ot_programms);
+    html += "<tr><th colspan='6' align='center'>Pornire rapid&#259;</th></tr>";
+    html += "<tr>"
+          "<th>Zona</th>"
+          "<th>Ziua</th>"
+          "<th>Ora</th>"
+          "<th>Durata</th>"
+          "<th>Merge</th>"
+          "<th>Omis</th>"
+          "</tr>";
+    for (uint8_t i = 0; i < nb_ot_programms; ++i)
+    {
+      html += "<tr>";
+      html += "<td align='center'>";
+      html += zones[ot_programms[i].zone];
+      html += "</td>";
+      html += "<td align='left'>";
+      html += days_full[day_from_week_minutes(ot_programms[i].mow)];
+      html += "</td>";
+      html += "<td align='center'>";
+      html += to_string_time(ot_programms[i].mow);
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (int)ot_programms[i].time;
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (ot_programms[i].running ? "da" : "nu");
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (ot_programms[i].skip ? "da" : "nu");
+      html += "</td>";
+      html += "</tr>";
+    }
+    html += "<tr><td colspan='6'></td></tr>";
+  }
+  // done - one time programms
+
+  // weekly programming
+  uint8_t z_c[MAX_NB_ZONES];
+  bool z_ft[MAX_NB_ZONES];
+  for (uint8_t j = 0; j < MAX_NB_ZONES; ++j)
+  {
+    z_c[j] = 0;
+    z_ft[j] = true;
+  }
+  for (uint8_t i = 0; i < nb_programms; ++i)
+  {
+    z_c[programms[i].zone] += 1;
+  }
+
+  html += "<tr><th colspan='6' align='center'>Program s&#259;pt&#259;m&#226;nal</th></tr>";
+  html += "<tr>"
+      "<th>Zona</th>"
+      "<th>Ziua</th>"
+      "<th>Ora</th>"
+      "<th>Durata</th>"
+      "<th>Merge</th>"
+      "<th>Omis</th>"
+      "</tr>";
+
+  for (uint8_t j = 0; j < MAX_NB_ZONES; ++j)
+  {
+    if(!z_c[j])
+      continue;
+    for (uint8_t i = 0; i < nb_programms; ++i)
+    {
+      if(j != programms[i].zone)
+        continue;
+      html += "<tr>";
+      if(z_ft[j])
+      {
+        html += "<td align='center' rowspan='";
+        html += z_c[j];
+        html += "'>";
+        html += zones[j];
+        html += "</td>";
+        z_ft[j] = false;
+      }
+      html += "<td align='left'>";
+      html += days_full[day_from_week_minutes(programms[i].mow)];
+      html += "</td>";
+      html += "<td align='center'>";
+      html += to_string_time(programms[i].mow);
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (int)programms[i].time;
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (programms[i].running ? "da" : "nu");
+      html += "</td>";
+      html += "<td align='center'>";
+      html += (programms[i].skip ? "da" : "nu");
+      html += "</td>";
+      html += "</tr>";
+    }
+  }
+  // done - weekly programming
+
+  html += "<tr><td colspan='6'></td></tr>";
+  html += "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
+  html += "</table>"
+      "</body>"
+      "</html>";
+  server.sendHeader("Refresh", "10");
+  server.send(200, "text/html", html);
+}
+
 void handleSkip()
 {
   uint16_t now_mow = now_week_minute();
@@ -823,7 +824,7 @@ void handleSkip()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>Iriga&#539;ie - Omitere</title> -->"
+      "<title>Iriga&#539;ie - Omitere</title>"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -831,7 +832,7 @@ void handleSkip()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>Iriga&#539;ie - Omitere</h2> -->"
+      "<h2>Iriga&#539;ie - Omitere</h2>"
       "<table>"
       "<tr><td colspan='6' align='center'>"
       "<b>";
@@ -959,7 +960,8 @@ void handleSkip()
     html += "</td>"
         "</tr>";
   }
-  html += "<tr><td colspan='6'></td></tr>"
+  html +=
+      "<tr><td colspan='6'></td></tr>"
       "<tr><td colspan='6' align='center'><form method='post' action='skip_save' id='skip_save'><input type='submit' value='Salvare'></form></td></tr>"
       "<tr><td colspan='6'></td></tr>"
       "<tr><td colspan='6' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>"
@@ -996,12 +998,12 @@ void handleSkipSave()
       }
 #endif
       server.sendHeader("refresh", "1;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Omitere</title> --></head><body><!-- <h2>Iriga&#539;ie - Omitere</h2> --><h3>Salvare reusita</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Omitere</title></head><body><h2>Iriga&#539;ie - Omitere</h2><h3>Salvare reusita</h3></body></html>");
     }
     else
     {
       server.sendHeader("refresh", "3;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Omitere</title> --></head><body><!-- <h2>Iriga&#539;ie - Omitere</h2> --><h3 style='color:red'>Eroare salvare</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Omitere</title></head><body><h2>Iriga&#539;ie - Omitere</h2><h3 style='color:red'>Eroare salvare</h3></body></html>");
     }
   }
   else
@@ -1018,7 +1020,7 @@ void handleOnetime()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> -->"
+      "<title>Iriga&#539;ie - Pornire rapid&#259;</title>"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -1027,7 +1029,7 @@ void handleOnetime()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> -->"
+      "<h2>Iriga&#539;ie - Pornire rapid&#259;</h2>"
       "<table>"
       "<tr><td colspan='2' align='center'>"
       "<b>";
@@ -1114,14 +1116,14 @@ void handleOnetimeSave()
           (d = arg_str.toInt()) > MAX_DURATION)
       {
         server.sendHeader("refresh", "3;url=/");
-        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3 style='color:red'>Eroare, durat&#259; eronat&#259; pentru ") + zones[i] + "</h3></body></html>");
+        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Pornire rapid&#259;</title></head><body><h2>Iriga&#539;ie - Pornire rapid&#259;</h2><h3 style='color:red'>Eroare, durat&#259; eronat&#259; pentru ") + zones[i] + "</h3></body></html>");
         return;
       }
       // start time not OK
       if(!hm_ok)
       {
         server.sendHeader("refresh", "3;url=/");
-        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3 style='color:red'>Eroare, timpul de pornire eronat: ") + h + ":" + m + " [hh:mm]</h3></body></html>");
+        server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Pornire rapid&#259;</title></head><body><h2>Iriga&#539;ie - Pornire rapid&#259;</h2><h3 style='color:red'>Eroare, timpul de pornire eronat: ") + h + ":" + m + " [hh:mm]</h3></body></html>");
         return;
       }
       // save
@@ -1139,7 +1141,7 @@ void handleOnetimeSave()
   {
     nb_ot_programms = j;
     server.sendHeader("refresh", "1;url=/");
-    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Pornire rapid&#259;</title> --></head><body><!-- <h2>Iriga&#539;ie - Pornire rapid&#259;</h2> --><h3>Salvare reusita</h3></body></html>");
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Pornire rapid&#259;</title></head><body><h2>Iriga&#539;ie - Pornire rapid&#259;</h2><h3>Salvare reusita</h3></body></html>");
     return;
   }
   server.sendHeader("refresh", "1;url=/");
@@ -1157,7 +1159,7 @@ void handleProgramming1()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>Iriga&#539;ie - Programare 1</title> -->"
+      "<title>Iriga&#539;ie - Programare 1</title>"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -1166,7 +1168,7 @@ void handleProgramming1()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>Iriga&#539;ie - Programare</h2> -->"
+      "<h2>Iriga&#539;ie - Programare</h2>"
       "<h3>Pasul 1 - Num&#259;rul de zone (maxim 8)</h3>"
       "<table>";
 
@@ -1211,7 +1213,7 @@ void handleProgramming1Save()
       }
       nb_zones = tmp;
       server.sendHeader("refresh", "3;url=/programming_2");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 2</h2> --><h3 style='color:red'>Eroare salvare, se va folosi num&#259;rul de zone ini&#539;</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Programare 2</title></head><body><h2>Iriga&#539;ie - Programare 2</h2><h3 style='color:red'>Eroare salvare, se va folosi num&#259;rul de zone ini&#539;</h3></body></html>");
       return;
 
     }
@@ -1221,7 +1223,7 @@ void handleProgramming1Save()
   else
   {
     server.sendHeader("refresh", "3;url=/programming_1");
-    server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 1</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 1</h2> --><h3 style='color:red'>Eroare, num&#259;r de zone eronat: ") + nb_zones_n + "<br>Trebuie s&#259; fie &#238;ntre 1 &#x219;i " + MAX_NB_ZONES + " inclusiv</h3></body></html>");
+    server.send(200, "text/html", String("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Programare 1</title></head><body><h2>Iriga&#539;ie - Programare 1</h2><h3 style='color:red'>Eroare, num&#259;r de zone eronat: ") + nb_zones_n + "<br>Trebuie s&#259; fie &#238;ntre 1 &#x219;i " + MAX_NB_ZONES + " inclusiv</h3></body></html>");
     return;
   }
 }
@@ -1234,7 +1236,7 @@ void handleProgramming2()
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>Iriga&#539;ie - Programare 2</title> -->"
+      "<title>Iriga&#539;ie - Programare 2</title>"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -1243,7 +1245,7 @@ void handleProgramming2()
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>Iriga&#539;ie - Programare</h2> -->"
+      "<h2>Iriga&#539;ie - Programare</h2>"
       "<h3>Pasul 2 - Numele zonelor (maxim ";
   html += MAX_ZONE_STR_LEN;
   html += " caractere)</h3>"
@@ -1294,7 +1296,7 @@ void handleProgramming2Save()
   if(one_saved && !(eepromSaveZones() && nb_zones == eepromLoadZones()))
   {
     server.sendHeader("refresh", "3;url=/programming_31");
-    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 2</h2> --><h3 style='color:red'>Eroare salvare, se vor folosi numele implicite</h3></body></html>");
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Programare 2</title></head><body><h2>Iriga&#539;ie - Programare 2</h2><h3 style='color:red'>Eroare salvare, se vor folosi numele implicite</h3></body></html>");
     return;
   }
   server.send(200, "text/html", "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0; url=/programming_31' /></head></html>");
@@ -1308,7 +1310,7 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
       "<html>"
       "<head>"
       "<meta charset='UTF-8'>"
-      "<!-- <title>Iriga&#539;ie - Programare 3</title> -->"
+      "<title>Iriga&#539;ie - Programare 3</title>"
       "<style type='text/css'>"
       "table { border-collapse:collapse; border-style:solid; }"
       "th { padding: 15px; border-style:solid; border-width:thin; }"
@@ -1317,7 +1319,7 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
       "</style>"
       "</head>"
       "<body>"
-      "<!-- <h2>Iriga&#539;ie - Programare</h2> -->"
+      "<h2>Iriga&#539;ie - Programare</h2>"
       "<h3>Pasul 3 - ";
   html += days_full[day_t];
   html += "</h3>"
@@ -1513,13 +1515,13 @@ void handleProgramming3Save(uint8_t day_t)
     if(eepromSaveProgramms(programms_ps, nb_programms_ps))
     {
       server.sendHeader("refresh", "1;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 3</h2> --><h3>Salvare reusita</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Programare 2</title></head><body><h2>Iriga&#539;ie - Programare 3</h2><h3>Salvare reusita</h3></body></html>");
       eepromLoadProgramms();
     }
     else
     {
       server.sendHeader("refresh", "3;url=/");
-      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><!-- <title>Iriga&#539;ie - Programare 2</title> --></head><body><!-- <h2>Iriga&#539;ie - Programare 3</h2> --><h3 style='color:red'>Eroare salvare</h3></body></html>");
+      server.send(200, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Iriga&#539;ie - Programare 2</title></head><body><h2>Iriga&#539;ie - Programare 3</h2><h3 style='color:red'>Eroare salvare</h3></body></html>");
 
     }
   }

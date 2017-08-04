@@ -3,6 +3,8 @@
 	<name>LsuGarden</name>
 	<comment></comment>
 	<projects>
+		<project>LsuNtpTime</project>
+		<project>LsuWiFi</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
