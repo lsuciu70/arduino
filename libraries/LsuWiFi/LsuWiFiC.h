@@ -19,18 +19,16 @@
 namespace
 {
 
-namespace
-{
 
 const uint8_t SSID_SIZE = 3;
-uint8_t ssid_size = 0;
-const char* SSID_t[SSID_SIZE] =
+uint8_t ssid_size = SSID_SIZE;
+char* SSID_t[SSID_SIZE] =
 { "cls-router", "cls-ap", "lsu-tpr" };
-const char* PASSWD_t[SSID_SIZE] =
+char* PASSWD_t[SSID_SIZE] =
 { "r4cD7TPG", "r4cD7TPG", "r4cD7TPG" };
 
 bool initialized = false;
-}
+bool defaultSsids = true;
 }
 
 namespace LsuWiFi
@@ -47,10 +45,17 @@ bool addAp(const char *ssid, const char *password)
 {
   if (!initialized && (initialized = true))
       WiFi.mode(WIFI_STA);
+  if(defaultSsids)
+  {
+    defaultSsids = false;
+    ssid_size = 0;
+  }
   if(ssid_size >= SSID_SIZE)
     return false;
-  SSID_t[ssid_size] = String(ssid).c_str();
-  PASSWD_t[ssid_size] = String(password).c_str();
+  SSID_t[ssid_size] = (char*) malloc((strlen(ssid) + 1) * sizeof(char));
+  strcpy(SSID_t[ssid_size], ssid);
+  PASSWD_t[ssid_size] = (char*) malloc((strlen(password) + 1) * sizeof(char));
+  strcpy(PASSWD_t[ssid_size], password);
   ++ssid_size;
   return true;
 }
@@ -76,11 +81,7 @@ bool connect(const uint8_t ssid_idx = 0, const uint16_t timeout = 10000,
     const bool retry_after_timeout = true, const bool try_next_ssid = true, const uint8_t try_index = 1)
 {
   if (!initialized && (initialized = true))
-  {
-    if(ssid_size == 0)
-      ssid_size = SSID_SIZE;
     WiFi.mode(WIFI_STA);
-  }
   if (isConnected())
     return true;
   uint8_t ssid_ix = ssid_idx % ssid_size;
