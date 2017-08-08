@@ -127,18 +127,23 @@ const size_t DMY_HMS_STR_LEN = DMY_STR_LEN + 1 + HMS_STR_LEN;
  * Starts the NTP time library, and waits for first synch.
  * Sets the sync interval in seconds, default 6 hours.
  */
-void begin(time_t seconds = (6 * 3600))
+bool begin(time_t seconds = (6 * 3600))
 {
+  uint8_t max_tries = 3, count_tries = 0;
+
   // Set the external time provider
   setSyncProvider(getTime);
   // Set synch interval to one second till sync
   setSyncInterval(2);
-  while (timeStatus() != timeSet)
+
+  while (++count_tries <= max_tries)
   {
-    ;
+    if(timeStatus() == timeSet)
+      break;
   }
   // Set synch interval
   setSyncInterval(seconds);
+  return timeStatus() == timeSet;
 }
 
 /**

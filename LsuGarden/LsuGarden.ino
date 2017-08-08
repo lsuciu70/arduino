@@ -189,8 +189,8 @@ void setup()
   if(strlen(ssid))
     LsuWiFi::addAp(ssid, passwd);
 
-//  LsuWiFi::connect();
-  LsuWiFi::connect(2, 10000, true, false);
+  LsuWiFi::connect();
+//  LsuWiFi::connect(2, 10000, true, false);
   LsuNtpTime::begin();
 
   for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)
@@ -273,8 +273,8 @@ void setup()
 
 void loop()
 {
-//  LsuWiFi::connect();
-  LsuWiFi::connect(2, 10000, true, false);
+  LsuWiFi::connect();
+//  LsuWiFi::connect(2, 10000, true, false);
   if((millis() % 5000) == 0) // every 5 seconds
     runProgramms();
   server.handleClient();
@@ -1101,7 +1101,7 @@ const char hot_save_btn[] PROGMEM =
     "<tr><td colspan='2' align='center'><form method='post' action='onetime_save' id='onetime_save'><input type='submit' value='Salvare'></form></td></tr>";
 
 const char hot_bk_btn[] PROGMEM =
-    "<tr><td colspan='2' align='center'><form method='post' action='.' name='back'><input type='submit' value='&#206;napoi'></form></td></tr>";
+    "<tr><td colspan='2' align='center'><form method='post' action='.'><input type='submit' value='&#206;napoi'></form></td></tr>";
 
 void handleOnetime()
 {
@@ -1367,7 +1367,10 @@ const char hp2_1_fmt[] PROGMEM =
     "<td><input type='text' size='"MAX_ZONE_LEN_STR"' maxlength='"MAX_ZONE_LEN_STR"' form='programing_2_save' name='z_%d' value='%s'></td>"
     "</tr>";
 
-const char hp1_save_btn[] PROGMEM =
+const char hp2_save_btn[] PROGMEM =
+    "<tr><td colspan='2' align='center'><form method='post' action='programing_2_save' id='programing_2_save'><input type='submit' value='&#206;nainte'></form></td></tr>";
+
+const char hp2_bk_btn[] PROGMEM =
     "<tr><td colspan='2' align='center'><form method='post' action='programing_1'><input type='submit' value='&#206;napoi'></form></td></tr>";
 
 void handleProgramming2()
@@ -1388,7 +1391,7 @@ void handleProgramming2()
   {
     const size_t buf_len = strlen_P(hp2_1_fmt) + 2 + MAX_ZONE_STR_LEN;
     char buf[buf_len + 1];
-    int len = snprintf_P(buf, buf_len, hp2_1_fmt, (i + 1), 1 , zones[i]);
+    int len = snprintf_P(buf, buf_len, hp2_1_fmt, (i + 1), i, zones[i]);
     if(len > buf_len)
     {
       server.sendContent_P(err_processing); return;
@@ -1396,9 +1399,9 @@ void handleProgramming2()
     server.sendContent(buf);
   }
   server.sendContent_P(hh_trtdcspan2);
-  server.sendContent_P(hp1_save_btn);
+  server.sendContent_P(hp2_save_btn);
   server.sendContent_P(hh_trtdcspan2);
-  server.sendContent_P(hot_bk_btn);
+  server.sendContent_P(hp2_bk_btn);
   server.sendContent_P(hi_end);
 }
 
