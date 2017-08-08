@@ -3,12 +3,15 @@
 /**/.settings
 /**/Debug
 
-irigatie-marius
+Irigatie_Marius
 microcoap
 
 libraries/**/.cproject
 libraries/**/.project
 libraries/**/.settings
+
+libraries/LsuNtpTime
+libraries/LsuWiFi
 
 libraries/Adafruit_BME280
 libraries/Adafruit_Circuit_Playground

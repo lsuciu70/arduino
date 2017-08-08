@@ -7,8 +7,8 @@
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
 
-#include <LsuWiFiC.h>
-#include <LsuNtpTimeC.h>
+#include <LsuWiFi.h>
+#include <LsuNtpTime.h>
 
 /* WiFi AP settings*/
 const char *ssid = "";
