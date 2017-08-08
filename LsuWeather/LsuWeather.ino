@@ -2,7 +2,7 @@
 
 #include <SparkFunBME280.h> // https://github.com/sparkfun/SparkFun_BME280_Arduino_Library
 
-#include <LsuWiFiC.h>
+#include <LsuWiFi.h>
 #include <Esp.h>
 
 #include <math.h>

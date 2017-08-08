@@ -1,4 +1,4 @@
-#include <LsuWiFiC.h>
+#include <LsuWiFi.h>
 #include <Esp.h>
 
 #define DEBUG 1

@@ -5,8 +5,8 @@
 
 #include <Adafruit_BME280.h>
 
-#include <LsuWiFiC.h>
-#include <LsuNtpTimeC.h>
+#include <LsuWiFi.h>
+#include <LsuNtpTime.h>
 #include <MqttClient.h>
 
 #include <stdint.h>
