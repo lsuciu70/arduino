@@ -470,7 +470,7 @@ void handleSaveApMode()
   if((strlen(ap0_pwd) > 0 || strlen(ap0_pwd_2) > 0) && strcmp(ap0_pwd, ap0_pwd_2) != 0)
   {
     server.sendHeader("refresh", "5;url=/ap_mode");
-    server.send(400, "text/html", "<h1>Eroare setare Acces Point:</h1><br><h2>Parola &#x218;i confirmarea parolei nu sunt identice!</h2>");
+    server.send(400, "text/html", "<h1>Eroare setare Acces Point:</h1><br><h2>Parola &#537;i confirmarea parolei nu sunt identice!</h2>");
     return;
   }
 
@@ -480,7 +480,7 @@ void handleSaveApMode()
   if((strlen(u_pwd) > 0 || strlen(u_pwd_2) > 0) && strcmp(u_pwd, u_pwd_2) != 0)
   {
     server.sendHeader("refresh", "5;url=/ap_mode");
-    server.send(400, "text/html", "<h1>Eroare setare utilizator:</h1><br><h2>Parola &#x218;i confirmarea parolei nu sunt identice!</h2>");
+    server.send(400, "text/html", "<h1>Eroare setare utilizator:</h1><br><h2>Parola &#537;i confirmarea parolei nu sunt identice!</h2>");
     return;
   }
 
