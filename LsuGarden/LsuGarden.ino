@@ -39,6 +39,9 @@ enum days_enum
 #define MAX_NB_PROGRAMMS_PER_DAY       /* 24 */ (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE * MAX_NB_ZONES) // 3 times a day, 8 zones
 #define MAX_NB_PROGRAMMS_PER_WEEK     /* 168 */ (MAX_NB_PROGRAMMS_PER_DAY * DAYS_PER_WEEK) // all zones, 7 days
 
+#define MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_STR "3"
+#define MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_PLUS_ONE_STR "4"
+
 #define MAX_ZONE_LEN_STR               "20" // 20 chars in zone name
 #define MAX_ZONE_STR_LEN               20 // 20 chars in zone name
 #define MAX_DURATION                  240 // minutes
@@ -1405,51 +1408,214 @@ void handleProgramming2()
   server.sendContent_P(hi_end);
 }
 
+/* */
+const char hp3_title[] PROGMEM =
+    "<title>Iriga&#539;ie - Programare 3</title>";
+
+/*
+ * %s - days_full[day_t] : FULL_DAY_STR_LEN
+ */
+const char hp3_page_fmt[] PROGMEM =
+    "<h2>Iriga&#539;ie - Programare</h2>"
+    "<h3>Pasul 3 - %s</h3>";
+
+/* */
+const char hp3_start_1[] PROGMEM =
+    "<tr>"
+    "<th align='center' rowspan='2'>Zona</th>";
+
+/*
+ * %d - (j + 1) : 1
+ */
+const char hp3_start_2i[] PROGMEM =
+    "<th align='center'>Interval %d</th>";
+
+/* */
+const char hp3_start_3[] PROGMEM =
+    "</tr>"
+    "<tr>"
+    "<td align='center' colspan='"
+    MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_STR
+    "'>[hh:mm durata]</td>"
+    "</tr>";
+
+/*
+ * %s - zones[i] : MAX_ZONE_STR_LEN
+ * %d - day_t : 1
+ * %d - i : 1
+ * %d - i : 1
+ */
+const char hp3_1i[] PROGMEM =
+    "<tr><th align='center'>%s<input type='hidden' name='z_%d_%d' value='%d' form='programing_3_save'></th>";
+
+/*
+ * %d - day_t : 1
+ * %d - i : 1
+ * %d - j : 1
+ * %d - (unsigned) h[j] : 2
+ * %d - day_t : 1
+ * %d - i : 1
+ * %d - j : 1
+ * %d - (unsigned) m[j] : 2
+ * %d - day_t : 1
+ * %d - i : 1
+ * %d - j : 1
+ * %d - (unsigned) d[j] : 3
+ */
+const char hp3_2ij_fmt[] PROGMEM =
+    "<td align='center'>"
+    "<input type='text' size='4' maxlength='3' name='h_%d_%d_%d' form='programing_3_save' value='%d'>"
+    ":"
+    "<input type='text' size='4' maxlength='3' name='m_%d_%d_%d' form='programing_3_save' value='%d'>"
+    "<input type='text' size='4' maxlength='3' name='m_%d_%d_%d' form='programing_3_save' value='%d'>"
+    "</td>";
+
+/*
+ * %d - day_t : 1
+ * %d - i : 1
+ * %d - j : 1
+ * %d - day_t : 1
+ * %d - i : 1
+ * %d - j : 1
+ * %d - day_t : 1
+ * %d - i : 1
+ * %d - j : 1
+ */
+const char hp3_3ij_fmt[] PROGMEM =
+    "<td align='center'>"
+    "<input type='text' size='4' maxlength='3' name='h_%d_%d_%d' form='programing_3_save'>"
+    ":"
+    "<input type='text' size='4' maxlength='3' name='m_%d_%d_%d' form='programing_3_save'>"
+    "<input type='text' size='4' maxlength='3' name='d_%d_%d_%d' form='programing_3_save'>"
+    "</td>";
+
+/* */
+const char hp3_4i[] PROGMEM =
+    "</tr>";
+
+/* */
+const char hp3_trtdcspan[] PROGMEM =
+    "<tr><td colspan='" MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_PLUS_ONE_STR "'></td></tr>";
+
+/* */
+const char hp3_trtdcspancenter[] PROGMEM =
+    "<tr><td colspan='" MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_PLUS_ONE_STR "' align='center'>";
+
+/*
+ * %d - (day_t + 1) : 1
+ */
+const char hp3_5_fmt[] PROGMEM =
+    "<form method='post' action='programing_3%d_load_prev' id='programing_3_load_prev'><input type='submit' value='Valori ziua precedent&#259;'>";
+
+/*
+ * %d - (day_t + 1) : 1
+ */
+const char hp3_6_fmt[] PROGMEM =
+    "<form method='post' action='programing_3%d_save' id='programing_3_save'><input type='submit' value='&#206;nainte'>";
+
+/* */
+const char hp3_formtdtr[] PROGMEM =
+    "</form></td></tr>";
+
+/*
+ * %d - day_t : 1
+ */
+const char hp3_71_fmt[] PROGMEM =
+    "<form method='post' action='programing_3%d'>";
+
+/* */
+const char hp3_72[] PROGMEM =
+    "<form method='post' action='programing_2'>";
+
+const char hp3_8[] PROGMEM =
+    "<input type='submit' value='&#206;napoi'>";
+
 void handleProgramming3(uint8_t day_t, bool copy_previous)
 {
   uint16_t now_mow = now_week_minute();
 
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, FPSTR(hh_text_html), "");
 
-  String html =
-      "<!DOCTYPE html>"
-      "<html>"
-      "<head>"
-      "<meta charset='UTF-8'>"
-      "<title>Iriga&#539;ie - Programare 3</title>"
-      "<style type='text/css'>"
-      "table { border-collapse:collapse; border-style:solid; }"
-      "th { padding: 15px; border-style:solid; border-width:thin; }"
-      "td { padding: 5px; border-style:solid; border-width:thin; }"
-      "input { text-align: center; }"
-      "</style>"
-      "</head>"
-      "<body>"
-      "<h2>Iriga&#539;ie - Programare</h2>"
-      "<h3>Pasul 3 - ";
-  html += days_full[day_t];
-  html += "</h3>"
-      "<table>"
-      "<tr>"
-      "<th align='center' rowspan='2'>Zona</th>";
+  server.sendContent_P(hh_start_1);
+  server.sendContent_P(hp3_title);
+  server.sendContent_P(hh_start_2);
+  {
+    const size_t buf_len = strlen_P(hp3_page_fmt) + FULL_DAY_STR_LEN;
+    char buf[buf_len + 1];
+    int len = snprintf_P(buf, buf_len, hp3_page_fmt, days_full[day_t]);
+    if(len > buf_len)
+    {
+      server.sendContent_P(err_processing); return;
+    }
+    server.sendContent(buf);
+  }
+  server.sendContent_P(hh_start_3);
+
+  server.sendContent_P(hp3_start_1);
   for(uint8_t j = 0; j < MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
   {
-    html += "<th align='center'>Interval ";
-    html += (j + 1);
-    html += "</th>";
+    const size_t buf_len = strlen_P(hp3_start_2i) + 1;
+    char buf[buf_len + 1];
+    int len = snprintf_P(buf, buf_len, hp3_start_2i, (j + 1));
+    if(len > buf_len)
+    {
+      server.sendContent_P(err_processing); return;
+    }
+    server.sendContent(buf);
   }
+  server.sendContent_P(hp3_start_3);
 
-  html += "</tr>"
-      "<tr>"
-      "<td align='center' colspan='";
-  html += MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE;
-  html += "'>[hh:mm durata]</td>"
-      "</tr>";
+  String html = "";
+//      "<!DOCTYPE html>"
+//      "<html>"
+//      "<head>"
+//      "<meta charset='UTF-8'>"
+//      "<title>Iriga&#539;ie - Programare 3</title>"
+//      "<style type='text/css'>"
+//      "table { border-collapse:collapse; border-style:solid; }"
+//      "th { padding: 15px; border-style:solid; border-width:thin; }"
+//      "td { padding: 5px; border-style:solid; border-width:thin; }"
+//      "input { text-align: center; }"
+//      "</style>"
+//      "</head>"
+//      "<body>"
+//      "<h2>Iriga&#539;ie - Programare</h2>"
+//      "<h3>Pasul 3 - ";
+//  html += days_full[day_t];
+//  html +=
+//      "</h3>";
+//  html += "<table>";
+//  html += "<tr>"
+//      "<th align='center' rowspan='2'>Zona</th>";
+//  for(uint8_t j = 0; j < MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
+//  {
+//    html += "<th align='center'>Interval ";
+//    html += (j + 1);
+//    html += "</th>";
+//  }
+//
+//  html += "</tr>"
+//      "<tr>"
+//      "<td align='center' colspan='"
+//      MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_STR
+//      "'>[hh:mm durata]</td>"
+//      "</tr>";
+
   for (uint8_t i = 0; i < nb_zones; ++i)
   {
-    html += "<tr><th align='center'>";
-    html += zones[i];
-    html += "<input type='hidden' name='z_"; html += day_t; html += "_"; html += i; html += "' value='"; html += i; html += "' form='programing_3_save'>";
-    html += "</th>";
+    const size_t buf_len = strlen_P(hp3_1i) + MAX_ZONE_STR_LEN + 3;
+    char buf[buf_len + 1];
+    int len = snprintf_P(buf, buf_len, hp3_1i, zones[i], day_t, i, i);
+    if(len > buf_len)
+    {
+      server.sendContent_P(err_processing); return;
+    }
+    server.sendContent(buf);
+//    html += "<tr><th align='center'>";
+//    html += zones[i];
+//    html += "<input type='hidden' name='z_"; html += day_t; html += "_"; html += i; html += "' value='"; html += i; html += "' form='programing_3_save'>";
+//    html += "</th>";
 
     // get saved programs values
     uint8_t nb_p = 0;
@@ -1506,62 +1672,134 @@ void handleProgramming3(uint8_t day_t, bool copy_previous)
 
     for(uint8_t j = 0; j < MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE; ++j)
     {
-      html += "<td align='center'>";
       if(is_set[j])
       {
-        html += "<input type='text' size='4' maxlength='3' name='h_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save' value='";;
-        html += (int) h[j];
-        html += "'>";
-        html += ":";
-        html += "<input type='text' size='4' maxlength='3' name='m_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save' value='";;
-        html += (int) m[j];
-        html += "'>";
-        html += "<input type='text' size='4' maxlength='3' name='d_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save' value='";;
-        html += (int) d[j];
-        html += "'>";
+        const size_t buf_len = strlen_P(hp3_2ij_fmt) + 16;
+        char buf[buf_len + 1];
+        int len = snprintf_P(buf, buf_len, hp3_2ij_fmt, day_t, i, j, (unsigned) h[j], day_t, i, j, (unsigned) m[j], day_t, i, j, (unsigned) d[j]);
+        if(len > buf_len)
+        {
+          server.sendContent_P(err_processing); return;
+        }
+        server.sendContent(buf);
+
+//        html += "<td align='center'>";
+//        html += "<input type='text' size='4' maxlength='3' name='h_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save' value='";
+//        html += (int) h[j];
+//        html += "'>";
+//        html += ":";
+//        html += "<input type='text' size='4' maxlength='3' name='m_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save' value='";
+//        html += (int) m[j];
+//        html += "'>";
+//        html += "<input type='text' size='4' maxlength='3' name='d_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save' value='";
+//        html += (int) d[j];
+//        html += "'>";
+//        html += "</td>";
       }
       else
       {
-        html += "<input type='text' size='4' maxlength='3' name='h_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save'>";
-        html += ":";
-        html += "<input type='text' size='4' maxlength='3' name='m_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save'>";
-        html += "<input type='text' size='4' maxlength='3' name='d_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save'>";
+        const size_t buf_len = strlen_P(hp3_3ij_fmt) + 9;
+        char buf[buf_len + 1];
+        int len = snprintf_P(buf, buf_len, hp3_3ij_fmt, day_t, i, j, day_t, i, j, day_t, i, j);
+        if(len > buf_len)
+        {
+          server.sendContent_P(err_processing); return;
+        }
+        server.sendContent(buf);
+
+//        html += "<td align='center'>";
+//        html += "<input type='text' size='4' maxlength='3' name='h_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save'>";
+//        html += ":";
+//        html += "<input type='text' size='4' maxlength='3' name='m_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save'>";
+//        html += "<input type='text' size='4' maxlength='3' name='d_"; html += day_t; html += "_"; html += i; html += "_"; html += j; html += "' form='programing_3_save'>";
+//        html += "</td>";
       }
-      html += "</td>";
     }
-    html += "</tr>";
+    server.sendContent_P(hp3_4i);
+//    html += "</tr>";
   }
-  html += "<tr><td colspan='4'></td></tr>";
 
-  html += "<tr><td colspan='";
-  html += (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE + 1);
-  html += "' align='center'><form method='post' action='programing_3"; html += (day_t + 1); html += "_load_prev' id='programing_3_load_prev'><input type='submit' value='Valori ziua precedent&#259;'></form></td></tr>";
+  server.sendContent_P(hp3_trtdcspan);
 
-  html += "<tr><td colspan='";
-  html += (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE + 1);
-  html += "' align='center'><form method='post' action='programing_3"; html += (day_t + 1); html += "_save' id='programing_3_save'><input type='submit' value='&#206;nainte'></form></td></tr>";
+  server.sendContent_P(hp3_trtdcspancenter);
+  {
+    const size_t buf_len = strlen_P(hp3_5_fmt) + 1;
+    char buf[buf_len + 1];
+    int len = snprintf_P(buf, buf_len, hp3_5_fmt, (day_t + 1));
+    if(len > buf_len)
+    {
+      server.sendContent_P(err_processing); return;
+    }
+    server.sendContent(buf);
+  }
+  server.sendContent_P(hp3_formtdtr);
 
-  html += "<tr><td colspan='";
-  html += (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE + 1);
-  html += "'></td></tr>";
+  server.sendContent_P(hp3_trtdcspancenter);
+  {
+    const size_t buf_len = strlen_P(hp3_6_fmt) + 1;
+    char buf[buf_len + 1];
+    int len = snprintf_P(buf, buf_len, hp3_6_fmt, (day_t + 1));
+    if(len > buf_len)
+    {
+      server.sendContent_P(err_processing); return;
+    }
+    server.sendContent(buf);
+  }
+  server.sendContent_P(hp3_formtdtr);
 
-  html += "<tr><td colspan='";
-  html += (MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE + 1);
-  html += "' align='center'><form method='post' action='programing_";
+  server.sendContent_P(hp3_trtdcspan);
+
+  server.sendContent_P(hp3_trtdcspancenter);
   if(day_t)
   {
-    html += "3";
-    html += day_t;
+    const size_t buf_len = strlen_P(hp3_71_fmt) + 1;
+    char buf[buf_len + 1];
+    int len = snprintf_P(buf, buf_len, hp3_71_fmt, day_t);
+    if(len > buf_len)
+    {
+      server.sendContent_P(err_processing); return;
+    }
+    server.sendContent(buf);
   }
   else
-    html += "2";
-  html += "'><input type='submit' value='&#206;napoi'></form></td></tr>";
+  {
+    server.sendContent_P(hp3_72);
+  }
+  server.sendContent_P(hp3_8);
+  server.sendContent_P(hp3_formtdtr);
+  server.sendContent_P(hi_end);
 
-  html += "</table>"
-      "</body>"
-      "</html>";
-
-  server.send(200, FPSTR(hh_text_html), html);
+//  html += "<tr><td colspan='" MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_PLUS_ONE_STR "'></td></tr>";
+//  html += "<tr><td colspan='" MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_PLUS_ONE_STR "' align='center'>";
+//  html += "<form method='post' action='programing_3"; html += (day_t + 1); html += "_load_prev' id='programing_3_load_prev'><input type='submit' value='Valori ziua precedent&#259;'>";
+//  html += "</form></td></tr>";
+//
+//  html += "<tr><td colspan='" MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_PLUS_ONE_STR "' align='center'>";
+//  html += "<form method='post' action='programing_3"; html += (day_t + 1); html += "_save' id='programing_3_save'><input type='submit' value='&#206;nainte'>";
+//  html += "</form></td></tr>";
+//
+//  html += "<tr><td colspan='" MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_PLUS_ONE_STR "'></td></tr>";
+//
+//  html += "<tr><td colspan='" MAX_NB_PROGRAMMS_PER_DAY_AND_ZONE_PLUS_ONE_STR "' align='center'>";
+//  if(day_t)
+//  {
+//    html += "<form method='post' action='programing_";
+//    html += "3";
+//    html += day_t;
+//    html += "'>";
+//  }
+//  else
+//  {
+//    html += "<form method='post' action='programing_2'>";
+//  }
+//  html += "<input type='submit' value='&#206;napoi'>";
+//  html += "</form></td></tr>";
+//
+//  html += "</table>"
+//      "</body>"
+//      "</html>";
+//
+//  server.send(200, FPSTR(hh_text_html), html);
 }
 
 void handleProgramming1Save()
