@@ -12,6 +12,7 @@ libraries/**/.settings
 
 libraries/LsuNtpTime
 libraries/LsuWiFi
+libraries/LsuLogger
 
 libraries/Adafruit_BME280
 libraries/Adafruit_Circuit_Playground
