@@ -8,6 +8,7 @@
 #include "LsuMqttClient.h"
 
 #include <stdint.h>
+#include <string.h>
 #include <math.h>
 
 #ifdef REMAINING_LENGTH_BUFF_LEN

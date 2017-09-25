@@ -36,7 +36,7 @@ void reconnect()
   {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
-    String clientId = "NokiaMQTTClient";
+    String clientId = "MQTTClient";
     // Attempt to connect
     if (client.connect(clientId.c_str()))
     {
@@ -64,7 +64,7 @@ void setup()
 
 void loop()
 {
-  connectLsuWiFi(0, 10000);
+  LsuWiFi::connect(0, 10000);
   if (!client.connected())
     reconnect();
   client.loop();

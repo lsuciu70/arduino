@@ -21,6 +21,7 @@ libraries/Adafruit_Sensor
 libraries/Adafruit_SI1145
 libraries/Adafruit_TSL2561
 libraries/arduino_240503
+libraries/ArduinoJson
 libraries/Bosch_BME280
 libraries/DallasTemperature
 libraries/Firmata
@@ -36,4 +37,6 @@ libraries/Temboo
 libraries/Time
 libraries/Timezone
 libraries/WakaanaA
+libraries/Robot_IR_Remote/
+libraries/Robot_Motor/
 
