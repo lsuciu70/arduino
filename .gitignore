@@ -3,6 +3,7 @@
 /**/.settings
 /**/Debug
 
+LsuAlarm
 LsuWater
 Irigatie_Marius
 microcoap
@@ -40,4 +41,3 @@ libraries/Timezone
 libraries/WakaanaA
 libraries/Robot_IR_Remote/
 libraries/Robot_Motor/
-

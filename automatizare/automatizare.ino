@@ -921,8 +921,15 @@ int savePostData_Programming(const String &data, int programm)
     {
       writeLogger(
           String("[") + T_LOC + "] " + room_name[(index + offset)]
-              + " - programul s-a schimbat, program nou: " + programming[index]
-              + ", program vechi: " + programm);
+              + " - programul s-a schimbat, program nou: " + programm
+              + ", program vechi: " + programming[index]);
+      // reset target temperature for P2, P3, and P4
+      if (programming[index] == P2_START_HOUR_1_INCREASE_05)
+        target_temperature_p2[index] = 0;
+      if (programming[index] == P3_START_HOUR_2_INCREASE_05)
+        target_temperature_p3[index] = 0;
+      if (programming[index] == P4_START_NOW_INCREASE_05)
+        target_temperature_p4[index] = 0;
     }
     programming[index] = programm;
     return programm;
@@ -1842,8 +1849,9 @@ void checkProgramming()
       digitalWrite(relay[i], LOW);
       float temp = (1.0 * temperature[i] / 100);
       writeLogger(
-          String("[") + T_LOC + "] " + room_name[j] + " - start program "
-              + printProgramming(i) + "; temperatura curenta " + temp);
+          String("[") + T_LOC + "] " + room_name[j] + " ["
+              + temp + " &deg;C] - start program "
+              + printProgramming(i));
       delay(25);
     }
   }
@@ -1855,8 +1863,9 @@ void checkProgramming()
       digitalWrite(relay[i], LOW);
       float temp = (1.0 * temperature[i] / 100);
       writeLogger(
-          String("[") + T_LOC + "] " + room_name[j] + " - start fortat program "
-              + printProgramming(i) + "; temperatura curenta " + temp);
+          String("[") + T_LOC + "] " + room_name[j] + " ["
+              + temp + " &deg;C] - start fortat program "
+              + printProgramming(i));
       delay(25);
     }
   }
@@ -1868,8 +1877,9 @@ void checkProgramming()
       digitalWrite(relay[i], HIGH);
       float temp = (1.0 * temperature[i] / 100);
       writeLogger(
-          String("[") + T_LOC + "] " + room_name[j] + " - stop program "
-              + original_programming[i] + "; temperatura curenta " + temp);
+          String("[") + T_LOC + "] " + room_name[j] + " ["
+              + temp + " &deg;C] - stop program "
+              + original_programming[i]);
       delay(25);
     }
   }
