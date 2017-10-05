@@ -39,5 +39,7 @@ libraries/Temboo
 libraries/Time
 libraries/Timezone
 libraries/WakaanaA
-libraries/Robot_IR_Remote/
-libraries/Robot_Motor/
+libraries/Robot_IR_Remote
+libraries/Robot_Motor
+libraries/UIPEthernet
+libraries/arduino_230272
