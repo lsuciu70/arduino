@@ -14,6 +14,7 @@ libraries/**/.settings
 
 libraries/LsuNtpTime
 libraries/LsuWiFi
+libraries/LsuEthernet
 libraries/LsuLogger
 
 libraries/Adafruit_BME280

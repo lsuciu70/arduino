@@ -5,6 +5,7 @@
 #include <pins_arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <WiFiUdp.h>
 #include <EEPROM.h>
 
 #include <LsuWiFi.h>
@@ -137,6 +138,9 @@ program ot_programs[MAX_NB_ZONES];
 // HTTP
 ESP8266WebServer server(80);
 
+// UDP client (needed for NTP)
+WiFiUDP udp;
+
 void handleIndex();
 void handleIndexPrograms(program*, uint8_t, uint8_t);
 void handleIndex2();
@@ -176,8 +180,6 @@ void handleProgramming37Load();
 
 
 
-
-
 void setup()
 {
   Serial.begin(115200);
@@ -194,6 +196,7 @@ void setup()
 
   LsuWiFi::connect();
 //  LsuWiFi::connect(2, 10000, true, false);
+  LsuNtpTime::init(udp);
   LsuNtpTime::begin();
 
   for (uint8_t i = 0; i < MAX_NB_ZONES; ++i)

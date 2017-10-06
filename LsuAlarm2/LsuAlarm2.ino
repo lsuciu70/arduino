@@ -1,7 +1,9 @@
+#include <Arduino.h>
+
 const uint8_t PINS = 8;
-const uint8_t pins[PINS] =  
+const uint8_t pins[PINS] =
 {
-	D1, D2, D3, D4, D5, D6, D7, D8/*, D9, D10*/
+	2, 3, 4, 5, 6, 7, 8, 9
 };
 
 volatile uint16_t value;
@@ -42,14 +44,10 @@ void lateInit()
   if(initialized)
     return;
   initialized = true;
-  pinMode(D9, OUTPUT);
-  digitalWrite(D9, HIGH);
   for (uint8_t i = 0; i < PINS; ++i)
   {
     pinMode(pins[i], INPUT);
-    attachInterrupt(digitalPinToInterrupt(pins[i]), handleInterrupt, CHANGE);
   }
-//  pinMode(D10, OUTPUT);
   Serial.println("Initialized");
   readValue();
   printValue();

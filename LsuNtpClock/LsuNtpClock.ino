@@ -1,3 +1,5 @@
+#include <WiFiUdp.h>
+
 #include <LiquidCrystal_I2C.h> // https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads/NewliquidCrystal_1.3.4.zip
 
 #include <LsuNtpTime.h>   // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuNtpTime
@@ -6,6 +8,8 @@ const byte LCD_LINES = 4;
 const byte LCD_CHARS_PER_LINE = 20;
 
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
+
+WiFiUDP udp;
 
 void showTimeOnLcd();
 
@@ -18,7 +22,8 @@ void setup()
 	lcd.setBacklight(HIGH);
 	lcd.clear();
 
-	// initialize the NTP library
+	// initialize and start the NTP library
+	LsuNtpTime::init(udp);
 	LsuNtpTime::start(6 * 3600);
 }
 
