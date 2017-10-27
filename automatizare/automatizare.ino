@@ -29,7 +29,8 @@ const byte GPIO_15 = 15; // 4th room, Baie etaj | Baie parter, relay 4
 
 // parter
 const String T_LOC_PARTER = "parter";
-const String MAC_PARTER = "18:FE:34:D4:0D:EC";
+//const String MAC_PARTER = "18:FE:34:D4:0D:EC";
+const String MAC_PARTER = "5C:CF:7F:EF:BE:50";
 // etaj
 const String T_LOC_ETAJ = "etaj";
 const String MAC_ETAJ = "5C:CF:7F:88:EE:49";
@@ -921,17 +922,15 @@ int savePostData_Programming(const String &data, int programm)
     {
       writeLogger(
           String("[") + T_LOC + "] " + room_name[(index + offset)]
-//              + " - programul s-a schimbat, program nou: " + programm
-//              + ", program vechi: " + programming[index]);
-//      // reset target temperature for P2, P3, and P4
-//      if (programming[index] == P2_START_HOUR_1_INCREASE_05)
-//        target_temperature_p2[index] = 0;
-//      if (programming[index] == P3_START_HOUR_2_INCREASE_05)
-//        target_temperature_p3[index] = 0;
-//      if (programming[index] == P4_START_NOW_INCREASE_05)
-//        target_temperature_p4[index] = 0;
               + " - programul s-a schimbat, program nou: " + programm
               + ", program vechi: " + programming[index]);
+      // reset target temperature for P2, P3, and P4
+      if (programming[index] == P2_START_HOUR_1_INCREASE_05)
+        target_temperature_p2[index] = 0;
+      if (programming[index] == P3_START_HOUR_2_INCREASE_05)
+        target_temperature_p3[index] = 0;
+      if (programming[index] == P4_START_NOW_INCREASE_05)
+        target_temperature_p4[index] = 0;
     }
     programming[index] = programm;
     return programm;
@@ -1304,7 +1303,7 @@ void sendCurrentTemperatures()
 void sendCurrentTemperatures(const String &page, const IPAddress & server,
     const int port)
 {
-  // send data to the server 
+  // send data to the server
   String post_data = String("");
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
@@ -1502,7 +1501,7 @@ void updateTemperature()
   // read the temperature and store it as integer rounded to 0.05 grd C
   for (byte i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
   {
-// Serial.println(String("read temperature i=") + i + " j=" + j);
+//    Serial.println(String("read temperature i=") + i + " j=" + j);
     temp = floatToRound05Int(
         dallasTemperature1st_pin0.getTempC(SENZOR_ADDRESS[j]));
     if (temp <= -4000 || temp >= 7000)
@@ -1515,6 +1514,7 @@ void updateTemperature()
   }
   for (byte i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
   {
+    Serial.print("");
 // Serial.println(String("read temperature i=") + i + " j=" + j);
     temp = floatToRound05Int(
         dallasTemperature2nd_pin2.getTempC(SENZOR_ADDRESS[j]));
