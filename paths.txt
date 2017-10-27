@@ -19,6 +19,12 @@ WiFiUdp.h
 ESP8266WebServer.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266WebServer/src
 
+ESP8266HTTPClient.h
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266HTTPClient/src
+
+ESP8266httpUpdate.h
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266httpUpdate/src
+
 ESP8266mDNS.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266mDNS
 

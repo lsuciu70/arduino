@@ -921,15 +921,17 @@ int savePostData_Programming(const String &data, int programm)
     {
       writeLogger(
           String("[") + T_LOC + "] " + room_name[(index + offset)]
+//              + " - programul s-a schimbat, program nou: " + programm
+//              + ", program vechi: " + programming[index]);
+//      // reset target temperature for P2, P3, and P4
+//      if (programming[index] == P2_START_HOUR_1_INCREASE_05)
+//        target_temperature_p2[index] = 0;
+//      if (programming[index] == P3_START_HOUR_2_INCREASE_05)
+//        target_temperature_p3[index] = 0;
+//      if (programming[index] == P4_START_NOW_INCREASE_05)
+//        target_temperature_p4[index] = 0;
               + " - programul s-a schimbat, program nou: " + programm
               + ", program vechi: " + programming[index]);
-      // reset target temperature for P2, P3, and P4
-      if (programming[index] == P2_START_HOUR_1_INCREASE_05)
-        target_temperature_p2[index] = 0;
-      if (programming[index] == P3_START_HOUR_2_INCREASE_05)
-        target_temperature_p3[index] = 0;
-      if (programming[index] == P4_START_NOW_INCREASE_05)
-        target_temperature_p4[index] = 0;
     }
     programming[index] = programm;
     return programm;
@@ -1272,6 +1274,12 @@ void sendPostData(const String &data, const String &page,
     delay(10);
     client.stop();
   }
+  else
+  {
+    writeLogger(
+        String("[") + T_LOC + "]  ERROR connecting server: " + IPAddress(server).toString());
+
+  }
 }
 
 void sendCurrentTemperatures()
@@ -1296,7 +1304,7 @@ void sendCurrentTemperatures()
 void sendCurrentTemperatures(const String &page, const IPAddress & server,
     const int port)
 {
-  // send data to the server
+  // send data to the server 
   String post_data = String("");
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
@@ -1523,13 +1531,14 @@ void updateTemperature()
   scheduler.add(startConversion_3, next_read - 3 * CONVERSION_TIME);
   scheduler.add(startConversion_2, next_read - 2 * CONVERSION_TIME);
   scheduler.add(startConversion_4, next_read - 1 * CONVERSION_TIME);
-  // print it
-  pritSerial();
 
   // schedule programm checking ofter 10 ms
-  scheduler.add(checkProgramming, 10);
+//  scheduler.add(checkProgramming, 10);
   // schedule read at'next_read' time
   scheduler.add(updateTemperature, next_read);
+  // print it
+  pritSerial();
+  checkProgramming();
 }
 
 bool isNowBetween(byte start_h, byte start_m, byte stop_h, byte stop_m)
@@ -1557,7 +1566,7 @@ bool isNowAfter(byte start_h, byte start_m)
 
 void checkProgramming()
 {
-// Serial.println("Start checkProgramming");
+//Serial.println("Start checkProgramming");
   bool should_run[] =
   { false, false, false, false, };
   byte original_programming[] =
@@ -1849,9 +1858,8 @@ void checkProgramming()
       digitalWrite(relay[i], LOW);
       float temp = (1.0 * temperature[i] / 100);
       writeLogger(
-          String("[") + T_LOC + "] " + room_name[j] + " ["
-              + temp + " &deg;C] - start program "
-              + printProgramming(i));
+          String("[") + T_LOC + "] " + room_name[j] + " - start program "
+              + printProgramming(i) + "; temperatura curenta " + temp);
       delay(25);
     }
   }
@@ -1863,9 +1871,8 @@ void checkProgramming()
       digitalWrite(relay[i], LOW);
       float temp = (1.0 * temperature[i] / 100);
       writeLogger(
-          String("[") + T_LOC + "] " + room_name[j] + " ["
-              + temp + " &deg;C] - start fortat program "
-              + printProgramming(i));
+          String("[") + T_LOC + "] " + room_name[j] + " - start fortat program "
+              + printProgramming(i) + "; temperatura curenta " + temp);
       delay(25);
     }
   }
@@ -1877,9 +1884,8 @@ void checkProgramming()
       digitalWrite(relay[i], HIGH);
       float temp = (1.0 * temperature[i] / 100);
       writeLogger(
-          String("[") + T_LOC + "] " + room_name[j] + " ["
-              + temp + " &deg;C] - stop program "
-              + original_programming[i]);
+          String("[") + T_LOC + "] " + room_name[j] + " - stop program "
+              + original_programming[i] + "; temperatura curenta " + temp);
       delay(25);
     }
   }
@@ -1888,7 +1894,7 @@ void checkProgramming()
     is_running[i] = should_run[i] || force_running[i];
   }
 
-  // send data to the server
+  // send data to the server 
   sendCurrentTemperatures();
 }
 
