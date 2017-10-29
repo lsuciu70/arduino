@@ -12,7 +12,9 @@
 #include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
-#include <LsuScheduler.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuScheduler
+#include <LsuScheduler_old.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuScheduler
+
+#define DEBUG 0
 
 // one second, 1000 milliseconds
 const int SECOND = 1000;
@@ -353,7 +355,9 @@ byte offset = 0;
 // the setup routine runs once when starts
 void setup()
 {
+#if DEBUG
   Serial.begin(115200);
+#endif
 
   WiFi.mode(WIFI_STA);
   String mac = WiFi.macAddress();
@@ -378,6 +382,14 @@ void setup()
   }
   // Set synch interval to 6 hours
   setSyncInterval(6 * 3600);
+  if(T_LOC.equals("UNKNOWN"))
+  {
+    while(true)
+    {
+      writeLogger(String("EROARE, MAC necunoscut: ") + mac);
+      delay(3600 * SECOND);
+    }
+  }
 
   // Start up the temperature library
   dallasTemperature1st_pin0.begin();
@@ -602,6 +614,7 @@ String printProgramming(byte index, byte programm)
 
 void pritSerial()
 {
+#if DEBUG
   Serial.print(timeString());
   Serial.print(String(" - [") + T_LOC + "] ");
   for (byte i = 0; i < SENZOR_COUNT; ++i)
@@ -611,25 +624,32 @@ void pritSerial()
     Serial.print((1.0 * temperature[i]) / 100);
   }
   Serial.println(" [grd.C]");
+#endif
 }
 
 void connectWifi()
 {
   if (WiFi.status() == WL_CONNECTED)
     return;
+#if DEBUG
   Serial.print("WiFi: connecting to ");
   Serial.println(SSID_t[(ssid_ix % SSID_SIZE)]);
+#endif
   ssid_ix = ssid_ix % SSID_SIZE;
   WiFi.begin(SSID_t[ssid_ix], PASSWD_t[ssid_ix]);
 
   unsigned long mllis = millis();
+#if DEBUG
   byte count = 1;
+#endif
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(10);
     if (millis() - mllis >= 10000)
     {
+#if DEBUG
       Serial.println(" - 10 s timed out. Trying next SSID.");
+#endif
       writeLogger(
           String("[") + T_LOC + "] WiFi: connectare la "
               + SSID_t[(ssid_ix % SSID_SIZE)]
@@ -637,6 +657,7 @@ void connectWifi()
       ssid_ix += 1;
       return connectWifi();
     }
+#if DEBUG
     if ((++count) % 10 == 0)
     {
       Serial.print(". ");
@@ -646,8 +667,11 @@ void connectWifi()
       Serial.println();
       count = 0;
     }
+#endif
   }
+#if DEBUG
   Serial.println();
+#endif
   server.begin();
   sendIp();
   writeLogger(
@@ -659,7 +683,9 @@ void connectWifi()
 
 void sendHttpIndex(WiFiClient &client)
 {
-// Serial.println("Start sendHttpIndex");
+#if (DEBUG > 1)
+  Serial.println("Start sendHttpIndex");
+#endif
   String r =
       "HTTP/1.1 200 OK\nContent-Type: text/html\nConnection: close\nRefresh: 10\r\n";
   client.println(r);
@@ -707,12 +733,16 @@ void sendHttpIndex(WiFiClient &client)
   }
   b += "</p></body></html>";
   client.println(b);
-// Serial.println("Start sendHttpIndex");
+#if (DEBUG > 1)
+  Serial.println("Start sendHttpIndex");
+#endif
 }
 
 void sendHttpProgramming(WiFiClient &client, byte index)
 {
-// Serial.println("Start sendHttpProgramming");
+#if (DEBUG > 1)
+  Serial.println("Start sendHttpProgramming");
+#endif
   if (index >= SENZOR_COUNT)
     return;
   String r = "HTTP/1.1 200 OK\nContent-Type: text/html\nConnection: close\r\n";
@@ -856,7 +886,9 @@ void sendHttpProgramming(WiFiClient &client, byte index)
       + "   <input type='submit' value='Inapoi'>\n" + "  </td>\n" + " </tr>\n"
       + "</form>\n" + "</table>\n" + "</body></html>\n";
   client.println(f);
-// Serial.println("End sendHttpProgramming");
+#if (DEBUG > 1)
+  Serial.println("End sendHttpProgramming");
+#endif
 }
 
 int savePostData_Programming(const String &data, int programm)
@@ -1088,14 +1120,18 @@ int savePostData_Programming(const String &data, int programm)
   }
   if (!valid)
   {
-//    Serial.println(String("ERROR programm ") + programm + " : " + data + " -> " + name + "[" + index + "] = " + value);
+#if (DEBUG > 1)
+    Serial.println(String("ERROR programm ") + programm + " : " + data + " -> " + name + "[" + index + "] = " + value);
+#endif
     writeLogger(
         String("[") + T_LOC
             + "] EROARE salvare programare - valoare invalida pentru "
             + bad_name + ":'" + value + "' (apelat cu '" + data + "') pentru "
             + bad_room + "; ramane valoarea dinainte: " + old_value);
   }
-//  Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);
+#if (DEBUG > 1)
+  Serial.print(data); Serial.print(" -> ");Serial.print(name); Serial.print("[");Serial.print(index);Serial.print("] = ");Serial.println(value);
+#endif
   return programm;
 }
 
@@ -1291,10 +1327,14 @@ void sendCurrentTemperatures()
     post_data += String("") + "t_" + i + "=" + temperature[i] + "&t_" + i
         + "_r=" + (is_running[i] ? "1" : "0");
   }
-//Serial.println(String("sendCurrentTemperatures post_data: ") + post_data);
+#if (DEBUG > 1)
+  Serial.println(String("sendCurrentTemperatures post_data: ") + post_data);
+#endif
   for (int i = 0; i < last_register; ++i)
   {
-//Serial.println(String("sendCurrentTemperatures send to: ") + IPAddress(requester_ip[i]).toString());
+#if (DEBUG > 1)
+    Serial.println(String("sendCurrentTemperatures send to: ") + IPAddress(requester_ip[i]).toString());
+#endif
     sendPostData(post_data, requester_page[i], requester_ip[i],
         requester_port[i]);
   }
@@ -1312,7 +1352,9 @@ void sendCurrentTemperatures(const String &page, const IPAddress & server,
     post_data += String("") + "t_" + i + "=" + temperature[i] + "&t_" + i
         + "_r=" + (is_running[i] ? "1" : "0");
   }
-//  Serial.println(String("Send post to ") + page + ": " + post_data);
+#if (DEBUG > 1)
+  Serial.println(String("Send post to ") + page + ": " + post_data);
+#endif
   sendPostData(post_data, page, server, port);
 }
 
@@ -1322,14 +1364,18 @@ void listen4HttpClient()
     connectWifi();
   if (WiFi.status() != WL_CONNECTED)
   {
+#if DEBUG
     Serial.print("ERROR: WiFi connection failed.");
+#endif
     return;
   }
   // listen for incoming clients
   WiFiClient client = server.available();
   if (client)
   {
-// Serial.println("new HTTP request");
+#if (DEBUG > 1)
+    Serial.println("new HTTP request");
+#endif
     // an http request ends with a blank line
     boolean currentLineIsBlank = true;
     boolean hasReadPostData = false;
@@ -1384,7 +1430,10 @@ void listen4HttpClient()
               hasReadPostData = true;
               String what;
               parseRequest(req_str, "Accept:", what);
-//Serial.println(what); // programming
+#if (DEBUG > 1)
+              Serial.println(what);
+#endif
+              // programming
               if (what.compareTo("programming") == 0) // send programming
               {
                 processPostData_Programming(post_data);
@@ -1394,8 +1443,10 @@ void listen4HttpClient()
               }
               else if (what.compareTo("register") == 0) // register
               {
+#if (DEBUG > 1)
+                Serial.println(String("Register HTTP req:\n") + req_str + "\n\n post_data: " + post_data);
+#endif
                 // unregister first
-//Serial.println(String("Register HTTP req:\n") + req_str + "\n\n post_data: " + post_data);
                 if (processPostData_Unregister(post_data) &&
                     processPostData_Register(post_data))
                   sendHttpResponse(client, OK_CODE);
@@ -1428,7 +1479,9 @@ void listen4HttpClient()
         }
       }
     }
-// Serial.println(String("HTTP req: ") + req_str + " post_data: " + post_data);
+#if (DEBUG > 1)
+    Serial.println(String("HTTP req: ") + req_str + " post_data: " + post_data);
+#endif
     // close the connection:
     client.stop();
   }
@@ -1456,7 +1509,9 @@ void startConversion_1()
   // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
   byte i = 0;
   byte j = i + offset;
-// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+#if (DEBUG > 1)
+  Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+#endif
   dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
@@ -1465,7 +1520,9 @@ void startConversion_2()
   // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
   byte i = 1;
   byte j = i + offset;
-// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+#if (DEBUG > 1)
+  Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+#endif
   dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
@@ -1474,7 +1531,9 @@ void startConversion_3()
   // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
   byte i = 2;
   byte j = i + offset;
-// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+#if (DEBUG > 1)
+  Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+#endif
   dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
@@ -1483,7 +1542,9 @@ void startConversion_4()
   // DallasTemperature.h :: sends command for all devices on the bus to perform a temperature conversion
   byte i = 3;
   byte j = i + offset;
-// Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+#if (DEBUG > 1)
+  Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
+#endif
   dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
@@ -1501,12 +1562,16 @@ void updateTemperature()
   // read the temperature and store it as integer rounded to 0.05 grd C
   for (byte i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
   {
-//    Serial.println(String("read temperature i=") + i + " j=" + j);
+#if (DEBUG > 1)
+    Serial.println(String("read temperature i=") + i + " j=" + j);
+#endif
     temp = floatToRound05Int(
         dallasTemperature1st_pin0.getTempC(SENZOR_ADDRESS[j]));
     if (temp <= -4000 || temp >= 7000)
     {
+#if DEBUG
       Serial.println(String("ERROR: bad temperature: ") + i + " - " + temp);
+#endif
       temp = 0;
     }
     if (temp)
@@ -1514,13 +1579,16 @@ void updateTemperature()
   }
   for (byte i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
   {
-    Serial.print("");
-// Serial.println(String("read temperature i=") + i + " j=" + j);
+#if (DEBUG > 1)
+    Serial.println(String("read temperature i=") + i + " j=" + j);
+#endif
     temp = floatToRound05Int(
         dallasTemperature2nd_pin2.getTempC(SENZOR_ADDRESS[j]));
     if (temp <= -4000 || temp >= 7000)
     {
+#if DEBUG
       Serial.println(String("ERROR: bad temperature: ") + i + " - " + temp);
+#endif
       temp = 0;
     }
     if (temp)
@@ -1533,12 +1601,11 @@ void updateTemperature()
   scheduler.add(startConversion_4, next_read - 1 * CONVERSION_TIME);
 
   // schedule programm checking ofter 10 ms
-//  scheduler.add(checkProgramming, 10);
+  scheduler.add(checkProgramming, 10);
   // schedule read at'next_read' time
   scheduler.add(updateTemperature, next_read);
   // print it
   pritSerial();
-  checkProgramming();
 }
 
 bool isNowBetween(byte start_h, byte start_m, byte stop_h, byte stop_m)
@@ -1566,7 +1633,9 @@ bool isNowAfter(byte start_h, byte start_m)
 
 void checkProgramming()
 {
-//Serial.println("Start checkProgramming");
+#if (DEBUG > 1)
+  Serial.println("Start checkProgramming");
+#endif
   bool should_run[] =
   { false, false, false, false, };
   byte original_programming[] =
@@ -1939,7 +2008,9 @@ time_t getTime()
     connectWifi();
   if (WiFi.status() != WL_CONNECTED)
   {
+#if DEBUG
     Serial.print("ERROR: WiFi connection failed.");
+#endif
     return 0;
   }
 
@@ -1948,7 +2019,9 @@ time_t getTime()
   static int udpInitialized = udp.begin(12670);
   if (0 == udpInitialized) // returns 0 if there are no sockets available to use
   {
+#if DEBUG
     Serial.println("ERROR: there are no sockets available to use.");
+#endif
     return 0;
   }
   static char timeServer[] = "ro.pool.ntp.org";  // the NTP server
@@ -1962,7 +2035,9 @@ time_t getTime()
       && udp.write((byte *) &ntpFirstFourBytes, PKT_LEN) == PKT_LEN
       && udp.endPacket()))
   {
+#if DEBUG
     Serial.println("NTP ERROR: sending request failed");
+#endif
     return 0; // sending request failed
   }
 
@@ -1977,10 +2052,12 @@ time_t getTime()
   }
   if (pktLen != PKT_LEN)
   {
+#if DEBUG
     Serial.println();
     Serial.print("NTP ERROR: no correct packet received; pktLen = ");
     Serial.print(pktLen);
     Serial.println(", expected 48");
+#endif
     return 0; // no correct packet received
   }
 
@@ -2055,7 +2132,9 @@ void recal_log()
       log_index = (log_index + 1) % MAX_LOGGER;
       String *t_log = logger[log_index];
       logger[log_index] = new String(post_data);
+#if DEBUG
       Serial.println(post_data);
+#endif
       post_data = String("t_log=") + post_data;
       sendPostData(post_data, "/log_save.php");
       delete t_df_log;
@@ -2078,7 +2157,9 @@ void writeLogger(String &what)
   log_index = (log_index + 1) % MAX_LOGGER;
   String *o_log = logger[log_index];
   logger[log_index] = new String(post_data);
+#if DEBUG
   Serial.println(post_data);
+#endif
   post_data = String("t_log=") + post_data;
   sendPostData(post_data, "/log_save.php");
   delete o_log;
