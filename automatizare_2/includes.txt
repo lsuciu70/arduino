@@ -1,0 +1,12 @@
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266WiFi/src
+/home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include
+/home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/lib/gcc/xtensa-lx106-elf/4.8.2/include
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/generic
+/home/lsuciu/arduino/libraries/OneWire
+/home/lsuciu/arduino/libraries/DallasTemperature
+/home/lsuciu/arduino/libraries/Time
+/home/lsuciu/arduino/libraries/Timezone
+/home/lsuciu/arduino/libraries/LsuWiFi
+/home/lsuciu/arduino/libraries/LsuNtpTime
+/home/lsuciu/arduino/libraries/LsuScheduler

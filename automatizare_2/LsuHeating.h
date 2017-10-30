@@ -22,12 +22,24 @@
 namespace
 {
 
+// floor section
+// parter
+const char* T_LOC_PARTER = "parter";
+const char* MAC_PARTER = "18:FE:34:D4:0D:EC"; // old
+//const char* MAC_PARTER = "5C:CF:7F:EF:BE:50"; // new
+// etaj
+const char* T_LOC_ETAJ = "etaj";
+const char* MAC_ETAJ = "5C:CF:7F:88:EE:49";
+
+char T_LOC[7] = {'\0'};
+// end floor section
+
 // WiFi section
-const uint8_t SSID_SIZE = 2;
+const uint8_t SSID_SIZE = 3;
 const char* SSIDs[SSID_SIZE] =
-{ "cls-router", "cls-ap" };
+{ "cls-router", "cls-ap", "lsu-tpr" };
 const char* SSID_PASSWDs[SSID_SIZE] =
-{ "r4cD7TPG", "r4cD7TPG" };
+{ "r4cD7TPG", "r4cD7TPG", "r4cD7TPG" };
 
 const IPAddress master_server_ip(192, 168, 100, 100);
 const int master_server_port = 8081;
@@ -93,18 +105,6 @@ const uint8_t relay[] =
 
 bool isRelayInitialized = false;
 // end relay section
-
-// floor section
-// parter
-const char* T_LOC_PARTER = "parter";
-const char* MAC_PARTER = "18:FE:34:D4:0D:EC";
-//const char* MAC_PARTER = "5C:CF:7F:EF:BE:50";
-// etaj
-const char* T_LOC_ETAJ = "etaj";
-const char* MAC_ETAJ = "5C:CF:7F:88:EE:49";
-
-char T_LOC[7] = {'\0'};
-// end floor section
 
 // programming section
 const uint8_t DELTA_TEMP = 30;
@@ -418,11 +418,13 @@ void setup()
 
   int first_read = millis() + 8 * CONVERSION_TIME;
   scheduleAt(first_read);
-  LsuScheduler::add(relayInitialize, millis() + 5);
+//  LsuScheduler::add(relayInitialize, millis() + 5);
 }
 
 void loop()
 {
+  if (!isRelayInitialized)
+    relayInitialize();
   LsuScheduler::execute(millis());
 }
 
