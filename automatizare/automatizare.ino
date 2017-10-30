@@ -12,7 +12,7 @@
 #include <WiFiUdp.h>      // arduino_ide/libraries/WiFi/src
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
-#include <LsuScheduler_old.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuScheduler
+#include <LsuScheduler.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuScheduler
 
 #define DEBUG 0
 
@@ -264,7 +264,7 @@ byte next_programm_p4[] =
 { P0_STOPPED, P0_STOPPED, P0_STOPPED, P0_STOPPED, };
 
 // Task scheduler section
-LsuScheduler scheduler;
+//LsuScheduler scheduler;
 
 // funtions prototype section
 void checkProgramming();
@@ -405,11 +405,11 @@ void setup()
   saveRegister(master_server_ip, master_server_port, "/update.php");
 
   int first_read = millis() + 8 * CONVERSION_TIME;
-  scheduler.add(startConversion_1, first_read - 4 * CONVERSION_TIME);
-  scheduler.add(startConversion_3, first_read - 3 * CONVERSION_TIME);
-  scheduler.add(startConversion_2, first_read - 2 * CONVERSION_TIME);
-  scheduler.add(startConversion_4, first_read - 1 * CONVERSION_TIME);
-  scheduler.add(updateTemperature, first_read);
+  LsuScheduler::add(startConversion_1, first_read - 4 * CONVERSION_TIME);
+  LsuScheduler::add(startConversion_3, first_read - 3 * CONVERSION_TIME);
+  LsuScheduler::add(startConversion_2, first_read - 2 * CONVERSION_TIME);
+  LsuScheduler::add(startConversion_4, first_read - 1 * CONVERSION_TIME);
+  LsuScheduler::add(updateTemperature, first_read);
 
   updatePxRunToday();
 }
@@ -437,7 +437,7 @@ void loop()
   if (!got_programming && (millis() % (5 * SECOND)) == 0)
     requestProgramming();
   listen4HttpClient();
-  scheduler.execute(millis());
+  LsuScheduler::execute(millis());
 }
 
 void updatePxRunToday()
@@ -1595,15 +1595,15 @@ void updateTemperature()
       temperature[i] = temp;
   }
   // schedule conversion at'next_read' time, minus the time to wait for it
-  scheduler.add(startConversion_1, next_read - 4 * CONVERSION_TIME);
-  scheduler.add(startConversion_3, next_read - 3 * CONVERSION_TIME);
-  scheduler.add(startConversion_2, next_read - 2 * CONVERSION_TIME);
-  scheduler.add(startConversion_4, next_read - 1 * CONVERSION_TIME);
+  LsuScheduler::add(startConversion_1, next_read - 4 * CONVERSION_TIME);
+  LsuScheduler::add(startConversion_3, next_read - 3 * CONVERSION_TIME);
+  LsuScheduler::add(startConversion_2, next_read - 2 * CONVERSION_TIME);
+  LsuScheduler::add(startConversion_4, next_read - 1 * CONVERSION_TIME);
 
   // schedule programm checking ofter 10 ms
-  scheduler.add(checkProgramming, 10);
+  LsuScheduler::add(checkProgramming, 10);
   // schedule read at'next_read' time
-  scheduler.add(updateTemperature, next_read);
+  LsuScheduler::add(updateTemperature, next_read);
   // print it
   pritSerial();
 }
@@ -2093,7 +2093,7 @@ time_t getTime()
   defere_log(
       String("[") + T_LOC + "] NTP primit ora exacta (" + (millis() - mllis)
           + " ms).");
-  scheduler.add(recal_log, 20);
+  LsuScheduler::add(recal_log, 20);
   if (no_time)
     no_time = false;
   return t_time;
