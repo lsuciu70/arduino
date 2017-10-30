@@ -1308,12 +1308,15 @@ void sendPostData(const String &data, const String &page,
     client.println(post_data);
     delay(10);
     client.stop();
+#if DEBUG
+    Serial.print("Sent data: ");
+    Serial.println(post_data);
+#endif
   }
   else
   {
     writeLogger(
         String("[") + T_LOC + "]  ERROR connecting server: " + IPAddress(server).toString());
-
   }
 }
 
@@ -1550,13 +1553,6 @@ void startConversion_4()
 
 void updateTemperature()
 {
-  long int m = millis();
-  m = m - (m % SECOND) + SECOND; // floor to second
-  // scheduler next read
-  long int delta =
-      ((SECOND * TEMP_READ_INTERVAL) >= (4 * CONVERSION_TIME)) ?
-          SECOND * TEMP_READ_INTERVAL : 4 * CONVERSION_TIME;
-  long int next_read = m + delta; // seconds
   int temp = 0;
   // DallasTemperature.h::getTempC - returns temperature in degrees C for given address
   // read the temperature and store it as integer rounded to 0.05 grd C
@@ -1594,18 +1590,26 @@ void updateTemperature()
     if (temp)
       temperature[i] = temp;
   }
+  long int m = millis();
+  m = m - (m % SECOND) + SECOND; // ceil to second
+  // scheduler next read
+  long int delta =
+      ((SECOND * TEMP_READ_INTERVAL) >= (4 * CONVERSION_TIME)) ?
+          SECOND * TEMP_READ_INTERVAL : 4 * CONVERSION_TIME;
+  long int next_read = m + delta; // seconds
   // schedule conversion at'next_read' time, minus the time to wait for it
   LsuScheduler::add(startConversion_1, next_read - 4 * CONVERSION_TIME);
   LsuScheduler::add(startConversion_3, next_read - 3 * CONVERSION_TIME);
   LsuScheduler::add(startConversion_2, next_read - 2 * CONVERSION_TIME);
   LsuScheduler::add(startConversion_4, next_read - 1 * CONVERSION_TIME);
 
-  // schedule programm checking ofter 10 ms
-  LsuScheduler::add(checkProgramming, 10);
-  // schedule read at'next_read' time
-  LsuScheduler::add(updateTemperature, next_read);
   // print it
   pritSerial();
+  // schedule read at'next_read' time
+  LsuScheduler::add(updateTemperature, next_read);
+  // schedule programm checking ofter 10 ms
+//  LsuScheduler::add(checkProgramming, m + 10);
+  checkProgramming();
 }
 
 bool isNowBetween(byte start_h, byte start_m, byte stop_h, byte stop_m)
@@ -2176,113 +2180,3 @@ void sendIp()
   sendPostData(post_data, "/ip_save.php");
 }
 
-/*
- // libraries/LsuScheduler/LsuScheduler.h
- #ifndef LsuScheduler_h
- #define LsuScheduler_h
- #include <Arduino.h>
- class LsuScheduler
- {
- private:
- struct node
- {
- long int when;
- void (*funt)(void);
- struct node * next;
- };
- node * head;
- void destroy(node *);
- void destroy_r(node *, node *);
- public:
- LsuScheduler();
- virtual ~LsuScheduler();
- void execute(long int);
- void add(void (*)(), long int );
- };
- #endif // LsuScheduler_h
- // end LsuScheduler.h
- */
-
-/*
- // libraries/LsuScheduler/LsuScheduler.cpp
- #include <Arduino.h>
- #include <LsuScheduler.h>
- void LsuScheduler::destroy(node *c)
- {
- if (c)
- destroy_r(c, c->next);
- }
- void LsuScheduler::destroy_r(node *c, node *n)
- {
- if (c)
- delete c;
- if (n)
- destroy_r(n, n->next);
- }
- LsuScheduler::LsuScheduler()
- {
- head = new node();
- head->when = 0;
- head->funt = 0;
- head->next = 0;
- }
- LsuScheduler::~LsuScheduler()
- {
- destroy(head);
- }
- void LsuScheduler::execute(long int current_time)
- {
- node * c = head;
- while (c->next)
- {
- node * n = c->next;
- if (n->when <= current_time)
- {
- // execute
- if (n->funt)
- n->funt();
- // remove
- c->next = n->next;
- delete n;
- n = 0;
- }
- // advance
- c = c->next;
- }
- }
- void LsuScheduler::execute(long int current_time)
- {
- node * c = head;
- while (c->next)
- {
- node * n = c->next;
- if (n->when <= current_time)
- {
- // execute
- if (n->funt)
- n->funt();
- // remove
- c->next = n->next;
- delete n;
- n = 0;
- }
- // advance
- c = c->next;
- }
- }
- void LsuScheduler::add(void (*funt)(), long int when)
- {
- node * n = new node();
- n->when = when;
- n->funt = funt;
- n->next = 0;
- // start at head
- node * last = head;
- // search the last one
- while (last->next)
- last = last->next;
- // link after last
- last->next = n;
- }
- // end LsuScheduler.cpp
- */
