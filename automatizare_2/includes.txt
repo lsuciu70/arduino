@@ -10,3 +10,4 @@
 /home/lsuciu/arduino/libraries/LsuWiFi
 /home/lsuciu/arduino/libraries/LsuNtpTime
 /home/lsuciu/arduino/libraries/LsuScheduler
+/home/lsuciu/arduino/libraries/LsuOta

@@ -11,16 +11,20 @@
 #include <LsuWiFi.h>
 #include <LsuNtpTime.h>
 #include <LsuScheduler.h>
+#include <LsuOta.h>
 
 #define USE_SERIAL Serial
 
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 0
+#define DEBUG 1
 
 namespace
 {
+
+// version
+const uint8_t version = 3;
 
 // floor section
 // parter
@@ -121,8 +125,12 @@ int target_temperature_p2 = 0;
 bool has_p2_run_today = false;
 bool is_running = false;
 
+bool relayInitialized = false;
+
 void relayInitialize()
 {
+  if(relayInitialized)
+    return;
   for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
   {
     temperature[i] = 0;
@@ -130,6 +138,7 @@ void relayInitialize()
     digitalWrite(relay[i], HIGH);
     delay(25);
   }
+  relayInitialized = true;
 #if DEBUG
   Serial.println("Relay initialized");
 #endif
@@ -292,18 +301,19 @@ void checkProgramming()
     // start / stop all
     for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
     {
-      digitalWrite(relay[i], should_run ? LOW : HIGH);
+
 
       short t_d = temperature[i] % 100;
       short t_i = (temperature[i] - t_d) / 100;
       if(should_run)
       {
+        digitalWrite(relay[i], LOW);
         short tt_d = target_temperature_p2 % 100;
         short tt_i = (target_temperature_p2 - t_d) / 100;
         const char* msg_fmt = "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d";
-        const size_t msg_len = strlen(msg_fmt) + strlen(room_name[i] - 6);/* - 20 + 14 = - 6 */
+        const size_t msg_len = strlen(msg_fmt) + strlen(room_name[i]) - 6;/* - 20 + 14 = - 6 */
         char msg[msg_len + 1];
-        sprintf(msg, msg_fmt, room_name, t_i, t_d, start_hour_p2, start_minute_p2, tt_i, tt_d);
+        sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2, start_minute_p2, tt_i, tt_d);
         writeLogger(msg);
 #if DEBUG
         Serial.println(msg);
@@ -311,10 +321,11 @@ void checkProgramming()
       }
       else
       {
+        digitalWrite(relay[i], HIGH);
         const char* msg_fmt = "%s [%d.%02d] - stop program P2";
-        const size_t msg_len = strlen(msg_fmt) + strlen(room_name[i] - 4);/* - 14 + 10 = - 4 */
+        const size_t msg_len = strlen(msg_fmt) + strlen(room_name[i]) - 4;/* - 14 + 10 = - 4 */
         char msg[msg_len + 1];
-        sprintf(msg, msg_fmt, room_name, t_i, t_d);
+        sprintf(msg, msg_fmt, room_name[i], t_i, t_d);
         writeLogger(msg);
 #if DEBUG
         Serial.println(msg);
@@ -478,7 +489,6 @@ void setup()
   sprintf(ip_msg, ip_msg_fmt, SSID, LsuWiFi::ipAddressStr(addr_str));
   writeLogger(ip_msg);
 
-
   // update has run today
   int minutes_now = hour() * 60 + minute();
   int minutes_start = start_hour_p2 * 60 + start_minute_p2;
@@ -500,18 +510,31 @@ void setup()
   Serial.println("Temperature sensors initialized");
 #endif
 
-  LsuScheduler::add(relayInitialize, millis() + 10);
+//  LsuScheduler::add(relayInitialize, millis() + 10);
   scheduleAt(millis() + 8 * CONVERSION_TIME);
 #if DEBUG
   Serial.println("Setup done");
+#endif
+
+  LsuOta::begin((version + 1));
+  const char* ota_msg_fmt = "OTA started; application version: %d";
+  const size_t ota_msg_len = strlen(ota_msg_fmt) + 1; /* -2 + 3 = + 1 */
+  char ota_msg[ota_msg_len + 1];
+  sprintf(ota_msg, ota_msg_fmt, version);
+  writeLogger(ota_msg);
+#if DEBUG
+  Serial.println(ota_msg);
+  Serial.printf("OTA next version URL: %s\n", LsuOta::otaUrl());
 #endif
 }
 
 void loop()
 {
+  relayInitialize();
   LsuWiFi::connect();
   LsuScheduler::execute(millis());
   reset_has_p2_run_today();
+  LsuOta::loop();
 }
 
 #endif /* _LsuHeating_H_ */
