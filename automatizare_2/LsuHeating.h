@@ -17,7 +17,7 @@
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 2
+#define DEBUG 0
 
 namespace
 {
@@ -26,14 +26,17 @@ namespace
 // parter
 const char* T_LOC_PARTER = "parter";
 //const char* MAC_PARTER = "18:FE:34:D4:0D:EC"; // old
-//const char* MAC_PARTER = "5C:CF:7F:EF:BE:50"; // new
-const char* MAC_PARTER = "5C:CF:7F:EF:B4:0B"; // other
+const char* MAC_PARTER = "5C:CF:7F:EF:BE:50"; // new
+//const char* MAC_PARTER = "5C:CF:7F:EF:B4:0B"; // other
 
 // etaj
 const char* T_LOC_ETAJ = "etaj";
 const char* MAC_ETAJ = "5C:CF:7F:88:EE:49";
 
 char t_loc[7] = "-";
+
+const char* room_name[] =
+{ "Bucatarie", "Living", "Birou", "Baie parter", };
 // end floor section
 
 // WiFi section
@@ -66,7 +69,7 @@ const uint8_t GPIO_15 = 15; // 4th room, Baie etaj | Baie parter, relay 4
 // one second, 1000 milliseconds
 const int SECOND = 1000;
 // The interval temperature is read
-const uint8_t TEMP_READ_INTERVAL = 10;
+const uint8_t TEMP_READ_INTERVAL = 30;
 // Temperature senzor resolution: 9, 10, 11, or 12 bits
 const uint8_t RESOLUTION = 12;
 // Calculate conversion time and add 10 ms
@@ -78,7 +81,7 @@ const uint8_t SENZOR_ADDRESS_LENGTH = 8;
 // Temperature senzor unique I2C addresses.
 const uint8_t SENZOR_ADDRESS[2 * SENZOR_COUNT][SENZOR_ADDRESS_LENGTH] =
 {
-{ 0x28, 0xFF, 0x9F, 0x1C, 0xA6, 0x15, 0x04, 0xEF }, // s0
+  { 0x28, 0xFF, 0x9F, 0x1C, 0xA6, 0x15, 0x04, 0xEF }, // s0
   { 0x28, 0xFF, 0x09, 0x4F, 0xA6, 0x15, 0x04, 0x94 }, // s1
   { 0x28, 0xFF, 0x18, 0x1A, 0xA6, 0x15, 0x03, 0xFF }, // s2
   { 0x28, 0xFF, 0xDC, 0x0A, 0xA6, 0x15, 0x03, 0xFA }, // s3
@@ -86,7 +89,7 @@ const uint8_t SENZOR_ADDRESS[2 * SENZOR_COUNT][SENZOR_ADDRESS_LENGTH] =
   { 0x28, 0xFF, 0x21, 0x14, 0xA6, 0x15, 0x03, 0x9D }, // j1
   { 0x28, 0xFF, 0xCE, 0x1C, 0xA6, 0x15, 0x04, 0xB7 }, // j2
   { 0x28, 0xFF, 0x37, 0x1A, 0xA6, 0x15, 0x03, 0x68 }, // j3
-    };
+};
 
 int temperature[SENZOR_COUNT];
 
@@ -182,30 +185,28 @@ void pritSerial()
 #endif
 }
 
-void startConversion(uint8_t i)
-{
-  dallasTemperature1st_pin0.requestTemperaturesByAddress(
-      SENZOR_ADDRESS[i + offset]);
-}
-
 void startConversion_1()
 {
-  startConversion(0);
+  dallasTemperature1st_pin0.requestTemperaturesByAddress(
+      SENZOR_ADDRESS[0 + offset]);
 }
 
 void startConversion_2()
 {
-  startConversion(1);
+  dallasTemperature1st_pin0.requestTemperaturesByAddress(
+      SENZOR_ADDRESS[1 + offset]);
 }
 
 void startConversion_3()
 {
-  startConversion(2);
+  dallasTemperature2nd_pin2.requestTemperaturesByAddress(
+      SENZOR_ADDRESS[2 + offset]);
 }
 
 void startConversion_4()
 {
-  startConversion(3);
+  dallasTemperature2nd_pin2.requestTemperaturesByAddress(
+      SENZOR_ADDRESS[3 + offset]);
 }
 
 void sendPostData(const char* data, const char* page)
@@ -215,7 +216,6 @@ void sendPostData(const char* data, const char* page)
       + strlen(data);
   char post_data[post_data_len + 1];
   sprintf(post_data, post_data_fmt, t_loc, data);
-//  String post_data = String(T_LOC_NAME) + "=" + T_LOC + "&" + data;
 
   const char* post_req_fmt = "POST %s HTTP/1.1\r\n"
       "Host: %s\r\n"
@@ -230,11 +230,10 @@ void sendPostData(const char* data, const char* page)
   sprintf(post_req, post_req_fmt, page, LsuWiFi::ipAddressStr(addr),
       post_data_len);
 
-//  String post_req = String("") + "POST " + page + " HTTP/1.1\r\n" + "Host: "
-//      + WiFi.localIP().toString() + "\r\n" + "User-Agent: Arduino/1.0\r\n"
-//      + "Connection: close\r\n"
-//      + "Content-Type: application/x-www-form-urlencoded\r\n"
-//      + "Content-Length: " + post_data_len + "\r\n";
+#if (DEBUG > 1)
+  Serial.print("Send header: ");Serial.println(post_req);
+  Serial.print("Send data  : ");Serial.println(post_data);
+#endif
   WiFiClient client;
   if (client.connect(master_server_ip, master_server_port))
   {
@@ -280,20 +279,48 @@ void sendCurrentTemperatures()
 
 void checkProgramming()
 {
-  uint8_t i = 0; // bucatarie
+  uint8_t bucatarie = 0; // bucatarie
   bool should_run = !has_p2_run_today
       && isNowAfter(start_hour_p2, start_minute_p2);
   if (should_run && !target_temperature_p2)
   {
-    target_temperature_p2 = temperature[i] + DELTA_TEMP;
+    target_temperature_p2 = temperature[bucatarie] + DELTA_TEMP;
   }
-  should_run = should_run && temperature[i] <= target_temperature_p2;
+  should_run = should_run && temperature[bucatarie] <= target_temperature_p2;
   if (should_run != is_running)
   {
     // start / stop all
-    for (uint8_t j = 0; j < SENZOR_COUNT; ++j)
+    for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
     {
-      digitalWrite(relay[j], should_run ? LOW : HIGH);
+      digitalWrite(relay[i], should_run ? LOW : HIGH);
+
+      short t_d = temperature[i] % 100;
+      short t_i = (temperature[i] - t_d) / 100;
+      if(should_run)
+      {
+        short tt_d = target_temperature_p2 % 100;
+        short tt_i = (target_temperature_p2 - t_d) / 100;
+        const char* msg_fmt = "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d";
+        const size_t msg_len = strlen(msg_fmt) + strlen(room_name[i] - 6);/* - 20 + 14 = - 6 */
+        char msg[msg_len + 1];
+        sprintf(msg, msg_fmt, room_name, t_i, t_d, start_hour_p2, start_minute_p2, tt_i, tt_d);
+        writeLogger(msg);
+#if DEBUG
+        Serial.println(msg);
+#endif
+      }
+      else
+      {
+        const char* msg_fmt = "%s [%d.%02d] - stop program P2";
+        const size_t msg_len = strlen(msg_fmt) + strlen(room_name[i] - 4);/* - 14 + 10 = - 4 */
+        char msg[msg_len + 1];
+        sprintf(msg, msg_fmt, room_name, t_i, t_d);
+        writeLogger(msg);
+#if DEBUG
+        Serial.println(msg);
+#endif
+      }
+      delay(50);
     }
   }
   if (!should_run && is_running)
@@ -302,6 +329,7 @@ void checkProgramming()
     target_temperature_p2 = 0;
   }
   is_running = should_run;
+  sendCurrentTemperatures();
   pritSerial();
 }
 
@@ -334,11 +362,14 @@ void updateTemperature()
   // read the temperature and store it as integer rounded to 0.05 grd C
   for (uint8_t i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
   {
-#if (DEBUG > 1)
-//    Serial.println(String("read temperature i=") + (short) i + " j=" + (short) j);
-#endif
     temp = floatToRound05Int(
         dallasTemperature1st_pin0.getTempC(SENZOR_ADDRESS[j]));
+#if (DEBUG > 1)
+    Serial.print("read temperature [");
+    Serial.print((short) j);
+    Serial.print("]");
+    Serial.println(temp);
+#endif
     if (temp <= -4000 || temp >= 7000)
     {
 #if DEBUG
@@ -354,11 +385,14 @@ void updateTemperature()
   }
   for (uint8_t i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
   {
-#if (DEBUG > 1)
-//    Serial.println(String("read temperature i=") + (short) i + " j=" + (short) j);
-#endif
     temp = floatToRound05Int(
         dallasTemperature2nd_pin2.getTempC(SENZOR_ADDRESS[j]));
+#if (DEBUG > 1)
+    Serial.print("read temperature [");
+    Serial.print((short) j);
+    Serial.print("]");
+    Serial.println(temp);
+#endif
     if (temp <= -4000 || temp >= 7000)
     {
 #if DEBUG
@@ -375,7 +409,17 @@ void updateTemperature()
 
   scheduleAt(next_read);
   // schedule program checking after 10 ms
-  LsuScheduler::add(checkProgramming, 10);
+//  LsuScheduler::add(checkProgramming, 10);
+  checkProgramming();
+}
+
+void reset_has_p2_run_today()
+{
+  if(hour() == 0 && has_p2_run_today)
+  {
+    has_p2_run_today = false;
+    writeLogger("Reset P2 a rulat astazi.");
+  }
 }
 
 } // anonymous namespace
@@ -405,7 +449,6 @@ void setup()
     const size_t msg_len = strlen(msg_fmt) - 2 + strlen(mac);
     char msg[msg_len + 1];
     sprintf(msg, msg_fmt, mac);
-
     writeLogger(msg);
 
     while (true)
@@ -421,7 +464,7 @@ void setup()
   {
     LsuWiFi::addAp(SSIDs[idx], SSID_PASSWDs[idx]);
   }
-  LsuWiFi::connect(2);
+  LsuWiFi::connect();
   LsuNtpTime::begin();
 #if DEBUG
   Serial.printf("Got NTP time: %s\n", LsuNtpTime::datetimeString(datetimebuff));
@@ -466,7 +509,9 @@ void setup()
 
 void loop()
 {
+  LsuWiFi::connect();
   LsuScheduler::execute(millis());
+  reset_has_p2_run_today();
 }
 
 #endif /* _LsuHeating_H_ */

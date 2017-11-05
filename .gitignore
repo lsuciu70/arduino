@@ -18,8 +18,12 @@ libraries/LsuEthernet
 libraries/LsuLogger
 libraries/LsuMqtt
 libraries/LsuScheduler
+libraries/LsuOta
+
+LsuOtaTest/update*
 
 libraries/Adafruit_BME280
+libraries/Adafruit_BME280_Library
 libraries/Adafruit_Circuit_Playground
 libraries/Adafruit_DHT22
 libraries/Adafruit_Sensor

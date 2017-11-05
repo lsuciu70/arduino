@@ -33,6 +33,8 @@ const byte GPIO_15 = 15; // 4th room, Baie etaj | Baie parter, relay 4
 const String T_LOC_PARTER = "parter";
 //const String MAC_PARTER = "18:FE:34:D4:0D:EC";
 const String MAC_PARTER = "5C:CF:7F:EF:BE:50";
+//const String MAC_PARTER = "5C:CF:7F:EF:B4:0B";
+
 // etaj
 const String T_LOC_ETAJ = "etaj";
 const String MAC_ETAJ = "5C:CF:7F:88:EE:49";
@@ -73,7 +75,7 @@ const char* PASSWD_t[SSID_SIZE] =
 
 byte ssid_ix = 0;
 
-const int HTTP_PORT = 80;
+const int HTTP_PORT = 8081;
 
 WiFiServer server(HTTP_PORT);
 
@@ -129,7 +131,7 @@ const uint8_t SENZOR_ADDRESS[2 * SENZOR_COUNT][SENZOR_ADDRESS_LENGTH] =
 };
 
 // The interval temperature is read
-const byte TEMP_READ_INTERVAL = 10;
+const byte TEMP_READ_INTERVAL = 30;
 
 // Setup a oneWire instance to communicate with OneWire devices
 // (not just Maxim/Dallas temperature ICs)
