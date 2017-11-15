@@ -13,18 +13,15 @@
 #include <LsuScheduler.h>
 #include <LsuOta.h>
 
-#define USE_SERIAL Serial
-
-#ifdef DEBUG
-#undef DEBUG
+#ifndef DEBUG
+#define DEBUG 0
 #endif
-#define DEBUG 1
 
 namespace
 {
 
 // version
-const uint8_t version = 3;
+const uint8_t version = 6;
 
 // floor section
 // parter
@@ -39,6 +36,7 @@ const char* MAC_ETAJ = "5C:CF:7F:88:EE:49";
 
 char t_loc[7] = "-";
 
+const size_t room_name_max_len = 11;
 const char* room_name[] =
 { "Bucatarie", "Living", "Birou", "Baie parter", };
 // end floor section
@@ -98,13 +96,16 @@ const uint8_t SENZOR_ADDRESS[2 * SENZOR_COUNT][SENZOR_ADDRESS_LENGTH] =
 int temperature[SENZOR_COUNT];
 
 // Setup a oneWire instance to communicate with OneWire devices
-// (not just Maxim/Dallas temperature ICs)
-OneWire oneWire1st_pin0(GPIO_0);
-OneWire oneWire2nd_pin2(GPIO_2);
+//// (not just Maxim/Dallas temperature ICs)
+//OneWire oneWire1st_pin0(GPIO_0);
+//OneWire oneWire2nd_pin2(GPIO_2);
+//
+//// Pass oneWire reference to Dallas Temperature.
+//DallasTemperature dallasTemperature1st_pin0(&oneWire1st_pin0);
+//DallasTemperature dallasTemperature2nd_pin2(&oneWire2nd_pin2);
 
-// Pass oneWire reference to Dallas Temperature.
-DallasTemperature dallasTemperature1st_pin0(&oneWire1st_pin0);
-DallasTemperature dallasTemperature2nd_pin2(&oneWire2nd_pin2);
+DallasTemperature* dallasTemperature1st_pin0;
+DallasTemperature* dallasTemperature2nd_pin2;
 
 uint8_t offset = 0;
 // end reading temperature section
@@ -119,18 +120,34 @@ bool isRelayInitialized = false;
 
 // programming section
 const uint8_t DELTA_TEMP = 30;
+// program 2
 uint8_t start_hour_p2 = 3;
 uint8_t start_minute_p2 = 30;
 int target_temperature_p2 = 0;
 bool has_p2_run_today = false;
+
 bool is_running = false;
 
-bool relayInitialized = false;
 
-void relayInitialize()
+bool lateStarted = false;
+
+void lateSetup()
 {
-  if(relayInitialized)
+  if(lateStarted)
     return;
+  dallasTemperature1st_pin0 = new DallasTemperature(new OneWire(GPIO_0));
+  dallasTemperature2nd_pin2 = new DallasTemperature(new OneWire(GPIO_2));
+  // Start up the temperature library
+  dallasTemperature1st_pin0->begin();
+  dallasTemperature1st_pin0->setResolution(RESOLUTION);
+  dallasTemperature1st_pin0->setWaitForConversion(false);
+
+  dallasTemperature2nd_pin2->begin();
+  dallasTemperature2nd_pin2->setResolution(RESOLUTION);
+  dallasTemperature2nd_pin2->setWaitForConversion(false);
+#if DEBUG
+  Serial.println("Temperature sensors initialized");
+#endif
   for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
   {
     temperature[i] = 0;
@@ -138,9 +155,12 @@ void relayInitialize()
     digitalWrite(relay[i], HIGH);
     delay(25);
   }
-  relayInitialized = true;
 #if DEBUG
-  Serial.println("Relay initialized");
+  Serial.println("Relays initialized");
+#endif
+  lateStarted = true;
+#if DEBUG
+  Serial.println("Late start done");
 #endif
 }
 
@@ -196,25 +216,25 @@ void pritSerial()
 
 void startConversion_1()
 {
-  dallasTemperature1st_pin0.requestTemperaturesByAddress(
+  dallasTemperature1st_pin0->requestTemperaturesByAddress(
       SENZOR_ADDRESS[0 + offset]);
 }
 
 void startConversion_2()
 {
-  dallasTemperature1st_pin0.requestTemperaturesByAddress(
+  dallasTemperature1st_pin0->requestTemperaturesByAddress(
       SENZOR_ADDRESS[1 + offset]);
 }
 
 void startConversion_3()
 {
-  dallasTemperature2nd_pin2.requestTemperaturesByAddress(
+  dallasTemperature2nd_pin2->requestTemperaturesByAddress(
       SENZOR_ADDRESS[2 + offset]);
 }
 
 void startConversion_4()
 {
-  dallasTemperature2nd_pin2.requestTemperaturesByAddress(
+  dallasTemperature2nd_pin2->requestTemperaturesByAddress(
       SENZOR_ADDRESS[3 + offset]);
 }
 
@@ -298,6 +318,9 @@ void checkProgramming()
   should_run = should_run && temperature[bucatarie] <= target_temperature_p2;
   if (should_run != is_running)
   {
+        const char* msg_fmt = "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d";
+        const size_t msg_len = strlen(msg_fmt) + room_name_max_len - 6;/* - 20 + 14 = - 6 */
+        char msg[msg_len + 1];
     // start / stop all
     for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
     {
@@ -310,9 +333,6 @@ void checkProgramming()
         digitalWrite(relay[i], LOW);
         short tt_d = target_temperature_p2 % 100;
         short tt_i = (target_temperature_p2 - t_d) / 100;
-        const char* msg_fmt = "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d";
-        const size_t msg_len = strlen(msg_fmt) + strlen(room_name[i]) - 6;/* - 20 + 14 = - 6 */
-        char msg[msg_len + 1];
         sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2, start_minute_p2, tt_i, tt_d);
         writeLogger(msg);
 #if DEBUG
@@ -374,7 +394,7 @@ void updateTemperature()
   for (uint8_t i = 0, j = i + offset; i < SENZOR_COUNT / 2; ++i, ++j)
   {
     temp = floatToRound05Int(
-        dallasTemperature1st_pin0.getTempC(SENZOR_ADDRESS[j]));
+        dallasTemperature1st_pin0->getTempC(SENZOR_ADDRESS[j]));
 #if (DEBUG > 1)
     Serial.print("read temperature [");
     Serial.print((short) j);
@@ -397,7 +417,7 @@ void updateTemperature()
   for (uint8_t i = SENZOR_COUNT / 2, j = i + offset; i < SENZOR_COUNT; ++i, ++j)
   {
     temp = floatToRound05Int(
-        dallasTemperature2nd_pin2.getTempC(SENZOR_ADDRESS[j]));
+        dallasTemperature2nd_pin2->getTempC(SENZOR_ADDRESS[j]));
 #if (DEBUG > 1)
     Serial.print("read temperature [");
     Serial.print((short) j);
@@ -441,6 +461,11 @@ void setup()
   Serial.begin(115200);
   Serial.println();
 #endif
+
+  pinMode(GPIO_0, OUTPUT);
+  digitalWrite(GPIO_0, HIGH);
+  pinMode(GPIO_2, OUTPUT);
+  digitalWrite(GPIO_2, HIGH);
 
   char mac[MAC_ADDR_STR_LEN + 1];
   LsuWiFi::macAddressStr(mac);
@@ -489,6 +514,23 @@ void setup()
   sprintf(ip_msg, ip_msg_fmt, SSID, LsuWiFi::ipAddressStr(addr_str));
   writeLogger(ip_msg);
 
+  LsuOta::begin((version + 1));
+  const char* ota_msg_fmt = "OTA started; application version: %d";
+  const size_t ota_msg_len = strlen(ota_msg_fmt) + 1; /* -2 + 3 = + 1 */
+  char ota_msg[ota_msg_len + 1];
+  sprintf(ota_msg, ota_msg_fmt, version);
+  writeLogger(ota_msg);
+  const char* ota_url_fmt = "OTA next version URL: %s";
+  const size_t ota_url_len = strlen(ota_url_fmt) - 2 + LsuOta::otaUrlLen();
+  char ota_url[ota_url_len + 1];
+  sprintf(ota_url, ota_url_fmt, LsuOta::otaUrl());
+  writeLogger(ota_url);
+
+#if DEBUG
+  Serial.println(ota_msg);
+  Serial.printf(ota_url);
+#endif
+
   // update has run today
   int minutes_now = hour() * 60 + minute();
   int minutes_start = start_hour_p2 * 60 + start_minute_p2;
@@ -498,39 +540,15 @@ void setup()
       (has_p2_run_today ? "true" : "false"), minutes_now, minutes_start);
 #endif
 
-  // Start up the temperature library
-  dallasTemperature1st_pin0.begin();
-  dallasTemperature1st_pin0.setResolution(RESOLUTION);
-  dallasTemperature1st_pin0.setWaitForConversion(false);
-
-  dallasTemperature2nd_pin2.begin();
-  dallasTemperature2nd_pin2.setResolution(RESOLUTION);
-  dallasTemperature2nd_pin2.setWaitForConversion(false);
-#if DEBUG
-  Serial.println("Temperature sensors initialized");
-#endif
-
-//  LsuScheduler::add(relayInitialize, millis() + 10);
   scheduleAt(millis() + 8 * CONVERSION_TIME);
 #if DEBUG
   Serial.println("Setup done");
-#endif
-
-  LsuOta::begin((version + 1));
-  const char* ota_msg_fmt = "OTA started; application version: %d";
-  const size_t ota_msg_len = strlen(ota_msg_fmt) + 1; /* -2 + 3 = + 1 */
-  char ota_msg[ota_msg_len + 1];
-  sprintf(ota_msg, ota_msg_fmt, version);
-  writeLogger(ota_msg);
-#if DEBUG
-  Serial.println(ota_msg);
-  Serial.printf("OTA next version URL: %s\n", LsuOta::otaUrl());
 #endif
 }
 
 void loop()
 {
-  relayInitialize();
+  lateSetup();
   LsuWiFi::connect();
   LsuScheduler::execute(millis());
   reset_has_p2_run_today();
