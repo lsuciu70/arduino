@@ -21,7 +21,7 @@ namespace
 {
 
 // version
-const uint8_t version = 6;
+const uint8_t version = 8;
 
 // floor section
 // parter
@@ -308,32 +308,37 @@ void sendCurrentTemperatures()
 
 void checkProgramming()
 {
-  uint8_t bucatarie = 0; // bucatarie
+  uint8_t target_room = 0; // bucatarie
   bool should_run = !has_p2_run_today
       && isNowAfter(start_hour_p2, start_minute_p2);
   if (should_run && !target_temperature_p2)
   {
-    target_temperature_p2 = temperature[bucatarie] + DELTA_TEMP;
+    target_temperature_p2 = temperature[target_room] + DELTA_TEMP;
   }
-  should_run = should_run && temperature[bucatarie] <= target_temperature_p2;
+  should_run = should_run && temperature[target_room] <= target_temperature_p2;
   if (should_run != is_running)
   {
-        const char* msg_fmt = "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d";
-        const size_t msg_len = strlen(msg_fmt) + room_name_max_len - 6;/* - 20 + 14 = - 6 */
-        char msg[msg_len + 1];
     // start / stop all
     for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
     {
-
-
       short t_d = temperature[i] % 100;
       short t_i = (temperature[i] - t_d) / 100;
       if(should_run)
       {
+        const char* msg_fmt = (i == target_room) ?
+            "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d" :
+            "%s [%d.%02d] - start fortat program P2";
+        const size_t msg_len = strlen(msg_fmt) + room_name_max_len - 6;/* - 20 + 14 = - 6 */
+        char msg[msg_len + 1];
         digitalWrite(relay[i], LOW);
-        short tt_d = target_temperature_p2 % 100;
-        short tt_i = (target_temperature_p2 - t_d) / 100;
-        sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2, start_minute_p2, tt_i, tt_d);
+        if(i == target_room)
+        {
+          short tt_d = target_temperature_p2 % 100;
+          short tt_i = (target_temperature_p2 - tt_d) / 100;
+          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2, start_minute_p2, tt_i, tt_d);
+        }
+        else
+          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2, start_minute_p2);
         writeLogger(msg);
 #if DEBUG
         Serial.println(msg);
@@ -450,6 +455,18 @@ void reset_has_p2_run_today()
   {
     has_p2_run_today = false;
     writeLogger("Reset P2 a rulat astazi.");
+
+    const char* ota_msg_fmt = "OTA ruleaza; versiune aplicatie: %d";
+    const size_t ota_msg_len = strlen(ota_msg_fmt) + 1; /* -2 + 3 = + 1 */
+    char ota_msg[ota_msg_len + 1];
+    sprintf(ota_msg, ota_msg_fmt, version);
+    writeLogger(ota_msg);
+
+    const char* ota_url_fmt = "OTA - URL versiune urmatoare: %s";
+    const size_t ota_url_len = strlen(ota_url_fmt) - 2 + LsuOta::otaUrlLen();
+    char ota_url[ota_url_len + 1];
+    sprintf(ota_url, ota_url_fmt, LsuOta::otaUrl());
+    writeLogger(ota_url);
   }
 }
 
@@ -515,12 +532,12 @@ void setup()
   writeLogger(ip_msg);
 
   LsuOta::begin((version + 1));
-  const char* ota_msg_fmt = "OTA started; application version: %d";
+  const char* ota_msg_fmt = "OTA pornit; versiune aplicatie: %d";
   const size_t ota_msg_len = strlen(ota_msg_fmt) + 1; /* -2 + 3 = + 1 */
   char ota_msg[ota_msg_len + 1];
   sprintf(ota_msg, ota_msg_fmt, version);
   writeLogger(ota_msg);
-  const char* ota_url_fmt = "OTA next version URL: %s";
+  const char* ota_url_fmt = "OTA - URL versiune urmatoare: %s";
   const size_t ota_url_len = strlen(ota_url_fmt) - 2 + LsuOta::otaUrlLen();
   char ota_url[ota_url_len + 1];
   sprintf(ota_url, ota_url_fmt, LsuOta::otaUrl());
