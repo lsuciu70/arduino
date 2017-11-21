@@ -13,6 +13,7 @@
 #include <ESP8266WiFi.h>  // https://github.com/esp8266/Arduino
 
 #include <LsuScheduler.h> // https://github.com/lsuciu70/arduino/tree/master/libraries/LsuScheduler
+#include <LsuOta.h>
 
 #define DEBUG 0
 
@@ -20,6 +21,9 @@
 const int SECOND = 1000;
 // Sensor count
 const byte SENZOR_COUNT = 4;
+
+// version
+const uint8_t version = 9;
 
 // Feather HUZZAH pins
 const byte GPIO_0 = 0; // 1st temperature sensor, OneWire, DallasTemperature
@@ -68,9 +72,9 @@ unsigned long start_second = 0;
 
 // WiFi section
 const byte SSID_SIZE = 2;
-const char* SSID_t[SSID_SIZE] =
+const char* SSIDs[SSID_SIZE] =
 { "cls-router", "cls-ap" };
-const char* PASSWD_t[SSID_SIZE] =
+const char* PASSWDs[SSID_SIZE] =
 { "r4cD7TPG", "r4cD7TPG" };
 
 byte ssid_ix = 0;
@@ -133,14 +137,17 @@ const uint8_t SENZOR_ADDRESS[2 * SENZOR_COUNT][SENZOR_ADDRESS_LENGTH] =
 // The interval temperature is read
 const byte TEMP_READ_INTERVAL = 30;
 
-// Setup a oneWire instance to communicate with OneWire devices
-// (not just Maxim/Dallas temperature ICs)
-OneWire oneWire1st_pin0(GPIO_0);
-OneWire oneWire2nd_pin2(GPIO_2);
-
-// Pass oneWire reference to Dallas Temperature.
-DallasTemperature dallasTemperature1st_pin0(&oneWire1st_pin0);
-DallasTemperature dallasTemperature2nd_pin2(&oneWire2nd_pin2);
+//// Setup a oneWire instance to communicate with OneWire devices
+//// (not just Maxim/Dallas temperature ICs)
+//OneWire oneWire1st_pin0(GPIO_0);
+//OneWire oneWire2nd_pin2(GPIO_2);
+//
+//// Pass oneWire reference to Dallas Temperature.
+//DallasTemperature dallasTemperature1st_pin0(&oneWire1st_pin0);
+//DallasTemperature dallasTemperature2nd_pin2(&oneWire2nd_pin2);
+//
+DallasTemperature* dallasTemperature1st_pin0;
+DallasTemperature* dallasTemperature2nd_pin2;
 
 int temperature[SENZOR_COUNT];
 
@@ -361,6 +368,11 @@ void setup()
   Serial.begin(115200);
 #endif
 
+  pinMode(GPIO_0, OUTPUT);
+  digitalWrite(GPIO_0, HIGH);
+  pinMode(GPIO_2, OUTPUT);
+  digitalWrite(GPIO_2, HIGH);
+
   WiFi.mode(WIFI_STA);
   String mac = WiFi.macAddress();
   if (mac.equalsIgnoreCase(MAC_ETAJ))
@@ -393,14 +405,14 @@ void setup()
     }
   }
 
-  // Start up the temperature library
-  dallasTemperature1st_pin0.begin();
-  dallasTemperature1st_pin0.setResolution(RESOLUTION);
-  dallasTemperature1st_pin0.setWaitForConversion(false);
-
-  dallasTemperature2nd_pin2.begin();
-  dallasTemperature2nd_pin2.setResolution(RESOLUTION);
-  dallasTemperature2nd_pin2.setWaitForConversion(false);
+//  // Start up the temperature library
+//  dallasTemperature1st_pin0.begin();
+//  dallasTemperature1st_pin0.setResolution(RESOLUTION);
+//  dallasTemperature1st_pin0.setWaitForConversion(false);
+//
+//  dallasTemperature2nd_pin2.begin();
+//  dallasTemperature2nd_pin2.setResolution(RESOLUTION);
+//  dallasTemperature2nd_pin2.setWaitForConversion(false);
 
   requestProgramming();
 
@@ -413,6 +425,7 @@ void setup()
   LsuScheduler::add(startConversion_4, first_read - 1 * CONVERSION_TIME);
   LsuScheduler::add(updateTemperature, first_read);
 
+  LsuOta::begin((version + 1));
   updatePxRunToday();
 }
 
@@ -422,6 +435,18 @@ void relayInitialize()
 {
   if (isRelayInitialized)
     return;
+  isRelayInitialized = true;
+  dallasTemperature1st_pin0 = new DallasTemperature(new OneWire(GPIO_0));
+  dallasTemperature2nd_pin2 = new DallasTemperature(new OneWire(GPIO_2));
+  // Start up the temperature library
+  dallasTemperature1st_pin0->begin();
+  dallasTemperature1st_pin0->setResolution(RESOLUTION);
+  dallasTemperature1st_pin0->setWaitForConversion(false);
+
+  dallasTemperature2nd_pin2->begin();
+  dallasTemperature2nd_pin2->setResolution(RESOLUTION);
+  dallasTemperature2nd_pin2->setWaitForConversion(false);
+
   for (byte i = 0; i < SENZOR_COUNT; ++i)
   {
     temperature[i] = 0;
@@ -429,7 +454,6 @@ void relayInitialize()
     digitalWrite(relay[i], HIGH);
     delay(25);
   }
-  isRelayInitialized = true;
 }
 
 // the loop routine runs over and over again forever
@@ -440,6 +464,7 @@ void loop()
     requestProgramming();
   listen4HttpClient();
   LsuScheduler::execute(millis());
+  LsuOta::loop();
 }
 
 void updatePxRunToday()
@@ -635,10 +660,10 @@ void connectWifi()
     return;
 #if DEBUG
   Serial.print("WiFi: connecting to ");
-  Serial.println(SSID_t[(ssid_ix % SSID_SIZE)]);
+  Serial.println(SSIDs[(ssid_ix % SSID_SIZE)]);
 #endif
   ssid_ix = ssid_ix % SSID_SIZE;
-  WiFi.begin(SSID_t[ssid_ix], PASSWD_t[ssid_ix]);
+  WiFi.begin(SSIDs[ssid_ix], PASSWDs[ssid_ix]);
 
   unsigned long mllis = millis();
 #if DEBUG
@@ -654,7 +679,7 @@ void connectWifi()
 #endif
       writeLogger(
           String("[") + T_LOC + "] WiFi: connectare la "
-              + SSID_t[(ssid_ix % SSID_SIZE)]
+              + SSIDs[(ssid_ix % SSID_SIZE)]
               + " nereusita dupa 10 s; incearca urmatorul SSID");
       ssid_ix += 1;
       return connectWifi();
@@ -678,7 +703,7 @@ void connectWifi()
   sendIp();
   writeLogger(
       String("[") + T_LOC + "] WiFi: conectat la "
-          + SSID_t[(ssid_ix % SSID_SIZE)] + " ("
+          + SSIDs[(ssid_ix % SSID_SIZE)] + " ("
           + (1.0 * (millis() - mllis) / SECOND) + " s), adresa: "
           + WiFi.localIP().toString());
 }
@@ -1517,7 +1542,7 @@ void startConversion_1()
 #if (DEBUG > 1)
   Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
 #endif
-  dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+  dallasTemperature1st_pin0->requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
 void startConversion_2()
@@ -1528,7 +1553,7 @@ void startConversion_2()
 #if (DEBUG > 1)
   Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
 #endif
-  dallasTemperature1st_pin0.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+  dallasTemperature1st_pin0->requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
 void startConversion_3()
@@ -1539,7 +1564,7 @@ void startConversion_3()
 #if (DEBUG > 1)
   Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
 #endif
-  dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+  dallasTemperature2nd_pin2->requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
 void startConversion_4()
@@ -1550,7 +1575,7 @@ void startConversion_4()
 #if (DEBUG > 1)
   Serial.println(String("request conversion i=") + i + " j=" + j + ", millis=" + millis());
 #endif
-  dallasTemperature2nd_pin2.requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
+  dallasTemperature2nd_pin2->requestTemperaturesByAddress(SENZOR_ADDRESS[j]);
 }
 
 void updateTemperature()
@@ -1564,7 +1589,7 @@ void updateTemperature()
     Serial.println(String("read temperature i=") + i + " j=" + j);
 #endif
     temp = floatToRound05Int(
-        dallasTemperature1st_pin0.getTempC(SENZOR_ADDRESS[j]));
+        dallasTemperature1st_pin0->getTempC(SENZOR_ADDRESS[j]));
     if (temp <= -4000 || temp >= 7000)
     {
 #if DEBUG
@@ -1581,7 +1606,7 @@ void updateTemperature()
     Serial.println(String("read temperature i=") + i + " j=" + j);
 #endif
     temp = floatToRound05Int(
-        dallasTemperature2nd_pin2.getTempC(SENZOR_ADDRESS[j]));
+        dallasTemperature2nd_pin2->getTempC(SENZOR_ADDRESS[j]));
     if (temp <= -4000 || temp >= 7000)
     {
 #if DEBUG

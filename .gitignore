@@ -7,6 +7,7 @@ LsuAlarm
 LsuWater
 Irigatie_Marius
 microcoap
+LsuWiFi_2_Test
 
 libraries/**/.cproject
 libraries/**/.project
@@ -23,6 +24,7 @@ libraries/LsuOta
 LsuOtaTest/update*
 automatizare_2/update*
 
+libraries/ESP8266Ping
 libraries/Adafruit_BME280
 libraries/Adafruit_BME280_Library
 libraries/Adafruit_Circuit_Playground
