@@ -4,6 +4,7 @@
 
 Arduino.h
 IPAddress.h
+Esp.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
 32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/cores/esp32
@@ -32,9 +33,6 @@ ESP8266httpUpdate.h
 
 ESP8266mDNS.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266mDNS
-
-Esp.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
 
 Wire.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/libraries/Wire/src
@@ -73,11 +71,16 @@ pgmspace.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
 32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/cores/esp32
 
+map.h
+/home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2/profile
+
 functional
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2
 +
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2/xtensa-lx106-elf
 
+map
+/home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2
 
 pins_arduino.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/tests/host/common
