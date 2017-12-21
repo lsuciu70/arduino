@@ -6,9 +6,14 @@ Arduino.h
 IPAddress.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/cores/esp32
 
 ArduinoOTA.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ArduinoOTA
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/libraries/ArduinoOTA/src
+
+WiFi.h
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/libraries/WiFi/src
 
 ESP8266WiFi.h
 WiFiClient.h
@@ -34,6 +39,7 @@ Esp.h
 Wire.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/libraries/Wire/src
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/Wire
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/libraries/Wire/src
 
 SoftwareSerial.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/libraries/SoftwareSerial/src
@@ -41,6 +47,8 @@ SoftwareSerial.h
 
 EEPROM.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/EEPROM
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/libraries/EEPROM
+
 
 stdint.h
 stdio.h
@@ -48,11 +56,13 @@ stdlib.h
 string.h
 /home/lsuciu/arduino-ide/hardware/tools/avr/avr/include
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/tools/xtensa-esp32-elf/xtensa-esp32-elf/include
 
 stddef.h
 stdarg.h
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/lib/gcc/xtensa-lx106-elf/4.8.2/include
 /home/lsuciu/arduino-ide/hardware/tools/avr/lib/gcc/avr/4.9.2/include
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/tools/xtensa-esp32-elf/lib/gcc/xtensa-esp32-elf/5.2.0/include
 
 common.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/generic
@@ -61,6 +71,7 @@ common.h
 pgmspace.h
 /home/lsuciu/arduino-ide/hardware/tools/avr/avr/include/avr
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/cores/esp32
 
 functional
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2
@@ -77,7 +88,12 @@ pins_arduino.h
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/nodemcu
 /home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/thing
 
-
+string
+functional
+vector
+map
+list
+32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/tools/xtensa-esp32-elf/xtensa-esp32-elf/include/c++/5.2.0
 
 
 

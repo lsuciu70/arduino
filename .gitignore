@@ -13,6 +13,11 @@ libraries/**/.cproject
 libraries/**/.project
 libraries/**/.settings
 
+LsuEsp32WifiScanner
+libraries/Bridge
+libraries/LsuWiFiEsp32
+libraries/SD
+
 libraries/LsuNtpTime
 libraries/LsuWiFi
 libraries/LsuEthernet

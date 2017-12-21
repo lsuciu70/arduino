@@ -21,7 +21,7 @@ namespace
 {
 
 // version
-const uint8_t version = 8;
+const uint8_t version = 11;
 
 // floor section
 // parter
@@ -125,9 +125,14 @@ uint8_t start_hour_p2 = 3;
 uint8_t start_minute_p2 = 30;
 int target_temperature_p2 = 0;
 bool has_p2_run_today = false;
+bool is_running_p2 = false;
 
-bool is_running = false;
-
+// program 3
+uint8_t start_hour_p3 = 16;
+uint8_t start_minute_p3 = 0;
+int target_temperature_p3 = 0;
+bool has_p3_run_today = false;
+bool is_running_p3 = false;
 
 bool lateStarted = false;
 
@@ -300,7 +305,7 @@ void sendCurrentTemperatures()
       "t_%d=%d&t_%d_r=%d&t_%d=%d&t_%d_r=%d&t_%d=%d&t_%d_r=%d&t_%d=%d&t_%d_r=%d";
   size_t msg_len = strlen(msg_fmt) - 32 + 24 + 4;
   char msg[msg_len + 1];
-  short run_flag = is_running ? 1 : 0;
+  short run_flag = is_running_p2 || is_running_p3 ? 1 : 0;
   sprintf(msg, msg_fmt, 0, temperature[0], 0, run_flag, 1, temperature[1], 1,
       run_flag, 2, temperature[2], 2, run_flag, 3, temperature[3], 3, run_flag);
   sendPostData(const_cast<const char*>(msg), update_page);
@@ -308,22 +313,39 @@ void sendCurrentTemperatures()
 
 void checkProgramming()
 {
-  uint8_t target_room = 0; // bucatarie
-  bool should_run = !has_p2_run_today
-      && isNowAfter(start_hour_p2, start_minute_p2);
-  if (should_run && !target_temperature_p2)
+  uint8_t target_room = 3; // baie
+  // p2
+  bool should_run_p2 = !has_p2_run_today && isNowAfter(start_hour_p2, start_minute_p2);
+  if (should_run_p2 && !target_temperature_p2)
   {
     target_temperature_p2 = temperature[target_room] + DELTA_TEMP;
   }
-  should_run = should_run && temperature[target_room] <= target_temperature_p2;
-  if (should_run != is_running)
+  should_run_p2 = should_run_p2 && temperature[target_room] <= target_temperature_p2;
+  // p3
+  bool should_run_p3 = !has_p3_run_today && isNowAfter(start_hour_p3, start_minute_p3);
+  if (should_run_p3 && !target_temperature_p3)
+  {
+    target_temperature_p3 = temperature[target_room] + DELTA_TEMP;
+  }
+  should_run_p3 = should_run_p3 && temperature[target_room] <= target_temperature_p3;
+  if (should_run_p2 != is_running_p2 || should_run_p3 != is_running_p3)
+  {
+    for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
+    {
+      if(should_run_p2 || should_run_p3)
+        digitalWrite(relay[i], LOW);
+      else
+        digitalWrite(relay[i], HIGH);
+    }
+  }
+  if (should_run_p2 != is_running_p2)
   {
     // start / stop all
     for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
     {
       short t_d = temperature[i] % 100;
       short t_i = (temperature[i] - t_d) / 100;
-      if(should_run)
+      if(should_run_p2)
       {
         const char* msg_fmt = (i == target_room) ?
             "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d" :
@@ -359,12 +381,61 @@ void checkProgramming()
       delay(50);
     }
   }
-  if (!should_run && is_running)
+  if (should_run_p3 != is_running_p3)
+  {
+    // start / stop all
+    for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
+    {
+      short t_d = temperature[i] % 100;
+      short t_i = (temperature[i] - t_d) / 100;
+      if(should_run_p3)
+      {
+        const char* msg_fmt = (i == target_room) ?
+            "%s [%d.%02d] - start program P3 - porneste la %d:%02d si face %d.%02d" :
+            "%s [%d.%02d] - start fortat program P3";
+        const size_t msg_len = strlen(msg_fmt) + room_name_max_len - 6;/* - 20 + 14 = - 6 */
+        char msg[msg_len + 1];
+        digitalWrite(relay[i], LOW);
+        if(i == target_room)
+        {
+          short tt_d = target_temperature_p3 % 100;
+          short tt_i = (target_temperature_p3 - tt_d) / 100;
+          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p3, start_minute_p3, tt_i, tt_d);
+        }
+        else
+          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p3, start_minute_p3);
+        writeLogger(msg);
+#if DEBUG
+        Serial.println(msg);
+#endif
+      }
+      else
+      {
+        digitalWrite(relay[i], HIGH);
+        const char* msg_fmt = "%s [%d.%02d] - stop program P3";
+        const size_t msg_len = strlen(msg_fmt) + strlen(room_name[i]) - 4;/* - 14 + 10 = - 4 */
+        char msg[msg_len + 1];
+        sprintf(msg, msg_fmt, room_name[i], t_i, t_d);
+        writeLogger(msg);
+#if DEBUG
+        Serial.println(msg);
+#endif
+      }
+      delay(50);
+    }
+  }
+  if (!should_run_p2 && is_running_p2)
   {
     has_p2_run_today = true;
     target_temperature_p2 = 0;
   }
-  is_running = should_run;
+  if (!should_run_p3 && is_running_p3)
+  {
+    has_p3_run_today = true;
+    target_temperature_p3 = 0;
+  }
+  is_running_p2 = should_run_p2;
+  is_running_p3 = should_run_p3;
   sendCurrentTemperatures();
   pritSerial();
 }
@@ -449,12 +520,14 @@ void updateTemperature()
   checkProgramming();
 }
 
-void reset_has_p2_run_today()
+void check_new_day()
 {
-  if(hour() == 0 && has_p2_run_today)
+  if(hour() == 0 && (has_p2_run_today || has_p3_run_today))
   {
     has_p2_run_today = false;
     writeLogger("Reset P2 a rulat astazi.");
+    has_p3_run_today = false;
+    writeLogger("Reset P3 a rulat astazi.");
 
     const char* ota_msg_fmt = "OTA ruleaza; versiune aplicatie: %d";
     const size_t ota_msg_len = strlen(ota_msg_fmt) + 1; /* -2 + 3 = + 1 */
@@ -550,11 +623,15 @@ void setup()
 
   // update has run today
   int minutes_now = hour() * 60 + minute();
-  int minutes_start = start_hour_p2 * 60 + start_minute_p2;
-  has_p2_run_today = minutes_now - minutes_start > 60;
+  int minutes_start_p2 = start_hour_p2 * 60 + start_minute_p2;
+  has_p2_run_today = minutes_now - minutes_start_p2 > 60;
+  int minutes_start_p3 = start_hour_p3 * 60 + start_minute_p3;
+  has_p3_run_today = minutes_now - minutes_start_p3 > 60;
 #if DEBUG
-  Serial.printf("Mark has_tun_today: %s, minutes now: %d, minutes start: %d\n",
-      (has_p2_run_today ? "true" : "false"), minutes_now, minutes_start);
+  Serial.printf("Mark has_p2_run_today: %s, minutes now: %d, minutes start: %d\n",
+      (has_p2_run_today ? "true" : "false"), minutes_now, minutes_start_p2);
+  Serial.printf("Mark has_p3_run_today: %s, minutes now: %d, minutes start: %d\n",
+      (has_p3_run_today ? "true" : "false"), minutes_now, minutes_start_p3);
 #endif
 
   scheduleAt(millis() + 8 * CONVERSION_TIME);
@@ -568,7 +645,7 @@ void loop()
   lateSetup();
   LsuWiFi::connect();
   LsuScheduler::execute(millis());
-  reset_has_p2_run_today();
+  check_new_day();
   LsuOta::loop();
 }
 
