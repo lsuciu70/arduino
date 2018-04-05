@@ -7,28 +7,44 @@
 
 #include <OneWire.h>           // https://github.com/PaulStoffregen/OneWire
 #include <DallasTemperature.h> // https://github.com/milesburton/Arduino-Temperature-Control-Library
+#include <PubSubClient.h>
 
 #include <LsuWiFi.h>
 #include <LsuNtpTime.h>
 #include <LsuScheduler.h>
-#include <LsuOta.h>
 
+#define OTA 0
+#ifndef OTA
+#define OTA 0
+#endif
+
+#if OTA
+#include <LsuOta.h>
+#endif
+
+#define MQTT 1
+#ifndef MQTT
+#define MQTT 0
+#endif
+
+#define DEBUG 0
 #ifndef DEBUG
 #define DEBUG 0
 #endif
 
 namespace
 {
-
+#if OTA
 // version
-const uint8_t version = 11;
+const uint8_t version = 1;
+#endif
 
 // floor section
 // parter
 const char* T_LOC_PARTER = "parter";
 //const char* MAC_PARTER = "18:FE:34:D4:0D:EC"; // old
-const char* MAC_PARTER = "5C:CF:7F:EF:BE:50"; // new
-//const char* MAC_PARTER = "5C:CF:7F:EF:B4:0B"; // other
+//const char* MAC_PARTER = "5C:CF:7F:EF:BE:50"; - automatizare_2
+const char* MAC_PARTER = "5C:CF:7F:EF:B4:0B";
 
 // etaj
 const char* T_LOC_ETAJ = "etaj";
@@ -83,26 +99,17 @@ const uint8_t SENZOR_ADDRESS_LENGTH = 8;
 // Temperature senzor unique I2C addresses.
 const uint8_t SENZOR_ADDRESS[2 * SENZOR_COUNT][SENZOR_ADDRESS_LENGTH] =
 {
-  { 0x28, 0xFF, 0x9F, 0x1C, 0xA6, 0x15, 0x04, 0xEF }, // s0
-  { 0x28, 0xFF, 0x09, 0x4F, 0xA6, 0x15, 0x04, 0x94 }, // s1
-  { 0x28, 0xFF, 0x18, 0x1A, 0xA6, 0x15, 0x03, 0xFF }, // s2
-  { 0x28, 0xFF, 0xDC, 0x0A, 0xA6, 0x15, 0x03, 0xFA }, // s3
-  { 0x28, 0xFF, 0x40, 0x09, 0xA6, 0x15, 0x03, 0xE4 }, // j0
-  { 0x28, 0xFF, 0x21, 0x14, 0xA6, 0x15, 0x03, 0x9D }, // j1
-  { 0x28, 0xFF, 0xCE, 0x1C, 0xA6, 0x15, 0x04, 0xB7 }, // j2
-  { 0x28, 0xFF, 0x37, 0x1A, 0xA6, 0x15, 0x03, 0x68 }, // j3
-};
+{ 0x28, 0xFF, 0x9F, 0x1C, 0xA6, 0x15, 0x04, 0xEF }, // s0
+    { 0x28, 0xFF, 0x09, 0x4F, 0xA6, 0x15, 0x04, 0x94 }, // s1
+    { 0x28, 0xFF, 0x18, 0x1A, 0xA6, 0x15, 0x03, 0xFF }, // s2
+    { 0x28, 0xFF, 0xDC, 0x0A, 0xA6, 0x15, 0x03, 0xFA }, // s3
+    { 0x28, 0xFF, 0x40, 0x09, 0xA6, 0x15, 0x03, 0xE4 }, // j0
+    { 0x28, 0xFF, 0x21, 0x14, 0xA6, 0x15, 0x03, 0x9D }, // j1
+    { 0x28, 0xFF, 0xCE, 0x1C, 0xA6, 0x15, 0x04, 0xB7 }, // j2
+    { 0x28, 0xFF, 0x37, 0x1A, 0xA6, 0x15, 0x03, 0x68 }, // j3
+    };
 
-int temperature[SENZOR_COUNT];
-
-// Setup a oneWire instance to communicate with OneWire devices
-//// (not just Maxim/Dallas temperature ICs)
-//OneWire oneWire1st_pin0(GPIO_0);
-//OneWire oneWire2nd_pin2(GPIO_2);
-//
-//// Pass oneWire reference to Dallas Temperature.
-//DallasTemperature dallasTemperature1st_pin0(&oneWire1st_pin0);
-//DallasTemperature dallasTemperature2nd_pin2(&oneWire2nd_pin2);
+int16_t temperature[SENZOR_COUNT];
 
 DallasTemperature* dallasTemperature1st_pin0;
 DallasTemperature* dallasTemperature2nd_pin2;
@@ -128,7 +135,7 @@ bool has_p2_run_today = false;
 bool is_running_p2 = false;
 
 // program 3
-uint8_t start_hour_p3 = 16;
+uint8_t start_hour_p3 = 17;
 uint8_t start_minute_p3 = 0;
 int target_temperature_p3 = 0;
 bool has_p3_run_today = false;
@@ -136,9 +143,51 @@ bool is_running_p3 = false;
 
 bool lateStarted = false;
 
+#if MQTT
+const char* ROOMS[] =
+{ "dl", "dm", "do", "be", "bu", "li", "bi", "bp" };
+const char* ROOMS_R[] =
+{ "dlr", "dmr", "dor", "ber", "bur", "lir", "bir", "bpr" };
+// heating/etaj | heating/parter
+const char* publish_topic_fmt = "heating/%s";
+// {"bu":20.00,"li":21.00,"bi":22.00,"bp":23.00,"r":["bur","lir","bir","bpr"]}
+const char* publish_message_fmt = "{"
+    "\"%s\":%d.%02d,"
+    "\"%s\":%d.%02d,"
+    "\"%s\":%d.%02d,"
+    "\"%s\":%d.%02d,"
+    "\"r\":[\"%s\",\"%s\",\"%s\",\"%s\"]}";
+const char* mqtt_broker = "192.168.100.60";
+uint16_t mqtt_port = 1883;
+void callback(char* topic, byte* payload, unsigned int length)
+{
+}
+WiFiClient wifiClient;
+PubSubClient mqttClient(mqtt_broker, mqtt_port, callback, wifiClient);
+bool mqttConnect()
+{
+  uint8_t count = 5;
+  // Loop at most 5 times or until we're reconnected
+  while (!mqttClient.connected() && (count--))
+  {
+    // Attempt to connect and subscribe
+    if (mqttClient.connect(t_loc))
+      return true;
+    delay(1000);
+  }
+#if DEBUG
+  Serial.print("MQTT connected: ");
+  Serial.println(mqttClient.connected() ? "true" : "false");
+#endif
+  return mqttClient.connected();
+}
+#endif // MQTT
+
+void scheduleAt(unsigned long);
+
 void lateSetup()
 {
-  if(lateStarted)
+  if (lateStarted)
     return;
   dallasTemperature1st_pin0 = new DallasTemperature(new OneWire(GPIO_0));
   dallasTemperature2nd_pin2 = new DallasTemperature(new OneWire(GPIO_2));
@@ -164,6 +213,7 @@ void lateSetup()
   Serial.println("Relays initialized");
 #endif
   lateStarted = true;
+  scheduleAt(millis() + 8 * CONVERSION_TIME);
 #if DEBUG
   Serial.println("Late start done");
 #endif
@@ -182,22 +232,22 @@ int floatToRound05Int(float temp)
   uint8_t mod = t % 10;
   switch (mod)
   {
-    case 1:
-    case 2:
-      t += (0 - mod);
-      break;
-    case 3:
-    case 4:
-    case 6:
-    case 7:
-      t += (5 - mod);
-      break;
-    case 8:
-    case 9:
-      t += (10 - mod);
-      break;
-    default:
-      break;
+  case 1:
+  case 2:
+    t += (0 - mod);
+    break;
+  case 3:
+  case 4:
+  case 6:
+  case 7:
+    t += (5 - mod);
+    break;
+  case 8:
+  case 9:
+    t += (10 - mod);
+    break;
+  default:
+    break;
   }
   return t;
 }
@@ -212,7 +262,7 @@ void pritSerial()
   for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
   {
     if (i)
-      Serial.print(", ");
+    Serial.print(", ");
     Serial.print((1.0 * temperature[i]) / 100);
   }
   Serial.println(" [grd.C]");
@@ -315,24 +365,28 @@ void checkProgramming()
 {
   uint8_t target_room = 3; // baie
   // p2
-  bool should_run_p2 = !has_p2_run_today && isNowAfter(start_hour_p2, start_minute_p2);
+  bool should_run_p2 = !has_p2_run_today
+      && isNowAfter(start_hour_p2, start_minute_p2);
   if (should_run_p2 && !target_temperature_p2)
   {
     target_temperature_p2 = temperature[target_room] + DELTA_TEMP;
   }
-  should_run_p2 = should_run_p2 && temperature[target_room] <= target_temperature_p2;
+  should_run_p2 = should_run_p2
+      && temperature[target_room] <= target_temperature_p2;
   // p3
-  bool should_run_p3 = !has_p3_run_today && isNowAfter(start_hour_p3, start_minute_p3);
+  bool should_run_p3 = !has_p3_run_today
+      && isNowAfter(start_hour_p3, start_minute_p3);
   if (should_run_p3 && !target_temperature_p3)
   {
     target_temperature_p3 = temperature[target_room] + DELTA_TEMP;
   }
-  should_run_p3 = should_run_p3 && temperature[target_room] <= target_temperature_p3;
+  should_run_p3 = should_run_p3
+      && temperature[target_room] <= target_temperature_p3;
   if (should_run_p2 != is_running_p2 || should_run_p3 != is_running_p3)
   {
     for (uint8_t i = 0; i < SENZOR_COUNT; ++i)
     {
-      if(should_run_p2 || should_run_p3)
+      if (should_run_p2 || should_run_p3)
         digitalWrite(relay[i], LOW);
       else
         digitalWrite(relay[i], HIGH);
@@ -345,22 +399,25 @@ void checkProgramming()
     {
       short t_d = temperature[i] % 100;
       short t_i = (temperature[i] - t_d) / 100;
-      if(should_run_p2)
+      if (should_run_p2)
       {
-        const char* msg_fmt = (i == target_room) ?
-            "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d" :
-            "%s [%d.%02d] - start fortat program P2";
+        const char* msg_fmt =
+            (i == target_room) ?
+                "%s [%d.%02d] - start program P2 - porneste la %d:%02d si face %d.%02d" :
+                "%s [%d.%02d] - start fortat program P2";
         const size_t msg_len = strlen(msg_fmt) + room_name_max_len - 6;/* - 20 + 14 = - 6 */
         char msg[msg_len + 1];
         digitalWrite(relay[i], LOW);
-        if(i == target_room)
+        if (i == target_room)
         {
           short tt_d = target_temperature_p2 % 100;
           short tt_i = (target_temperature_p2 - tt_d) / 100;
-          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2, start_minute_p2, tt_i, tt_d);
+          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2,
+              start_minute_p2, tt_i, tt_d);
         }
         else
-          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2, start_minute_p2);
+          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p2,
+              start_minute_p2);
         writeLogger(msg);
 #if DEBUG
         Serial.println(msg);
@@ -388,22 +445,25 @@ void checkProgramming()
     {
       short t_d = temperature[i] % 100;
       short t_i = (temperature[i] - t_d) / 100;
-      if(should_run_p3)
+      if (should_run_p3)
       {
-        const char* msg_fmt = (i == target_room) ?
-            "%s [%d.%02d] - start program P3 - porneste la %d:%02d si face %d.%02d" :
-            "%s [%d.%02d] - start fortat program P3";
+        const char* msg_fmt =
+            (i == target_room) ?
+                "%s [%d.%02d] - start program P3 - porneste la %d:%02d si face %d.%02d" :
+                "%s [%d.%02d] - start fortat program P3";
         const size_t msg_len = strlen(msg_fmt) + room_name_max_len - 6;/* - 20 + 14 = - 6 */
         char msg[msg_len + 1];
         digitalWrite(relay[i], LOW);
-        if(i == target_room)
+        if (i == target_room)
         {
           short tt_d = target_temperature_p3 % 100;
           short tt_i = (target_temperature_p3 - tt_d) / 100;
-          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p3, start_minute_p3, tt_i, tt_d);
+          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p3,
+              start_minute_p3, tt_i, tt_d);
         }
         else
-          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p3, start_minute_p3);
+          sprintf(msg, msg_fmt, room_name[i], t_i, t_d, start_hour_p3,
+              start_minute_p3);
         writeLogger(msg);
 #if DEBUG
         Serial.println(msg);
@@ -437,12 +497,55 @@ void checkProgramming()
   is_running_p2 = should_run_p2;
   is_running_p3 = should_run_p3;
   sendCurrentTemperatures();
+#if DEBUG
+  Serial.println("MQTT send ... ");
+#endif
+#if MQTT
+#if DEBUG
+  Serial.println("MQTT starting ");
+#endif
+ LsuWiFi::connect();
+  if (mqttConnect())
+  {
+    char publish_topic[strlen(publish_topic_fmt) + strlen(t_loc) - 1];
+    sprintf(publish_topic, publish_topic_fmt, t_loc);
+    char publish_message[strlen(publish_message_fmt) + 1];
+    uint8_t i = 0;
+    short t0_d = temperature[i] % 100, t0_i = (temperature[i] - t0_d) / 100;
+    short t1_d = temperature[i + 1] % 100, t1_i = (temperature[i + 1] - t1_d) / 100;
+    short t2_d = temperature[i + 2] % 100, t2_i = (temperature[i + 2] - t2_d) / 100;
+    short t3_d = temperature[i + 3] % 100, t3_i = (temperature[i + 3] - t3_d) / 100;
+    bool runs = is_running_p2 || is_running_p3;
+    i = offset;
+    sprintf(publish_message, publish_message_fmt,
+        ROOMS[i], t0_i, t0_d,
+        ROOMS[(i + 1)], t1_i, t1_d,
+        ROOMS[(i + 2)], t2_i, t2_d,
+        ROOMS[(i + 3)], t3_i, t3_d,
+        runs ? ROOMS_R[i] : "",
+        runs ? ROOMS_R[(i + 1)] : "",
+        runs ? ROOMS_R[(i + 2)] : "",
+        runs ? ROOMS_R[(i + 3)] : "");
+#if DEBUG
+  Serial.print("MQTT publish: ");
+  Serial.println(publish_message);
+#endif
+    mqttClient.publish(publish_topic, publish_message);
+    delay(50);
+    mqttClient.loop();
+    delay(50);
+    mqttClient.disconnect();
+  }
+#endif // MQTT
+#if DEBUG
+  Serial.println("MQTT done. ");
+#endif
   pritSerial();
 }
 
 void updateTemperature();
 
-void scheduleAt(long int next_read)
+void scheduleAt(unsigned long next_read)
 {
   // schedule conversion at'next_read' time, minus the time to wait for it
   LsuScheduler::add(startConversion_1, next_read - 4 * CONVERSION_TIME);
@@ -522,13 +625,14 @@ void updateTemperature()
 
 void check_new_day()
 {
-  if(hour() == 0 && (has_p2_run_today || has_p3_run_today))
+  if (hour() == 0 && (has_p2_run_today || has_p3_run_today))
   {
     has_p2_run_today = false;
     writeLogger("Reset P2 a rulat astazi.");
     has_p3_run_today = false;
     writeLogger("Reset P3 a rulat astazi.");
 
+#if OTA
     const char* ota_msg_fmt = "OTA ruleaza; versiune aplicatie: %d";
     const size_t ota_msg_len = strlen(ota_msg_fmt) + 1; /* -2 + 3 = + 1 */
     char ota_msg[ota_msg_len + 1];
@@ -540,6 +644,7 @@ void check_new_day()
     char ota_url[ota_url_len + 1];
     sprintf(ota_url, ota_url_fmt, LsuOta::otaUrl());
     writeLogger(ota_url);
+#endif
   }
 }
 
@@ -547,8 +652,9 @@ void check_new_day()
 
 void setup()
 {
-#if DEBUG
   Serial.begin(115200);
+  delay(0);
+#if DEBUG
   Serial.println();
 #endif
 
@@ -598,12 +704,14 @@ void setup()
 
   const char* SSID = LsuWiFi::currentSSID();
   const char* ip_msg_fmt = "WiFi: conectat la %s, adresa IP: %s";
-  const size_t ip_msg_len = strlen(ip_msg_fmt) - 4 + strlen(SSID) + IP_ADDR_STR_LEN;
+  const size_t ip_msg_len = strlen(ip_msg_fmt) - 4 + strlen(SSID)
+      + IP_ADDR_STR_LEN;
   char ip_msg[ip_msg_len + 1];
   char addr_str[IP_ADDR_STR_LEN + 1];
   sprintf(ip_msg, ip_msg_fmt, SSID, LsuWiFi::ipAddressStr(addr_str));
   writeLogger(ip_msg);
 
+#if OTA
   LsuOta::begin((version + 1));
   const char* ota_msg_fmt = "OTA pornit; versiune aplicatie: %d";
   const size_t ota_msg_len = strlen(ota_msg_fmt) + 1; /* -2 + 3 = + 1 */
@@ -615,6 +723,7 @@ void setup()
   char ota_url[ota_url_len + 1];
   sprintf(ota_url, ota_url_fmt, LsuOta::otaUrl());
   writeLogger(ota_url);
+#endif
 
 #if DEBUG
   Serial.println(ota_msg);
@@ -634,7 +743,6 @@ void setup()
       (has_p3_run_today ? "true" : "false"), minutes_now, minutes_start_p3);
 #endif
 
-  scheduleAt(millis() + 8 * CONVERSION_TIME);
 #if DEBUG
   Serial.println("Setup done");
 #endif
@@ -646,7 +754,9 @@ void loop()
   LsuWiFi::connect();
   LsuScheduler::execute(millis());
   check_new_day();
+#if OTA
   LsuOta::loop();
+#endif
 }
 
 #endif /* _LsuHeating_H_ */

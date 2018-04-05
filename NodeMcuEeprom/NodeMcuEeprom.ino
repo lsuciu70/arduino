@@ -308,24 +308,27 @@ const char content_reset_response[] PROGMEM =
 
 void handleRoot()
 {
+  Serial.println("handleRoot");
   if(guard)
   {
+    Serial.println("reset guard");
     // reset guard
     guard = 0;
     EEPROM.write(EEPROM_START + 2, guard);
     EEPROM.commit();
     Serial.println("Guard was reset.");
   }
+  Serial.println("switch (op_mode)");
   switch (op_mode)
   {
     case MODE_UNSET:
-      server.send(200, "text/html", content_settings);
+      server.send(200, "text/html", FPSTR(content_settings));
       break;
     default:
       if(!server.authenticate(u_name, u_pwd))
         server.requestAuthentication();
       else
-        server.send(200, "text/html", content_root);
+        server.send(200, "text/html", FPSTR(content_root));
       break;
   }
 }
@@ -368,8 +371,8 @@ void handleSetupApMode()
         strcpy(net3_ssid, WiFi.SSID(net).c_str());
       }
     }
-    char content_set_ap_mode[strlen(content_set_ap_mode_fmt) + (4 * 14) + (3 * 2) + 1];
-    sprintf(content_set_ap_mode, content_set_ap_mode_fmt, net1_ssid, net1_ssid, net1_pwr, net2_ssid, net2_pwr, net3_ssid, net3_pwr);
+    char content_set_ap_mode[strlen_P(content_set_ap_mode_fmt) + (4 * 14) + (3 * 2) + 1];
+    sprintf_P(content_set_ap_mode, content_set_ap_mode_fmt, net1_ssid, net1_ssid, net1_pwr, net2_ssid, net2_pwr, net3_ssid, net3_pwr);
   	server.send(200, "text/html", content_set_ap_mode);
   }
 }
@@ -412,8 +415,8 @@ void handleSetupCliMode()
         strcpy(net3_ssid, WiFi.SSID(net).c_str());
       }
     }
-    char content_set_cli_mode[strlen(content_set_cli_mode_fmt) + (4 * 14) + (3 * 2) + 1];
-    sprintf(content_set_cli_mode, content_set_cli_mode_fmt, net1_ssid, net1_ssid, net1_pwr, net2_ssid, net2_pwr, net3_ssid, net3_pwr);
+    char content_set_cli_mode[strlen_P(content_set_cli_mode_fmt) + (4 * 14) + (3 * 2) + 1];
+    sprintf_P(content_set_cli_mode, content_set_cli_mode_fmt, net1_ssid, net1_ssid, net1_pwr, net2_ssid, net2_pwr, net3_ssid, net3_pwr);
   	server.send(200, "text/html", content_set_cli_mode);
   }
 }
@@ -544,8 +547,8 @@ void handleSaveApMode()
     Serial.println(value);
   }
 
-  char content_save_ap_mode_response[strlen(content_save_ap_mode_response_fmt) + MAX_SSID_LEN + MAX_USR_PWD_LEN - 3];
-  sprintf(content_save_ap_mode_response, content_save_ap_mode_response_fmt, ap0_name, ap0_pwd, u_name, u_pwd);
+  char content_save_ap_mode_response[strlen_P(content_save_ap_mode_response_fmt) + MAX_SSID_LEN + MAX_USR_PWD_LEN - 3];
+  sprintf_P(content_save_ap_mode_response, content_save_ap_mode_response_fmt, ap0_name, ap0_pwd, u_name, u_pwd);
   server.send(200, "text/html", content_save_ap_mode_response);
   ESP.deepSleep(SECONDS_AS_PICO);
 }
@@ -651,7 +654,7 @@ void handleReset()
 {
   eepromReset();
 
-  server.send(200, "text/html", content_reset_response);
+  server.send(200, "text/html", FPSTR(content_reset_response));
   ESP.deepSleep(SECONDS_AS_PICO);
 }
 

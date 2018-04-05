@@ -40,8 +40,8 @@ WiFiUDP udp;
 // Set the LCD I2C address and pinouts
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
-const byte LCD_LINES = 4;
-const byte LCD_CHARS_PER_LINE = 20;
+const byte LCD_LINES = 2;
+const byte LCD_CHARS_PER_LINE = 16;
 // LiquidCrystal section - end
 
 
@@ -211,8 +211,11 @@ String timeString()
 
 String timeString(int day_t, int month_t, int year_t, int hour_t, int minute_t, int second_t)
 {
-  char buff[20];
-  sprintf(buff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t, hour_t, minute_t, second_t);
+  char buff[LCD_CHARS_PER_LINE];
+  if(LCD_CHARS_PER_LINE < 20)
+    sprintf(buff, "%02d:%02d:%02d", hour_t, minute_t, second_t);
+  else
+    sprintf(buff, "%02d-%02d-%04d %02d:%02d:%02d", day_t, month_t, year_t, hour_t, minute_t, second_t);
   return String(buff);
 }
 

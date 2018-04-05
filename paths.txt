@@ -6,11 +6,11 @@ Arduino.h
 IPAddress.h
 Esp.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/cores/arduino
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/cores/esp8266
 32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/cores/esp32
 
 ArduinoOTA.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ArduinoOTA
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/ArduinoOTA
 32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/libraries/ArduinoOTA/src
 
 WiFi.h
@@ -20,31 +20,31 @@ ESP8266WiFi.h
 WiFiClient.h
 WiFiUdp.h
 /home/lsuciu/arduino/libraries/ESP8266WiFi/src
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266WiFi/src
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/ESP8266WiFi/src
 
 ESP8266WebServer.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266WebServer/src
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/ESP8266WebServer/src
 
 ESP8266HTTPClient.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266HTTPClient/src
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/ESP8266HTTPClient/src
 
 ESP8266httpUpdate.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266httpUpdate/src
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/ESP8266httpUpdate/src
 
 ESP8266mDNS.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/ESP8266mDNS
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/ESP8266mDNS
 
 Wire.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/libraries/Wire/src
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/Wire
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/Wire
 32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/libraries/Wire/src
 
 SoftwareSerial.h
 /home/lsuciu/arduino-ide/hardware/arduino/avr/libraries/SoftwareSerial/src
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/SoftwareSerial
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/SoftwareSerial
 
 EEPROM.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/libraries/EEPROM
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/libraries/EEPROM
 32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/libraries/EEPROM
 
 
@@ -63,12 +63,12 @@ stdarg.h
 32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/tools/xtensa-esp32-elf/lib/gcc/xtensa-esp32-elf/5.2.0/include
 
 common.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/generic
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/variants/generic
 /home/lsuciu/arduino-ide/hardware/tools/avr/avr/include/avr
 
 pgmspace.h
 /home/lsuciu/arduino-ide/hardware/tools/avr/avr/include/avr
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/cores/esp8266
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/cores/esp8266
 32: /home/lsuciu/arduino-ide/hardware/espressif/esp32/cores/esp32
 
 map.h
@@ -79,17 +79,18 @@ functional
 +
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2/xtensa-lx106-elf
 
+string
 map
 /home/lsuciu/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/1.20.0-26-gb404fb9-2/xtensa-lx106-elf/include/c++/4.8.2
 
 pins_arduino.h
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/tests/host/common
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/generic
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/d1
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/d1_mini
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/adafruit
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/nodemcu
-/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.3.0/variants/thing
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/tests/host/common
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/variants/generic
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/variants/d1
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/variants/d1_mini
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/variants/adafruit
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/variants/nodemcu
+/home/lsuciu/.arduino15/packages/esp8266/hardware/esp8266/2.4.1/variants/thing
 
 string
 functional
