@@ -100,8 +100,7 @@ const char content_settings[] PROGMEM =
 "<meta charset='UTF-8'>"
 "<title>Iriga&#539;ie</title></head>"
 "<body>"
-"<h1>Sistemul de iriga&#539;ie</h1>"
-"<h2>Setare mod lucru:</h2>"
+"<h2>Setare WiFi:</h2>"
 "<table>"
 "<tr><td><form name='ap_mode' method='POST' action='ap_mode'><input type='submit' value='Punct Acces WiFi' style='width:100%'></form></td></tr>"
 "<tr><td><form name='cli_mode' method='POST' action='cli_mode'><input type='submit' value='Client WiFi' style='width:100%'></form></td></tr>"
@@ -308,29 +307,14 @@ const char content_reset_response[] PROGMEM =
 
 void handleRoot()
 {
-  Serial.println("handleRoot");
   if(guard)
   {
-    Serial.println("reset guard");
     // reset guard
     guard = 0;
     EEPROM.write(EEPROM_START + 2, guard);
     EEPROM.commit();
-    Serial.println("Guard was reset.");
   }
-  Serial.println("switch (op_mode)");
-  switch (op_mode)
-  {
-    case MODE_UNSET:
-      server.send(200, "text/html", FPSTR(content_settings));
-      break;
-    default:
-      if(!server.authenticate(u_name, u_pwd))
-        server.requestAuthentication();
-      else
-        server.send(200, "text/html", FPSTR(content_root));
-      break;
-  }
+  server.send(200, "text/html", FPSTR(content_settings));
 }
 
 void handleSetupApMode()
