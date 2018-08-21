@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <WiFiUdp.h>
 
 #include <LiquidCrystal_I2C.h> // https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads/NewliquidCrystal_1.3.4.zip
